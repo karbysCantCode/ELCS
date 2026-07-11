@@ -22,23 +22,15 @@ Rectangle {
     transformOrigin: Item.Center
     scale: 1
 
+    palette.button: Constants.surface0
+    palette.buttonText: Constants.text
+    palette.text: Constants.text
+
     ColumnLayout {
         id: mainColumnLayout
-        x: 0
-        y: 0
-        width: 1920
-        height: 1080
-        anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.leftMargin: 0
-        anchors.rightMargin: 0
-        anchors.topMargin: 0
-        anchors.bottomMargin: 0
-        anchors.horizontalCenterOffset: 0
+        anchors.fill: parent
         spacing: 0
-        anchors.horizontalCenter: parent.horizontalCenter
         TabBar {
             id: buttonTab
             position: TabBar.Header
@@ -103,8 +95,10 @@ Rectangle {
 
         Frame {
             id: pageFrame
-            width: 207
             height: 200
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
             rightPadding: 0
             bottomPadding: 0
             padding: 12
@@ -115,225 +109,186 @@ Rectangle {
 
             Rectangle {
                 id: homeRect
+                color: Constants.surface0
                 anchors.fill: parent
+                anchors.leftMargin: 0
+                anchors.rightMargin: 0
+                anchors.topMargin: 0
+                anchors.bottomMargin: 0
 
                 Rectangle {
                     id: rectangle1
-                    x: 0
                     width: 422
-                    color: Constants.backgroundColor
+                    color: Constants.mantle
+                    anchors.left: parent.left
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
 
-                    Text {
-                        id: text1
-                        height: 162
-                        text: qsTr("ELCS")
+                    ColumnLayout {
+                        id: columnLayout2
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
-                        font.pixelSize: 50
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.styleName: "Semibold"
-                    }
+                        anchors.bottom: parent.bottom
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        anchors.topMargin: 10
+                        anchors.bottomMargin: 10
+                        uniformCellSizes: false
 
-                    ScrollView {
-                        id: scrollView
-                        x: 0
-                        y: 168
-                        width: 422
-                        height: 295
-                        anchors.left: parent.left
-                        anchors.right: parent.right
+                        Text {
+                            id: text1
+                            height: 158
+                            text: qsTr("ELCS")
+                            color: Constants.text
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            font.pixelSize: 50
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.styleName: "Semibold"
+                        }
 
                         ColumnLayout {
-                            id: columnLayout
-                            anchors.fill: parent
+                            id: columnLayout1
+                            height: 887
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: scrollView.top
+                            anchors.topMargin: 0
+                            Layout.fillHeight: false
+                            Layout.fillWidth: false
+
+                            Rectangle {
+                                id: rectangle8
+                                height: 454
+                                color: Constants.surface1
+                                radius: Constants.cornerRounding
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: scrollView.top
+                                anchors.bottomMargin: -576
+                                layer.smooth: true
+
+                                ScrollView {
+                                    id: scrollView
+                                    x: -8
+                                    y: 52
+                                    width: 422
+                                    height: 402
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.bottom: parent.bottom
+                                    anchors.leftMargin: 0
+                                    anchors.rightMargin: 0
+
+                                    ColumnLayout {
+                                        id: columnLayout
+                                    }
+                                }
+
+                                Text {
+                                    id: text3
+                                    y: 0
+                                    height: 46
+                                    color: Constants.text
+                                    text: qsTr("Recent Projects")
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.bottom: scrollView.top
+                                    anchors.topMargin: 0
+                                    anchors.bottomMargin: 17
+                                    font.pixelSize: 26
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    font.styleName: "Bold"
+                                }
+
+                                ToolSeparator {
+                                    id: toolSeparator
+                                    x: 0
+                                    y: 33
+                                    width: 406
+                                    height: 13
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.bottom: scrollView.top
+                                    anchors.leftMargin: 0
+                                    anchors.rightMargin: 0
+                                    anchors.bottomMargin: 6
+                                    rightPadding: 10
+                                    leftPadding: 10
+                                    orientation: Qt.Horizontal
+                                }
+                            }
                         }
-                    }
 
-                    Rectangle {
-                        id: rectangle2
-                        x: 0
-                        y: 968
-                        width: 422
-                        height: 79
-                        color: "#494949"
-                        radius: 10
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.bottom: button.bottom
-                        anchors.leftMargin: 8
-                        anchors.rightMargin: 8
-                        anchors.bottomMargin: -968
-                        layer.smooth: true
-
-                        Button {
-                            id: button
-                            text: qsTr("Credits")
-                            anchors.fill: parent
-                            anchors.topMargin: 10
-                            anchors.bottomMargin: 10
+                        RoundButton {
+                            id: openProjectButton
+                            radius: Constants.cornerRounding
+                            text: "Open Project"
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            checkable: false
                             rightInset: 0
                             leftInset: 0
-                            topInset: 0
-                            hoverEnabled: true
-                            enabled: true
-                            font.preferShaping: false
-                            activeFocusOnTab: false
-                            highlighted: false
-                            flat: true
-                            display: AbstractButton.TextOnly
-                            icon.cache: false
-                            bottomPadding: 8
-                            topPadding: 8
+                            font.bold: true
                             font.pointSize: 25
-                            checked: true
-                            background.opacity: 0
+                            display: AbstractButton.TextOnly
                         }
-                    }
 
-                    Rectangle {
-                        id: rectangle3
-                        x: 0
-                        y: 883
-                        width: 422
-                        height: 79
-                        color: "#494949"
-                        radius: 10
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.bottom: button1.bottom
-                        anchors.leftMargin: 8
-                        anchors.rightMargin: 8
-                        anchors.bottomMargin: -916
-                        layer.smooth: true
-                        Button {
-                            id: button1
-                            text: qsTr("Settings")
-                            anchors.fill: parent
-                            anchors.topMargin: 10
-                            anchors.bottomMargin: 10
-                            topPadding: 8
-                            topInset: 0
+                        RoundButton {
+                            id: createProjectButton
+                            radius: 10
+                            text: "Create Project"
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            checkable: false
                             rightInset: 0
                             leftInset: 0
-                            icon.cache: false
-                            hoverEnabled: true
-                            highlighted: false
-                            font.preferShaping: false
                             font.pointSize: 25
-                            flat: true
-                            enabled: true
+                            font.bold: true
                             display: AbstractButton.TextOnly
-                            checked: true
-                            bottomPadding: 8
-                            background.opacity: 0
-                            activeFocusOnTab: false
                         }
-                    }
 
-                    Rectangle {
-                        id: rectangle5
-                        x: 0
-                        y: 713
-                        width: 422
-                        height: 79
-                        color: "#494949"
-                        radius: 10
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.bottom: button3.bottom
-                        anchors.leftMargin: 8
-                        anchors.rightMargin: 8
-                        anchors.bottomMargin: -746
-                        layer.smooth: true
-                        Button {
-                            id: button3
-                            text: qsTr("Create New Project")
-                            anchors.fill: parent
-                            anchors.leftMargin: 0
-                            anchors.rightMargin: 0
-                            anchors.topMargin: 12
-                            anchors.bottomMargin: 8
-                            topPadding: 8
-                            topInset: 0
+                        RoundButton {
+                            id: settingsButton
+                            radius: 10
+                            text: "Settings"
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            checkable: false
                             rightInset: 0
                             leftInset: 0
-                            icon.cache: false
-                            hoverEnabled: true
-                            highlighted: false
-                            font.preferShaping: false
                             font.pointSize: 25
-                            flat: true
-                            enabled: true
+                            font.bold: true
                             display: AbstractButton.TextOnly
-                            checked: true
-                            bottomPadding: 8
-                            background.opacity: 0
-                            activeFocusOnTab: false
                         }
-                    }
 
-                    Rectangle {
-                        id: rectangle7
-                        x: 0
-                        y: 628
-                        width: 422
-                        height: 79
-                        color: "#494949"
-                        radius: 10
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.bottom: button5.bottom
-                        anchors.leftMargin: 8
-                        anchors.rightMargin: 8
-                        anchors.bottomMargin: -661
-                        layer.smooth: true
-                        Button {
-                            id: button5
-                            text: qsTr("Open Project From File")
-                            anchors.fill: parent
-                            anchors.leftMargin: 0
-                            anchors.rightMargin: 0
-                            anchors.topMargin: 12
-                            anchors.bottomMargin: 8
-                            topPadding: 8
-                            topInset: 0
+                        RoundButton {
+                            id: creditsButton
+                            radius: 10
+                            text: "Credits"
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            checkable: false
                             rightInset: 0
                             leftInset: 0
-                            icon.cache: false
-                            hoverEnabled: true
-                            highlighted: false
-                            font.preferShaping: false
                             font.pointSize: 25
-                            flat: true
-                            enabled: true
+                            font.bold: true
                             display: AbstractButton.TextOnly
-                            checked: true
-                            bottomPadding: 8
-                            background.opacity: 0
-                            activeFocusOnTab: false
                         }
                     }
+                }
 
-                    Rectangle {
-                        id: rectangle8
-                        x: 0
-                        y: 168
-                        width: 422
-                        height: 454
-                        color: "#494949"
-                        radius: 10
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: scrollView.top
-                        anchors.leftMargin: 8
-                        anchors.rightMargin: 8
-                        anchors.bottomMargin: -576
-                        layer.smooth: true
-                    }
+                Text {
+                    id: text2
+                    x: 476
+                    y: 1031
+                    text: qsTr("Text")
+                    font.pixelSize: 12
                 }
             }
 

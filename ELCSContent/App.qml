@@ -13,6 +13,7 @@ Window {
         id: mainScreen
 
         anchors.centerIn: parent
+
     }
 
     InputPanel {
