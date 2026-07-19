@@ -1,44 +1,49 @@
+cmake_minimum_required(VERSION 3.19)
+project(elcs LANGUAGES CXX)
 
-cmake_minimum_required(VERSION 3.21.1)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
 
-option(LINK_INSIGHT "Link Qt Insight Tracker library" ON)
-option(BUILD_QDS_COMPONENTS "Build design studio components" ON)
-
-project(ELCSApp LANGUAGES CXX)
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(QT_QML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml)
-set(QML_IMPORT_PATH ${QT_QML_OUTPUT_DIRECTORY}
-    CACHE STRING "Import paths for Qt Creator's code model"
-    FORCE
-)
-
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets Qml Quick QuickTimeline ShaderTools)
 qt_standard_project_setup()
 
+qt_add_executable(elcs
+    WIN32 MACOSX_BUNDLE
+    main.cpp
+    mainwindow.cpp
+    mainwindow.h
+    mainwindow.ui
+    circuitworkspace.h circuitworkspace.cpp
+    dotgridscene.h dotgridscene.cpp
+    componentholder.h componentholder.cpp
 
-qt_add_executable(${CMAKE_PROJECT_NAME})
-qt_add_resources(${CMAKE_PROJECT_NAME} "configuration"
-    PREFIX "/"
-    FILES
-        qtquickcontrols2.conf)
+    component.h component.cpp
+    scheduler.h scheduler.cpp
+    filehelper.h filehelper.cpp
+    componenttoolbox.h componenttoolbox.cpp
+    projectmanager.h projectmanager.cpp
+    componentToolboxElement.ui
 
-include(qds)
 
-if (BUILD_QDS_COMPONENTS)
-    include(qmlcomponents OPTIONAL)
-endif()
-
-if (LINK_INSIGHT)
-    include(insight OPTIONAL)
-endif ()
-
-include(GNUInstallDirs)
-install(TARGETS ${CMAKE_PROJECT_NAME}
-  BUNDLE DESTINATION .
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+target_include_directories(elcs PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(elcs
+    PRIVATE
+        Qt::Core
+        Qt::Widgets
+)
+
+install(TARGETS elcs
+    BUNDLE  DESTINATION .
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+qt_generate_deploy_app_script(
+    TARGET elcs
+    OUTPUT_SCRIPT deploy_script
+    NO_UNSUPPORTED_PLATFORM_ERROR
+)
+install(SCRIPT ${deploy_script})
