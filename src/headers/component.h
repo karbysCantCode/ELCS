@@ -69,6 +69,7 @@ public:
 
     Propagator() {};
     Propagator(const Propagator& propagator);
+    virtual ~Propagator() = default;
 };
 
 class Wire : public Propagator

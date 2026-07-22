@@ -17,6 +17,7 @@ public:
     explicit ToolboxElement(QWidget* parent = nullptr);
         ~ToolboxElement();
 
+    
 private:
     Ui::componentToolboxElement* ui;
 };

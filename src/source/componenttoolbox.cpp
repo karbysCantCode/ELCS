@@ -1,10 +1,13 @@
 #include "componenttoolbox.h"
 
+#include "ui_componentToolboxElement.h"
+
 componentToolbox::componentToolbox(QWidget* parent)
     : QScrollArea(parent)
-{}
+{
+    
+}
 
-#include "ui_componentToolboxElement.h"
 
 ToolboxElement::ToolboxElement(QWidget* parent)
     : QWidget(parent),

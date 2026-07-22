@@ -11,6 +11,7 @@ class ProjectManager
 public:
     std::unordered_map<std::string, Component> components;
 
+    void createNewComponent();
     ProjectManager();
 };
 

@@ -5,28 +5,26 @@ find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
 
 qt_standard_project_setup()
 
-qt_add_executable(elcs
-    WIN32 MACOSX_BUNDLE
-    main.cpp
-    mainwindow.cpp
-    mainwindow.h
-    mainwindow.ui
-    circuitworkspace.h circuitworkspace.cpp
-    dotgridscene.h dotgridscene.cpp
-    componentholder.h componentholder.cpp
-
-    component.h component.cpp
-    scheduler.h scheduler.cpp
-    filehelper.h filehelper.cpp
-    componenttoolbox.h componenttoolbox.cpp
-    projectmanager.h projectmanager.cpp
-    componentToolboxElement.ui
-
-
+file(GLOB_RECURSE SOURCES
+    src/*.cpp
+    src/*.h
+    src/*.ui
 )
 
-target_include_directories(elcs PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
+qt_add_executable(elcs
+    WIN32 MACOSX_BUNDLE
+    ${SOURCES}
+    main.cpp
+)
+
+target_include_directories(elcs PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/headers
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui
+)
+
+set_target_properties(elcs PROPERTIES
+    AUTOUIC_SEARCH_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/src/ui"
 )
 
 target_link_libraries(elcs
