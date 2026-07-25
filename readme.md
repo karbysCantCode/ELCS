@@ -5,11 +5,13 @@ Using QT Online Installer, once installed:
 
 MacOs  
 In the same directory as this readme, run:  
-```cmake -B build -DCMAKE_PREFIX_PATH="$HOME/Qt/{YOUR QT VERSION}/macos"```  
+```cmake --preset debug -DCMAKE_PREFIX_PATH="$HOME/Qt/{YOUR QT VERSION}/macos"```  
+```cmake --preset release -DCMAKE_PREFIX_PATH="$HOME/Qt/{YOUR QT VERSION}/macos"```  
 
 
 Windows  
 In the same directory as this readme, run:  
-```cmake -B build -DCMAKE_PREFIX_PATH="PATH/TO/QT/Qt/{YOUR QT VERSION}/mingw_64"```
+```cmake --preset debug -DCMAKE_PREFIX_PATH="PATH/TO/QT/Qt/{YOUR QT VERSION}/{YOUR TOOLCHAIN}"```
+```cmake --preset release -DCMAKE_PREFIX_PATH="PATH/TO/QT/Qt/{YOUR QT VERSION}/{YOUR TOOLCHAIN}"```
 
 Then you should be able to build.  

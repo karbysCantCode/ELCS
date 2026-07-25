@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 project(elcs LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
 
@@ -16,6 +18,29 @@ qt_add_executable(elcs
     ${SOURCES}
     main.cpp
 )
+
+if(WIN32)
+
+    find_program(WINDEPLOYQT_EXECUTABLE
+        NAMES windeployqt.exe
+        HINTS
+            ${CMAKE_PREFIX_PATH}/bin
+    )
+
+    if(WINDEPLOYQT_EXECUTABLE)
+        message(STATUS "Found windeployqt: ${WINDEPLOYQT_EXECUTABLE}")
+
+        add_custom_command(TARGET elcs POST_BUILD
+            COMMAND ${WINDEPLOYQT_EXECUTABLE}
+                --debug
+                $<TARGET_FILE:elcs>
+            COMMENT "Deploying Qt DLLs"
+        )
+    else()
+        message(WARNING "windeployqt not found")
+    endif()
+
+endif()
 
 target_include_directories(elcs PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
