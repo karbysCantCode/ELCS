@@ -306,6 +306,8 @@ void Component::loadFromFile(const std::filesystem::path& path) {
         for (uint32_t j = 0; j < affectorCount; j++) {
             kvpair->second.affectorIds.emplace(*bufferPos++);
         }
+
+        this->propagators.push_back(std::move(wire));
     }
 
     for (uint32_t i = 0; i < totalPins; i++) {
@@ -326,6 +328,8 @@ void Component::loadFromFile(const std::filesystem::path& path) {
         for (uint32_t j = 0; j < affectorCount; j++) {
             kvpair->second.affectorIds.emplace(*bufferPos++);
         }
+
+        this->propagators.push_back(std::move(pin));
     }
 
     for (const auto& [id, identity] : propagators) {
@@ -413,7 +417,8 @@ void Wire::saveToAddress(uint32_t* data, const std::unordered_map<Propagator*, u
 
 Wire::Wire(const Wire& wireToCopy) : anchors(wireToCopy.anchors), Propagator(wireToCopy) {}
 
-Component::Component(const Component& componentToCopy) {
+Component::Component(const Component& componentToCopy) 
+    :   name(componentToCopy.name) {
     std::unordered_map<Propagator*, Propagator*> oldNewPropagatorPointerMap;
     std::unordered_map<Pin*, Propagator*> pins;
     std::unordered_map<Wire*, Propagator*> wires;
@@ -471,3 +476,96 @@ Pin::Pin(const Pin& pinToCopy)
     : tickPropagationDelay(propagator.tickPropagationDelay),
     effectingState(propagator.effectingState)
     {}
+
+
+#include <QDebug>
+
+void Component::debugPrintPropagators() const
+{
+    qDebug() << "========== Component Debug ==========";
+    qDebug() << "Name:" << QString::fromStdString(name);
+    qDebug() << "Propagator count:" << propagators.size();
+
+    for (size_t i = 0; i < propagators.size(); ++i)
+    {
+        const Propagator* p = propagators[i].get();
+
+        qDebug() << "";
+        qDebug() << "Propagator" << i;
+        qDebug() << "--------------------------------";
+        qDebug() << "Address:" << p;
+
+        // Type
+        switch (p->getKind())
+        {
+        case Propagator::WIRE:
+            qDebug() << "Kind: Wire";
+            break;
+        case Propagator::PIN:
+            qDebug() << "Kind: Pin";
+            break;
+        }
+
+        // Common properties
+        qDebug() << "Tick propagation delay:" << p->tickPropagationDelay;
+        qDebug() << "Effecting state:" << static_cast<int>(p->effectingState);
+        qDebug() << "Effectors:" << p->effectors.size();
+        qDebug() << "Affectors:" << p->affectors.size();
+
+        qDebug() << "Effector pointers:";
+        for (Propagator* effector : p->effectors)
+            qDebug() << "   " << effector;
+
+        qDebug() << "Affector pointers:";
+        for (Propagator* affector : p->affectors)
+            qDebug() << "   " << affector;
+
+        // Type-specific data
+        if (p->getKind() == Propagator::WIRE)
+        {
+            const Wire* wire = static_cast<const Wire*>(p);
+
+            qDebug() << "Anchor count:" << wire->anchors.size();
+
+            for (size_t j = 0; j < wire->anchors.size(); ++j)
+            {
+                qDebug() << "   Anchor" << j
+                         << "("
+                         << wire->anchors[j].x
+                         << ","
+                         << wire->anchors[j].y
+                         << ")";
+            }
+        }
+        else if (p->getKind() == Propagator::PIN)
+        {
+            const Pin* pin = static_cast<const Pin*>(p);
+
+            qDebug() << "Operation:" << static_cast<int>(pin->effectorOperation);
+            qDebug() << "Relative position:"
+                     << "("
+                     << pin->relPosition.x
+                     << ","
+                     << pin->relPosition.y
+                     << ")";
+
+            // Position gp = pin->gridPosition();
+
+            // qDebug() << "Grid position:"
+            //          << "("
+            //          << gp.x
+            //          << ","
+            //          << gp.y
+            //          << ")";
+
+            qDebug() << "State pointer:" << pin->state;
+            if (pin->state)
+                qDebug() << "State value:" << static_cast<int>(*pin->state);
+
+            qDebug() << "Parent component:"
+                     << QString::fromStdString(pin->parent.name);
+        }
+    }
+
+    qDebug() << "=====================================";
+}

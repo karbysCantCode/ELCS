@@ -6,9 +6,6 @@
 #include <filesystem>
 #include <fstream>
 
-#define COMPONENT_SAVE_VERSION_MAJOR 0
-#define COMPONENT_SAVE_VERSION_MINOR 1
-
 enum States
 {
     LOW = 0,
@@ -129,12 +126,14 @@ private:
         PropagatorIdentity(Propagator* _propagator) : propagator(_propagator) {}
     };
 public:
+    std::string name;
     std::vector<std::unique_ptr<Propagator>> propagators;
     void loadFromFile(const std::filesystem::path& path);
     void saveToFile(const std::filesystem::path& path);
 
     static Propagator* findPropagatorPointerOfId(uint32_t id, const std::unordered_map<uint32_t, PropagatorIdentity>& map);
 
+    void debugPrintPropagators() const;
 
 
     Component();

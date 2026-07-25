@@ -14,7 +14,9 @@ class componentToolboxElement;
 class ToolboxElement : public QWidget {
     Q_OBJECT
 public:
-    explicit ToolboxElement(QWidget* parent = nullptr);
+    const Component& component;
+
+    explicit ToolboxElement(const Component& _component, QWidget* parent = nullptr);
         ~ToolboxElement();
 
     
@@ -26,10 +28,13 @@ class componentToolbox : public QScrollArea
 {
     Q_OBJECT
 private:
-    //void add
+    
 public:
+    std::unordered_map<std::string, ToolboxElement> toolboxElements;
 
+    void updateElements();
     componentToolbox(QWidget* parent = nullptr);
+
 };
 
 #endif // COMPONENTTOOLBOX_H

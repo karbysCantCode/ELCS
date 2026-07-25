@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>960</width>
-    <height>543</height>
+    <height>545</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -157,7 +157,7 @@
        <enum>QTabWidget::TabShape::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <property name="usesScrollButtons">
        <bool>false</bool>
@@ -1251,8 +1251,8 @@ QPushButton:pressed {
                     <rect>
                      <x>0</x>
                      <y>0</y>
-                     <width>192</width>
-                     <height>414</height>
+                     <width>176</width>
+                     <height>76</height>
                     </rect>
                    </property>
                    <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -1683,7 +1683,7 @@ QPushButton:pressed {
                      <x>0</x>
                      <y>0</y>
                      <width>192</width>
-                     <height>414</height>
+                     <height>416</height>
                     </rect>
                    </property>
                   </widget>
