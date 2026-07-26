@@ -41,7 +41,7 @@ public:
         PIN
     };
     int tickPropagationDelay = 1;
-    States effectingState;
+    States effectingState = States::FLOATING;
     std::unordered_set<Propagator*> effectors; // those that this propagator effects
     std::unordered_set<Propagator*> affectors; // those that this propagator is affected by
     //TODO SEE DEF FOR NOTE
@@ -100,6 +100,7 @@ public:
     Position relPosition;
     Position gridPosition() const;
 
+    std::string name;
     Component& parent;
     // state should be inherited by wire, begins nullptr assuming no connected wire, beware.
     States* state = nullptr; //unused...
@@ -109,7 +110,7 @@ public:
     virtual void saveToAddress(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const override;
     Pin(Component& _parent, States* _state = nullptr) : parent(_parent), state(_state) {}
     // does not sync effectors and affectors.
-    Pin(const Pin& pinToCopy);
+    Pin(const Pin& pinToCopy, Component& _parent);
 private:
 
 };

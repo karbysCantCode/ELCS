@@ -3,18 +3,32 @@
 
 #include <string>
 #include <unordered_map>
-
+#include <functional>
 #include "component.h"
+#include "circuitworkspace.h"
 
 class ProjectManager
 {
+private:
+  std::unordered_set<std::function<void()>*> newComponentCallbacks;
 public:
     std::unordered_map<std::string, Component> components;
+    Component* currentOpenComponent = nullptr;
+    CircuitWorkspace* workspace = nullptr;
 
-    void createNewComponent();
+    void dummyLoad();
+    bool createNewComponent(const std::string& name);
+    bool loadNewComponent(const std::filesystem::path& path);
+    void registerCallbackOnNewComponent(std::function<void()>* func);
+    void removeCallbackOnNewComponent(std::function<void()>* func);
+    void openComponent(const std::string& name);
     ProjectManager();
+
+private:
+  void removeExistingComponentFromWorkspace();
+  void addCurrentComponentToWorkspace();
 };
 
-static ProjectManager globalProjectManager;
-
+extern ProjectManager* globalProjectManager;
+extern CircuitWorkspace* __circuitworkspace;
 #endif // PROJECTMANAGER_H

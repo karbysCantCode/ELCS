@@ -8,6 +8,8 @@
 #include <QGraphicsPixmapItem>
 #include <QResizeEvent>
 
+#include "component.h"
+
 class CircuitWorkspace : public QGraphicsView
 {
     Q_OBJECT

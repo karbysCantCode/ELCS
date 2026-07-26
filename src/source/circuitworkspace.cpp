@@ -54,6 +54,7 @@ void CircuitWorkspace::resetBackgroundGrid() {
     painter.fillRect(pmap.rect(), tiledBrush);
 
     backgroundGridItem = workspaceScene.addPixmap(pmap);
+    backgroundGridItem->setZValue(0);
 
 
 }

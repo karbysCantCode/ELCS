@@ -157,7 +157,7 @@
        <enum>QTabWidget::TabShape::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>1</number>
       </property>
       <property name="usesScrollButtons">
        <bool>false</bool>
@@ -231,8 +231,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>197</width>
-                <height>364</height>
+                <width>205</width>
+                <height>318</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout">
@@ -1240,7 +1240,7 @@ QPushButton:pressed {
                <property name="frameShadow">
                 <enum>QFrame::Shadow::Raised</enum>
                </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_21">
+               <layout class="QVBoxLayout" name="verticalLayout_8">
                 <item>
                  <widget class="QScrollArea" name="scrollArea_2">
                   <property name="widgetResizable">
@@ -1251,8 +1251,8 @@ QPushButton:pressed {
                     <rect>
                      <x>0</x>
                      <y>0</y>
-                     <width>176</width>
-                     <height>76</height>
+                     <width>198</width>
+                     <height>391</height>
                     </rect>
                    </property>
                    <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -1320,6 +1320,13 @@ QPushButton:pressed {
                   </widget>
                  </widget>
                 </item>
+                <item>
+                 <widget class="QPushButton" name="createNewCircuitButton">
+                  <property name="text">
+                   <string>Create New Circuit</string>
+                  </property>
+                 </widget>
+                </item>
                </layout>
               </widget>
               <widget class="QFrame" name="frame_6">
@@ -1358,7 +1365,7 @@ QPushButton:pressed {
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="CircuitWorkspace" name="graphicsView">
+                 <widget class="CircuitWorkspace" name="SimulatorCircuitWorkspace">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                     <horstretch>1</horstretch>
@@ -1682,8 +1689,8 @@ QPushButton:pressed {
                     <rect>
                      <x>0</x>
                      <y>0</y>
-                     <width>192</width>
-                     <height>416</height>
+                     <width>198</width>
+                     <height>421</height>
                     </rect>
                    </property>
                   </widget>

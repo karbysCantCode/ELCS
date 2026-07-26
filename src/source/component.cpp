@@ -208,6 +208,8 @@ void Component::saveToFile(const std::filesystem::path& path) {
     /*
     0x0000 component save version major
     0x0004 component save version minor
+    0x.... name length (4b)
+    0x.... name string
     0x0008: propagator count (.size) (4b)
     0x000c: number of wires (4b)
     0x0010: first wire of wires:
@@ -236,6 +238,25 @@ void Component::saveToFile(const std::filesystem::path& path) {
     std::vector<uint32_t> buffer;
     buffer.push_back(COMPONENT_SAVE_VERSION_MAJOR);
     buffer.push_back(COMPONENT_SAVE_VERSION_MINOR);
+    buffer.push_back(name.length());
+    uint32_t namei = 0;
+    uint32_t nameBuffer = 0;
+    for (unsigned char c : name) {
+      uint32_t nc = c << namei*8;
+      nameBuffer |= nc;
+      if (namei == 3) {
+        buffer.push_back(nameBuffer);
+        nameBuffer = 0;
+        namei = 0;
+      } else {
+        namei++;
+      }
+    }
+    if (namei == 0 && name.length() > 0) {
+      buffer.push_back(nameBuffer);
+      nameBuffer = 0;
+      namei = 0;
+    }
     buffer.push_back(propagators.size());
     uint32_t propagatorId = 0;
     std::unordered_map<Propagator*, uint32_t> wiresById;
@@ -277,14 +298,25 @@ void Component::saveToFile(const std::filesystem::path& path) {
 
 void Component::loadFromFile(const std::filesystem::path& path) {
     std::vector<uint32_t> buffer = openFileToUint32Vector(path);
+    
+    uint32_t* bufferPos = buffer.data() + 2;
 
-    const uint32_t totalPropagators = buffer[2];
-    const uint32_t totalWires = buffer[3];
+    const uint32_t nameLength = *bufferPos++;
+    for (uint32_t i = 0; i < nameLength; i++) {
+      const unsigned char c = (*bufferPos >> ((i % 4)*8)) & 0xff;
+      name.push_back(c);
+      if (i % 4 == 3) {
+        bufferPos++;
+      }
+    }
+    if (nameLength % 4 != 0) bufferPos++;
+
+    const uint32_t totalPropagators = *bufferPos++;
+    const uint32_t totalWires = *bufferPos++;
     const uint32_t totalPins = totalPropagators - totalWires;
 
     std::unordered_map<uint32_t, PropagatorIdentity> propagators;
 
-    uint32_t* bufferPos = buffer.data() + 4;
 
     for (uint32_t i = 0; i < totalWires; i++) {
 
@@ -425,13 +457,17 @@ Component::Component(const Component& componentToCopy)
     for (const auto& propagator : componentToCopy.propagators) {
         switch (propagator->getKind()) {
         case Propagator::Kinds::PIN:{
-            auto [element, success] = pins.emplace(new Pin(((Pin*)propagator.get())->parent), propagator.get());
+            auto ptr = std::make_unique<Pin>(*(Pin*)propagator.get(), *this);
+            auto [element, success] = pins.emplace(ptr.get(), propagator.get());
             oldNewPropagatorPointerMap.emplace(element->second, element->first);
+            propagators.push_back(std::move(ptr));
             break;
         }
         case Propagator::Kinds::WIRE:{
-            auto [element, success] = wires.emplace(new Wire(*(Wire*)propagator.get()), propagator.get());
+            auto ptr = std::make_unique<Wire>(*(Wire*)propagator.get());
+            auto [element, success] = wires.emplace(ptr.get(), propagator.get());
             oldNewPropagatorPointerMap.emplace(element->second, element->first);
+            propagators.push_back(std::move(ptr));
             break;
         }
         }
@@ -463,8 +499,8 @@ void Propagator::copyEffectorsAndEffectors(const Propagator& propagator, std::un
     }
 }
 
-Pin::Pin(const Pin& pinToCopy)
-    : parent(pinToCopy.parent),
+Pin::Pin(const Pin& pinToCopy, Component& _parent)
+    : parent(_parent),
     effectorOperation(pinToCopy.effectorOperation),
     relPosition(pinToCopy.relPosition),
     Propagator(pinToCopy)

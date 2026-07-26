@@ -23,7 +23,7 @@ ToolboxElement::~ToolboxElement()
 }
 
 void componentToolbox::updateElements() {
-    for (const auto& [name, component] : globalProjectManager.components) {
+    for (const auto& [name, component] : globalProjectManager->components) {
         if (toolboxElements.find(name) == toolboxElements.end()) {
             toolboxElements.emplace(name, component);
         }
@@ -32,7 +32,7 @@ void componentToolbox::updateElements() {
     for (auto it = toolboxElements.begin(); it != toolboxElements.end(); ) {
         const auto& name = it->first;
 
-        if (globalProjectManager.components.find(name) == globalProjectManager.components.end()) {
+        if (globalProjectManager->components.find(name) == globalProjectManager->components.end()) {
             it = toolboxElements.erase(it);
         } else {
             ++it;
