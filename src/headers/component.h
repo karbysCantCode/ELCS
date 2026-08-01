@@ -2,6 +2,7 @@
 #define COMPONENT_H
 
 #include <QObject>
+#include <QPointF>
 #include <unordered_set>
 #include <filesystem>
 #include <fstream>
@@ -99,7 +100,8 @@ public:
     Operations effectorOperation = Operations::BUFFER;
     Position relPosition;
     Position gridPosition() const;
-
+    QPointF qGridPosition() const;
+    static QPointF gridAlignPoint(const QPointF& point);
     std::string name;
     Component& parent;
     // state should be inherited by wire, begins nullptr assuming no connected wire, beware.
@@ -128,6 +130,7 @@ private:
     };
 public:
     std::string name;
+    std::filesystem::path filePath;
     std::vector<std::unique_ptr<Propagator>> propagators;
     void loadFromFile(const std::filesystem::path& path);
     void saveToFile(const std::filesystem::path& path);

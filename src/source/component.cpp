@@ -228,6 +228,8 @@ void Component::saveToFile(const std::filesystem::path& path) {
         0x0000: effector Operation (4b)
         0x0004: relPosition x (4b)
         0x0008: relPosition y (4b)
+        0x....: nameLength 4b
+        name...
         0x000c: number of effectors (4b)
         0x0010: number of affectors (4b)
         0x0014: first effector id (4b)
@@ -252,7 +254,7 @@ void Component::saveToFile(const std::filesystem::path& path) {
         namei++;
       }
     }
-    if (namei == 0 && name.length() > 0) {
+    if (namei != 0 && name.length() > 0) {
       buffer.push_back(nameBuffer);
       nameBuffer = 0;
       namei = 0;
@@ -277,8 +279,8 @@ void Component::saveToFile(const std::filesystem::path& path) {
     }
 
     std::unordered_map<Propagator*, uint32_t> propagatorsById;
-    propagatorsById.merge(wiresById);
-    propagatorsById.merge(pinsById);
+    propagatorsById.insert(wiresById.begin(), wiresById.end());
+    propagatorsById.insert(pinsById.begin(), pinsById.end());
 
     buffer.push_back(wiresById.size());
     auto propagatorIndex = buffer.size();
@@ -297,6 +299,7 @@ void Component::saveToFile(const std::filesystem::path& path) {
 }
 
 void Component::loadFromFile(const std::filesystem::path& path) {
+    filePath = path;
     std::vector<uint32_t> buffer = openFileToUint32Vector(path);
     
     uint32_t* bufferPos = buffer.data() + 2;
@@ -349,6 +352,16 @@ void Component::loadFromFile(const std::filesystem::path& path) {
         pin->effectorOperation =(Pin::Operations)*bufferPos++;
         pin->relPosition.x = *bufferPos++;
         pin->relPosition.y = *bufferPos++;
+
+        const uint32_t pNameLength = *bufferPos++;
+        for (uint32_t i = 0; i < pNameLength; i++) {
+          const unsigned char c = (*bufferPos >> ((i % 4)*8)) & 0xff;
+          pin->name.push_back(c);
+          if (i % 4 == 3) {
+            bufferPos++;
+          }
+        }
+        if (pNameLength % 4 != 0) bufferPos++;
 
         uint32_t effectorCount = *bufferPos++;
         uint32_t affectorCount = *bufferPos++;
@@ -414,12 +427,33 @@ void Propagator::saveEffectorsAndAffectorsToAddres(uint32_t* data, const std::un
 void Pin::saveToAddress(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const {
     *data++ = effectorOperation;
     *(data++) = relPosition.x;
-    *(data++) = relPosition.x;
+    *(data++) = relPosition.y;
+    *data++ = name.length();
+    uint32_t namei = 0;
+    uint32_t nameBuffer = 0;
+    for (unsigned char c : name) {
+      uint32_t nc = c << namei*8;
+      nameBuffer |= nc;
+      if (namei == 3) {
+        *data++ = nameBuffer;
+        nameBuffer = 0;
+        namei = 0;
+      } else {
+        namei++;
+      }
+    }
+    if (namei != 0 && name.length() > 0) {
+      *data++ = nameBuffer;
+      nameBuffer = 0;
+      namei = 0;
+    }
     saveEffectorsAndAffectorsToAddres(data, map);
 }
 
 uint32_t Pin::getUint32sToSave() const {
     uint32_t count = 3;
+    count++; //name
+    count += ceil(((float)name.length())/4);
     count += getUint32sToSaveEffectorsAndAffectors();
     return count;
 }
@@ -440,9 +474,8 @@ uint32_t Wire::getUint32sToSave() const {
 void Wire::saveToAddress(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const {
     *data++ = anchors.size();
     for (uint32_t i = 0; i < anchors.size(); i++) {
-        *(data) = anchors[i].x;
-        *(data+1) = anchors[i].y;
-        data += 2;
+        *data++ = anchors[i].x;
+        *data++ = anchors[i].y;
     }
     saveEffectorsAndAffectorsToAddres(data, map);
 }
@@ -450,7 +483,9 @@ void Wire::saveToAddress(uint32_t* data, const std::unordered_map<Propagator*, u
 Wire::Wire(const Wire& wireToCopy) : anchors(wireToCopy.anchors), Propagator(wireToCopy) {}
 
 Component::Component(const Component& componentToCopy) 
-    :   name(componentToCopy.name) {
+    :   name(componentToCopy.name),
+    filePath(componentToCopy.filePath) 
+    {
     std::unordered_map<Propagator*, Propagator*> oldNewPropagatorPointerMap;
     std::unordered_map<Pin*, Propagator*> pins;
     std::unordered_map<Wire*, Propagator*> wires;
@@ -503,6 +538,7 @@ Pin::Pin(const Pin& pinToCopy, Component& _parent)
     : parent(_parent),
     effectorOperation(pinToCopy.effectorOperation),
     relPosition(pinToCopy.relPosition),
+    name(pinToCopy.name),
     Propagator(pinToCopy)
     {
 
@@ -513,6 +549,17 @@ Pin::Pin(const Pin& pinToCopy, Component& _parent)
     effectingState(propagator.effectingState)
     {}
 
+Position Pin::gridPosition() const {
+  return {relPosition.x * 10 + 5, relPosition.y * 10 + 5};
+}
+
+QPointF Pin::qGridPosition() const {
+  return {(qreal)(relPosition.x * 10 + 5), (qreal)(relPosition.y * 10 + 5)};
+}
+
+QPointF Pin::gridAlignPoint(const QPointF& point) {
+  return {(qreal)(int(point.x() / 10) + 5), (qreal)(int(point.y() / 10) + 5)};
+}
 
 #include <QDebug>
 

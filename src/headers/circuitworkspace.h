@@ -22,7 +22,7 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
-
+    void drawBackground(QPainter *painter, const QRectF &rect) override;
 private:
     int p_width = 0;
     int p_height = 0; // TODO set to window size?
@@ -47,7 +47,7 @@ private:
 
     void moveWorkspaceToCurrentMouse(const QPoint& event);
     void updateWorkspacePosition();
-    void resetBackgroundGrid();
+    // void resetBackgroundGrid();
     void updateViewSize();
     int getMaxXPosition() const;
     int getMaxYPosition() const;

@@ -22,6 +22,7 @@ public:
     void registerCallbackOnNewComponent(std::function<void()>* func);
     void removeCallbackOnNewComponent(std::function<void()>* func);
     void openComponent(const std::string& name);
+    void saveCurrentComponent();
     ProjectManager();
 
 private:

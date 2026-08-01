@@ -3,12 +3,27 @@
 #include "notifications.h"
 #include "projectmanager.h"
 
+#include <QShortcut>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
   ui->setupUi(this);
   __circuitworkspace = ui->SimulatorCircuitWorkspace;
+
+  QShortcut* saveShortcut = new QShortcut(
+    QKeySequence(Qt::CTRL | Qt::Key_S),
+    this
+  );
+
+  connect(saveShortcut, &QShortcut::activated, this, [this](){
+    if (this->ui->simulatorPage->isVisible()) {
+      globalProjectManager->saveCurrentComponent();
+    } else {
+      qDebug("NAHHH!!");
+    }
+  });
 }
 
 MainWindow::~MainWindow()
@@ -37,3 +52,4 @@ void MainWindow::on_createNewCircuitButton_clicked()
   textEntry->raise();
   textEntry->show();
 }
+

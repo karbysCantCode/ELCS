@@ -15,6 +15,8 @@ void ProjectManager::dummyLoad() {
   loadNewComponent(std::filesystem::path(RESOURCES_PATH)/"and.csf");
   openComponent("AND");
   components["AND"].debugPrintPropagators();
+  components["AND"].saveToFile(std::filesystem::path(RESOURCES_PATH)/"savedand.csf");
+  
 }
 
 bool ProjectManager::createNewComponent(const std::string& name) {
@@ -49,18 +51,25 @@ void ProjectManager::openComponent(const std::string& name) {
 }
 
 void ProjectManager::removeExistingComponentFromWorkspace() {
-{
   workspace->scene()->clear();
 }
-}
+
 void ProjectManager::addCurrentComponentToWorkspace() {
   for (auto& propagator : currentOpenComponent->propagators) {
     if (propagator->getKind() == Propagator::Kinds::PIN) {
       auto pin = (Pin*)propagator.get();
       PinGraphicsItem* item = new PinGraphicsItem(*pin);
       item->setZValue(1);
-      item->setPos({(qreal)(pin->relPosition.getX() * 10 + 5), (qreal)(pin->relPosition.getY() * 10 + 5)});
+      item->setPos(pin->qGridPosition());
       workspace->scene()->addItem(item);
     }
+  }
+}
+
+void ProjectManager::saveCurrentComponent() {
+  if (currentOpenComponent) {
+    currentOpenComponent->saveToFile(currentOpenComponent->filePath);
+  } else {
+    globalNotificationManager->notify("Couldn't Save Circuit.", "Couldn't find a currently opened component to save.");
   }
 }

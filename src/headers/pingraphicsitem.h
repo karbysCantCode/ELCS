@@ -8,69 +8,42 @@
 #include <QStyleOptionGraphicsItem>
 #include <QPen>
 #include <QWidget>
-
+#include <QGraphicsSceneMouseEvent>
+#include <QLineEdit>
+#include <QGraphicsScene>
+#include <QGraphicsProxyWidget>
+#include <QFontMetrics>
+#include <QObject>
+#include <QLineEdit>
 #include "component.h"
 
 class PinGraphicsItem : public QGraphicsItem
 {
 public:
-    PinGraphicsItem(Pin& _pin, QGraphicsItem *parent = nullptr)
-        : QGraphicsItem(parent),
-          name(QString::fromStdString(_pin.name)),
-          pin(_pin)
-    {
-    }
+  PinGraphicsItem(Pin& _pin, QGraphicsItem *parent = nullptr)
+      : QGraphicsItem(parent), name(QString::fromStdString(_pin.name)), pin(_pin)
+  {
+    setZValue(1);
+  }
 
-    QRectF boundingRect() const override
-    {
-        return QRectF(-5, -20, 120, 40);
-    }
+  QRectF boundingRect() const override;
 
-    void paint(QPainter *painter,
-               const QStyleOptionGraphicsItem *,
-               QWidget *) override
-    {
-        QPen pen(Qt::black);
-        pen.setWidthF(2);
-
-        painter->setPen(pen);
-        painter->setBrush(Qt::black);
-
-
-        // dot
-        painter->drawEllipse(QPointF(0,0), 4, 4);
-
-
-        // line
-        painter->drawLine(
-            QPointF(4,0),
-            QPointF(35,0)
-        );
-
-
-        // text box
-        QRectF textRect(40,-12,80,24);
-
-        painter->setBrush(QColor("#333333"));
-        painter->drawRoundedRect(
-            textRect,
-            4,
-            4
-        );
-
-
-        // text
-        painter->setPen(Qt::white);
-        painter->drawText(
-            textRect,
-            Qt::AlignCenter,
-            name
-        );
-    }
-
+  void paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) override;
+protected:
+  void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override;
+  void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
+  void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
+  void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
 private:
-    QString name;
-    Pin& pin;
+  QString name;
+  Pin& pin;
+  bool showText = true;
+  QLineEdit* currentEdit = nullptr;
+  bool moving = false;
+  QPointF dragOffset;
+  bool pressed = false;
+  QPointF pressPosition;
 };
 
 #endif // PINGRAPHICSITEM_H
+
