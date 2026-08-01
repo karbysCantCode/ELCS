@@ -62,6 +62,7 @@ void ProjectManager::addCurrentComponentToWorkspace() {
       item->setZValue(1);
       item->setPos(pin->qGridPosition());
       workspace->scene()->addItem(item);
+      
     }
   }
 }

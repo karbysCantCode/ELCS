@@ -23,7 +23,7 @@ void Propagator::evaluateEffectingState() {
 
 void Propagator::propagate(Propagator* excludedPropagator) {
     evaluateEffectingState();
-    globalScheduler.registerCallback(effectors, excludedPropagator);
+    globalScheduler->registerCallback(effectors, excludedPropagator);
 }
 
 void Propagator::forget(Propagator* propagator) {

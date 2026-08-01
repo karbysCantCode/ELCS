@@ -36,7 +36,7 @@ private:
         Element* next = nullptr;
 
         Element(_typename* _value, Element* _next) : next(_next), value(_value) {}
-        ~Element() {delete value;}
+        ~Element() {delete value; if (next) delete next;}
     };
     Element* _front = nullptr;
 
@@ -58,6 +58,9 @@ public:
     std::pair<bool, _typename*> emplaceAt(_typenameIndex index);
     void popFront();
     Iterator getIterator() {return Iterator(this);}
+
+    ~LinkedList() {if (_front) {delete _front; _front = nullptr;}}
+    void clear() {if (_front) {delete _front; _front = nullptr;}}
 };
 
 class Scheduler
@@ -81,9 +84,10 @@ public:
     void registerCallback(std::unordered_set<Propagator*>& propagators, Propagator* excludedPropagator = nullptr, int ticksUntilExecute = 1);
     void runTicks(int tickCount = 0);
     void stopTicks();
+    void clear();
 };
 
 //static defined in scheduler.h
-static Scheduler globalScheduler(0);
+extern Scheduler* globalScheduler;
 
 #endif // SCHEDULER_H

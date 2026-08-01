@@ -2,15 +2,15 @@
 
 #include <iostream>
 
-componentHolder::componentHolder() {}
+ComponentHolder::ComponentHolder() {}
 
-std::unordered_set<Propagator*> componentHolder::addToGrid(const Position& position, Propagator* propagator) {
+std::unordered_set<Propagator*> ComponentHolder::addToGrid(const Position& position, Propagator* propagator) {
     auto cell = gridMap[{position.x, position.y}];
     cell.emplace(propagator);
     return cell;
 }
 
-void componentHolder::removeFromGrid(const Position& position, Propagator* propagator) {
+void ComponentHolder::removeFromGrid(const Position& position, Propagator* propagator) {
     auto it = gridMap.find({position.x, position.y});
     if (it != gridMap.end()) {
         it->second.erase(propagator);
@@ -20,7 +20,7 @@ void componentHolder::removeFromGrid(const Position& position, Propagator* propa
     }
 }
 
-std::unordered_set<Propagator*> componentHolder::addToGrid(const std::vector<Position>& anchors, Propagator* propagator) {
+std::unordered_set<Propagator*> ComponentHolder::addToGrid(const std::vector<Position>& anchors, Propagator* propagator) {
     if (anchors.size() < 2) return {};
     std::unordered_set<Propagator*> retSet;
     Position posA = anchors[0];
@@ -35,7 +35,7 @@ std::unordered_set<Propagator*> componentHolder::addToGrid(const std::vector<Pos
     return retSet;
 }
 
-void componentHolder::removeFromGrid(const std::vector<Position>& anchors, Propagator* propagator) {
+void ComponentHolder::removeFromGrid(const std::vector<Position>& anchors, Propagator* propagator) {
     if (anchors.size() < 2) return;
     Position posA = anchors[0];
     Position posB = anchors[1];
@@ -49,7 +49,7 @@ void componentHolder::removeFromGrid(const std::vector<Position>& anchors, Propa
 }
 
 //A to B
-std::unordered_set<Propagator*> componentHolder::addToGridAlongTwoPoints(const Position& posA, const Position& posB, Propagator* propagator) {
+std::unordered_set<Propagator*> ComponentHolder::addToGridAlongTwoPoints(const Position& posA, const Position& posB, Propagator* propagator) {
     std::unordered_set<Propagator*> retSet;
     if (posA.x == posB.x) {
         // change y
@@ -88,7 +88,7 @@ std::unordered_set<Propagator*> componentHolder::addToGridAlongTwoPoints(const P
 }
 
 //A to B
-void componentHolder::removeFromGridAlongTwoPoints(const Position& posA, const Position& posB, Propagator* propagator) {
+void ComponentHolder::removeFromGridAlongTwoPoints(const Position& posA, const Position& posB, Propagator* propagator) {
     if (posA.x == posB.x) {
         // change y
         int interpPos = posA.y;

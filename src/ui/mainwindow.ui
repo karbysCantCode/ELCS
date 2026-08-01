@@ -28,6 +28,203 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">QMainWindow {
+    background: rgb(11, 11, 17);
+}
+
+QWidget#centralwidget {
+    background: rgb(11, 11, 17);
+}
+
+QTabWidget#tabWidget QWidget[variant=&quot;page&quot;] {
+ background: rgb(30, 30, 50);
+}
+
+QTabBar {
+    background: rgb(35, 35, 35);
+}
+
+QTabBar::tab {
+    background: rgb(58, 58, 58);
+    color: white;
+    padding: 6px 14px;
+}
+
+QTabBar::tab:selected {
+    background: rgb(43, 43, 43);
+}
+
+QTabWidget::pane {
+    background: #2b2b2b;
+    border: 1px solid #555;
+}
+
+QTabBar::tab {
+    background: #3a3a3a;
+    color: white;
+    padding: 6px 12px;
+}
+
+QTabBar::tab:selected {
+    background: #4a4a4a;
+}
+
+QTabBar::tab:hover {
+    background: #505050;
+}
+
+QTextEdit {
+    background: #3a3a3a;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 14px;
+}
+
+QTextEdit:focus {
+    border: 1px solid #4da6ff;
+}
+
+QPushButton[variant=&quot;create&quot;] {
+    background: rgb(30, 59, 84);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 18px;
+    font-size: 14px;
+}
+
+QPushButton[variant=&quot;create&quot;]:hover {
+    background: rgb(45, 78, 107);
+}
+
+QPushButton[variant=&quot;create&quot;]:pressed {
+    background: rgb(20, 42, 60);
+}
+
+QPushButton {
+    background: #444444;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 18px;
+    font-size: 14px;
+}
+
+QPushButton:hover {
+    background: #555555;
+}
+
+QPushButton:pressed {
+    background: #333333;
+}
+
+QPushButton#mainButton {
+    background: #2d8cff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 18px;
+    font-size: 14px;
+}
+
+QFrame#toolbar QToolButton {
+    background: rgb(30, 59, 84);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 2px;
+    font-size: 14px;
+}
+
+QFrame#toolbar QToolButton:hover {
+    background: rgb(45, 78, 107);
+}
+
+QFrame#toolbar QToolButton:pressed {
+    background: rgb(20, 42, 60);
+}
+
+QPushButton#mainButton:hover {
+    background: #4da6ff;
+}
+
+QPushButton#mainButton:pressed {
+    background: #1c6dcc;
+}
+
+QPushButton#dangerButton {
+    background: #d9534f;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 18px;
+    font-size: 14px;
+}
+
+QPushButton#dangerButton:hover {
+    background: #e57373;
+}
+
+QPushButton#dangerButton:pressed {
+    background: #b52b27;
+}
+
+
+QFrame {
+    background: #2b2b2b;
+}
+
+QFrame#secondaryFrame {
+    background: #333333;
+}
+
+QFrame#cardFrame {
+    background: #3a3a3a;
+    border-radius: 4px;
+    border: 1px solid #555555;
+}
+
+
+QWidget#overlay {
+    background: rgba(0,0,0,120);
+}
+
+
+QLabel {
+    color: #dddddd;
+    font-size: 14px;
+}
+
+
+QLabel#titleLabel {
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+
+QLabel#secondaryLabel {
+    color: #aaaaaa;
+    font-size: 12px;
+}
+
+
+QLabel#errorLabel {
+    color: #ff6b6b;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+
+QLabel#successLabel {
+    color: #4caf50;
+    font-size: 13px;
+    font-weight: bold;
+}</string>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">
     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -37,9 +234,6 @@
    </property>
    <property name="layoutDirection">
     <enum>Qt::LayoutDirection::LeftToRight</enum>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QWidget {background: #1b1b1c}</string>
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <property name="leftMargin">
@@ -172,6 +366,9 @@
        <bool>false</bool>
       </property>
       <widget class="QWidget" name="homePage">
+       <property name="variant" stdset="0">
+        <string>page</string>
+       </property>
        <attribute name="title">
         <string>Home</string>
        </attribute>
@@ -205,9 +402,6 @@
             <height>511</height>
            </size>
           </property>
-          <property name="styleSheet">
-           <string notr="true">QFrame {background: rgb(55, 55, 57)}</string>
-          </property>
           <property name="frameShape">
            <enum>QFrame::Shape::NoFrame</enum>
           </property>
@@ -232,7 +426,7 @@
                 <x>0</x>
                 <y>0</y>
                 <width>205</width>
-                <height>318</height>
+                <height>428</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout">
@@ -248,30 +442,57 @@
                  <property name="palette">
                   <palette>
                    <active>
+                    <colorrole role="WindowText">
+                     <brush brushstyle="SolidPattern">
+                      <color alpha="255">
+                       <red>255</red>
+                       <green>255</green>
+                       <blue>255</blue>
+                      </color>
+                     </brush>
+                    </colorrole>
                     <colorrole role="Button">
                      <brush brushstyle="SolidPattern">
                       <color alpha="255">
-                       <red>27</red>
-                       <green>27</green>
-                       <blue>28</blue>
+                       <red>68</red>
+                       <green>68</green>
+                       <blue>68</blue>
+                      </color>
+                     </brush>
+                    </colorrole>
+                    <colorrole role="Text">
+                     <brush brushstyle="SolidPattern">
+                      <color alpha="255">
+                       <red>255</red>
+                       <green>255</green>
+                       <blue>255</blue>
+                      </color>
+                     </brush>
+                    </colorrole>
+                    <colorrole role="ButtonText">
+                     <brush brushstyle="SolidPattern">
+                      <color alpha="255">
+                       <red>255</red>
+                       <green>255</green>
+                       <blue>255</blue>
                       </color>
                      </brush>
                     </colorrole>
                     <colorrole role="Base">
                      <brush brushstyle="SolidPattern">
                       <color alpha="255">
-                       <red>27</red>
-                       <green>27</green>
-                       <blue>28</blue>
+                       <red>68</red>
+                       <green>68</green>
+                       <blue>68</blue>
                       </color>
                      </brush>
                     </colorrole>
                     <colorrole role="Window">
                      <brush brushstyle="SolidPattern">
                       <color alpha="255">
-                       <red>27</red>
-                       <green>27</green>
-                       <blue>28</blue>
+                       <red>68</red>
+                       <green>68</green>
+                       <blue>68</blue>
                       </color>
                      </brush>
                     </colorrole>
@@ -281,35 +502,71 @@
                        <red>39</red>
                        <green>191</green>
                        <blue>115</blue>
+                      </color>
+                     </brush>
+                    </colorrole>
+                    <colorrole role="PlaceholderText">
+                     <brush brushstyle="SolidPattern">
+                      <color alpha="128">
+                       <red>255</red>
+                       <green>255</green>
+                       <blue>255</blue>
                       </color>
                      </brush>
                     </colorrole>
                    </active>
                    <inactive>
+                    <colorrole role="WindowText">
+                     <brush brushstyle="SolidPattern">
+                      <color alpha="255">
+                       <red>255</red>
+                       <green>255</green>
+                       <blue>255</blue>
+                      </color>
+                     </brush>
+                    </colorrole>
                     <colorrole role="Button">
                      <brush brushstyle="SolidPattern">
                       <color alpha="255">
-                       <red>27</red>
-                       <green>27</green>
-                       <blue>28</blue>
+                       <red>68</red>
+                       <green>68</green>
+                       <blue>68</blue>
+                      </color>
+                     </brush>
+                    </colorrole>
+                    <colorrole role="Text">
+                     <brush brushstyle="SolidPattern">
+                      <color alpha="255">
+                       <red>255</red>
+                       <green>255</green>
+                       <blue>255</blue>
+                      </color>
+                     </brush>
+                    </colorrole>
+                    <colorrole role="ButtonText">
+                     <brush brushstyle="SolidPattern">
+                      <color alpha="255">
+                       <red>255</red>
+                       <green>255</green>
+                       <blue>255</blue>
                       </color>
                      </brush>
                     </colorrole>
                     <colorrole role="Base">
                      <brush brushstyle="SolidPattern">
                       <color alpha="255">
-                       <red>27</red>
-                       <green>27</green>
-                       <blue>28</blue>
+                       <red>68</red>
+                       <green>68</green>
+                       <blue>68</blue>
                       </color>
                      </brush>
                     </colorrole>
                     <colorrole role="Window">
                      <brush brushstyle="SolidPattern">
                       <color alpha="255">
-                       <red>27</red>
-                       <green>27</green>
-                       <blue>28</blue>
+                       <red>68</red>
+                       <green>68</green>
+                       <blue>68</blue>
                       </color>
                      </brush>
                     </colorrole>
@@ -319,35 +576,71 @@
                        <red>39</red>
                        <green>191</green>
                        <blue>115</blue>
+                      </color>
+                     </brush>
+                    </colorrole>
+                    <colorrole role="PlaceholderText">
+                     <brush brushstyle="SolidPattern">
+                      <color alpha="128">
+                       <red>255</red>
+                       <green>255</green>
+                       <blue>255</blue>
                       </color>
                      </brush>
                     </colorrole>
                    </inactive>
                    <disabled>
+                    <colorrole role="WindowText">
+                     <brush brushstyle="SolidPattern">
+                      <color alpha="255">
+                       <red>255</red>
+                       <green>255</green>
+                       <blue>255</blue>
+                      </color>
+                     </brush>
+                    </colorrole>
                     <colorrole role="Button">
                      <brush brushstyle="SolidPattern">
                       <color alpha="255">
-                       <red>27</red>
-                       <green>27</green>
-                       <blue>28</blue>
+                       <red>68</red>
+                       <green>68</green>
+                       <blue>68</blue>
+                      </color>
+                     </brush>
+                    </colorrole>
+                    <colorrole role="Text">
+                     <brush brushstyle="SolidPattern">
+                      <color alpha="255">
+                       <red>255</red>
+                       <green>255</green>
+                       <blue>255</blue>
+                      </color>
+                     </brush>
+                    </colorrole>
+                    <colorrole role="ButtonText">
+                     <brush brushstyle="SolidPattern">
+                      <color alpha="255">
+                       <red>255</red>
+                       <green>255</green>
+                       <blue>255</blue>
                       </color>
                      </brush>
                     </colorrole>
                     <colorrole role="Base">
                      <brush brushstyle="SolidPattern">
                       <color alpha="255">
-                       <red>27</red>
-                       <green>27</green>
-                       <blue>28</blue>
+                       <red>68</red>
+                       <green>68</green>
+                       <blue>68</blue>
                       </color>
                      </brush>
                     </colorrole>
                     <colorrole role="Window">
                      <brush brushstyle="SolidPattern">
                       <color alpha="255">
-                       <red>27</red>
-                       <green>27</green>
-                       <blue>28</blue>
+                       <red>68</red>
+                       <green>68</green>
+                       <blue>68</blue>
                       </color>
                      </brush>
                     </colorrole>
@@ -357,6 +650,15 @@
                        <red>39</red>
                        <green>191</green>
                        <blue>115</blue>
+                      </color>
+                     </brush>
+                    </colorrole>
+                    <colorrole role="PlaceholderText">
+                     <brush brushstyle="SolidPattern">
+                      <color alpha="128">
+                       <red>255</red>
+                       <green>255</green>
+                       <blue>255</blue>
                       </color>
                      </brush>
                     </colorrole>
@@ -465,20 +767,6 @@
                <height>51</height>
               </size>
              </property>
-             <property name="styleSheet">
-              <string notr="true">QPushButton {
-	background-color:rgb(45, 45, 47);
-	font-size: 14pt;
-	color: #efefef;
-}
-QPushButton:hover {
-    background-color: rgb(78, 78, 81);
-}
-
-QPushButton:pressed {
-    background-color: rgb(122, 122, 127);
-}</string>
-             </property>
              <property name="text">
               <string>Open Project</string>
              </property>
@@ -491,20 +779,6 @@ QPushButton:pressed {
                <width>0</width>
                <height>51</height>
               </size>
-             </property>
-             <property name="styleSheet">
-              <string notr="true">QPushButton {
-	background-color:rgb(45, 45, 47);
-	font-size: 14pt;
-	color: #efefef;
-}
-QPushButton:hover {
-    background-color: rgb(78, 78, 81);
-}
-
-QPushButton:pressed {
-    background-color: rgb(122, 122, 127);
-}</string>
              </property>
              <property name="text">
               <string>Create Project</string>
@@ -519,20 +793,6 @@ QPushButton:pressed {
                <height>51</height>
               </size>
              </property>
-             <property name="styleSheet">
-              <string notr="true">QPushButton {
-	background-color:rgb(45, 45, 47);
-	font-size: 14pt;
-	color: #efefef;
-}
-QPushButton:hover {
-    background-color: rgb(78, 78, 81);
-}
-
-QPushButton:pressed {
-    background-color: rgb(122, 122, 127);
-}</string>
-             </property>
              <property name="text">
               <string>Settings</string>
              </property>
@@ -546,20 +806,6 @@ QPushButton:pressed {
                <height>51</height>
               </size>
              </property>
-             <property name="styleSheet">
-              <string notr="true">QPushButton {
-	background-color:rgb(45, 45, 47);
-	font-size: 14pt;
-	color: #efefef;
-}
-QPushButton:hover {
-    background-color: rgb(78, 78, 81);
-}
-
-QPushButton:pressed {
-    background-color: rgb(122, 122, 127);
-}</string>
-             </property>
              <property name="text">
               <string>Credits/xxxxx</string>
              </property>
@@ -570,9 +816,6 @@ QPushButton:pressed {
         </item>
         <item>
          <widget class="QFrame" name="Showcase">
-          <property name="styleSheet">
-           <string notr="true">QFrame {background-color:#1b1b1c;}</string>
-          </property>
           <property name="frameShape">
            <enum>QFrame::Shape::NoFrame</enum>
           </property>
@@ -699,9 +942,6 @@ QPushButton:pressed {
               </item>
               <item>
                <widget class="QFrame" name="levelControlFrame">
-                <property name="styleSheet">
-                 <string notr="true">QFrame {background-color:rgb(51, 51, 53);}</string>
-                </property>
                 <property name="frameShape">
                  <enum>QFrame::Shape::StyledPanel</enum>
                 </property>
@@ -759,20 +999,6 @@ QPushButton:pressed {
                         <verstretch>0</verstretch>
                        </sizepolicy>
                       </property>
-                      <property name="styleSheet">
-                       <string notr="true">QPushButton {
-	background-color:rgb(45, 45, 47);
-	font-size: 9pt;
-	color: #efefef;
-}
-QPushButton:hover {
-    background-color: rgb(78, 78, 81);
-}
-
-QPushButton:pressed {
-    background-color: rgb(122, 122, 127);
-}</string>
-                      </property>
                       <property name="text">
                        <string>PushButton</string>
                       </property>
@@ -791,20 +1017,6 @@ QPushButton:pressed {
                         <horstretch>0</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true">QPushButton {
-	background-color:rgb(45, 45, 47);
-	font-size: 9pt;
-	color: #efefef;
-}
-QPushButton:hover {
-    background-color: rgb(78, 78, 81);
-}
-
-QPushButton:pressed {
-    background-color: rgb(122, 122, 127);
-}</string>
                       </property>
                       <property name="text">
                        <string>PushButton</string>
@@ -825,20 +1037,6 @@ QPushButton:pressed {
                         <verstretch>0</verstretch>
                        </sizepolicy>
                       </property>
-                      <property name="styleSheet">
-                       <string notr="true">QPushButton {
-	background-color:rgb(45, 45, 47);
-	font-size: 9pt;
-	color: #efefef;
-}
-QPushButton:hover {
-    background-color: rgb(78, 78, 81);
-}
-
-QPushButton:pressed {
-    background-color: rgb(122, 122, 127);
-}</string>
-                      </property>
                       <property name="text">
                        <string>PushButton</string>
                       </property>
@@ -857,20 +1055,6 @@ QPushButton:pressed {
                         <horstretch>0</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true">QPushButton {
-	background-color:rgb(45, 45, 47);
-	font-size: 9pt;
-	color: #efefef;
-}
-QPushButton:hover {
-    background-color: rgb(78, 78, 81);
-}
-
-QPushButton:pressed {
-    background-color: rgb(122, 122, 127);
-}</string>
                       </property>
                       <property name="text">
                        <string>PushButton</string>
@@ -899,26 +1083,12 @@ QPushButton:pressed {
                    </property>
                    <layout class="QVBoxLayout" name="verticalLayout_6">
                     <item>
-                     <widget class="QPushButton" name="pushButton_21">
+                     <widget class="QPushButton" name="getStartedButton">
                       <property name="sizePolicy">
                        <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
                         <horstretch>0</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true">QPushButton {
-	background-color:rgb(39, 117, 39);
-	font-size: 14pt;
-	color: #efefef;
-}
-QPushButton:hover {
-    background-color: #489448;
-}
-
-QPushButton:pressed {
-    background-color: rgb(83, 170, 83)
-}</string>
                       </property>
                       <property name="text">
                        <string>Get Started</string>
@@ -926,26 +1096,12 @@ QPushButton:pressed {
                      </widget>
                     </item>
                     <item>
-                     <widget class="QPushButton" name="pushButton_20">
+                     <widget class="QPushButton" name="browseLevelsButton">
                       <property name="sizePolicy">
                        <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
                         <horstretch>0</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true">QPushButton {
-	background-color:rgb(200, 200, 67);
-	font-size: 14pt;
-	color: #efefef;
-}
-QPushButton:hover {
-    background-color: rgb(225, 225, 75);
-}
-
-QPushButton:pressed {
-    background-color: rgb(243, 243, 81);
-}</string>
                       </property>
                       <property name="text">
                        <string>Browse Levels</string>
@@ -967,6 +1123,9 @@ QPushButton:pressed {
        </layout>
       </widget>
       <widget class="QWidget" name="simulatorPage">
+       <property name="variant" stdset="0">
+        <string>page</string>
+       </property>
        <attribute name="title">
         <string>Simulator</string>
        </attribute>
@@ -1013,9 +1172,6 @@ QPushButton:pressed {
              <height>70</height>
             </size>
            </property>
-           <property name="styleSheet">
-            <string notr="true">QFrame {background: rgb(55, 55, 57)}</string>
-           </property>
            <property name="frameShape">
             <enum>QFrame::Shape::StyledPanel</enum>
            </property>
@@ -1049,7 +1205,7 @@ QPushButton:pressed {
              </widget>
             </item>
             <item>
-             <widget class="QFrame" name="frame_7">
+             <widget class="QFrame" name="toolbar">
               <property name="frameShape">
                <enum>QFrame::Shape::StyledPanel</enum>
               </property>
@@ -1073,7 +1229,7 @@ QPushButton:pressed {
                 <number>0</number>
                </property>
                <item>
-                <widget class="QFrame" name="frame_9">
+                <widget class="QFrame" name="toolbar_3">
                  <property name="frameShape">
                   <enum>QFrame::Shape::StyledPanel</enum>
                  </property>
@@ -1086,6 +1242,9 @@ QPushButton:pressed {
                     <property name="text">
                      <string>Select</string>
                     </property>
+                    <property name="variant" stdset="0">
+                     <string>create</string>
+                    </property>
                    </widget>
                   </item>
                   <item>
@@ -1093,12 +1252,18 @@ QPushButton:pressed {
                     <property name="text">
                      <string>Poke</string>
                     </property>
+                    <property name="variant" stdset="0">
+                     <string>variant</string>
+                    </property>
                    </widget>
                   </item>
                   <item>
                    <widget class="QToolButton" name="toolButton">
                     <property name="text">
                      <string>...</string>
+                    </property>
+                    <property name="variant" stdset="0">
+                     <string>create</string>
                     </property>
                    </widget>
                   </item>
@@ -1116,7 +1281,7 @@ QPushButton:pressed {
                 </widget>
                </item>
                <item>
-                <widget class="QFrame" name="frame_10">
+                <widget class="QFrame" name="toolbar_2">
                  <property name="frameShape">
                   <enum>QFrame::Shape::StyledPanel</enum>
                  </property>
@@ -1144,6 +1309,9 @@ QPushButton:pressed {
                     <property name="text">
                      <string>AND</string>
                     </property>
+                    <property name="variant" stdset="0">
+                     <string>create</string>
+                    </property>
                    </widget>
                   </item>
                   <item>
@@ -1151,12 +1319,18 @@ QPushButton:pressed {
                     <property name="text">
                      <string>NOT</string>
                     </property>
+                    <property name="variant" stdset="0">
+                     <string>create</string>
+                    </property>
                    </widget>
                   </item>
                   <item>
                    <widget class="QToolButton" name="toolButton_6">
                     <property name="text">
                      <string>OR</string>
+                    </property>
+                    <property name="variant" stdset="0">
+                     <string>create</string>
                     </property>
                    </widget>
                   </item>
@@ -1187,9 +1361,6 @@ QPushButton:pressed {
              <horstretch>0</horstretch>
              <verstretch>1</verstretch>
             </sizepolicy>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">QWidget {background: rgb(255, 0, 255)}</string>
            </property>
            <layout class="QHBoxLayout" name="horizontalLayout_5">
             <property name="spacing">
@@ -1231,9 +1402,6 @@ QPushButton:pressed {
                  <height>0</height>
                 </size>
                </property>
-               <property name="styleSheet">
-                <string notr="true">QFrame {background: rgb(0, 255, 0)}</string>
-               </property>
                <property name="frameShape">
                 <enum>QFrame::Shape::StyledPanel</enum>
                </property>
@@ -1252,7 +1420,7 @@ QPushButton:pressed {
                      <x>0</x>
                      <y>0</y>
                      <width>198</width>
-                     <height>391</height>
+                     <height>378</height>
                     </rect>
                    </property>
                    <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -1324,6 +1492,9 @@ QPushButton:pressed {
                  <widget class="QPushButton" name="createNewCircuitButton">
                   <property name="text">
                    <string>Create New Circuit</string>
+                  </property>
+                  <property name="variant" stdset="0">
+                   <string>create</string>
                   </property>
                  </widget>
                 </item>
@@ -1399,12 +1570,18 @@ QPushButton:pressed {
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_3">
+      <widget class="QWidget" name="learnPage">
+       <property name="variant" stdset="0">
+        <string>page</string>
+       </property>
        <attribute name="title">
         <string>Learn</string>
        </attribute>
       </widget>
       <widget class="QWidget" name="stylePage">
+       <property name="variant" stdset="0">
+        <string>page</string>
+       </property>
        <attribute name="title">
         <string>Style</string>
        </attribute>
@@ -1450,9 +1627,6 @@ QPushButton:pressed {
              <width>0</width>
              <height>70</height>
             </size>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">QFrame {background: rgb(55, 55, 57)}</string>
            </property>
            <property name="frameShape">
             <enum>QFrame::Shape::StyledPanel</enum>
@@ -1690,7 +1864,7 @@ QPushButton:pressed {
                      <x>0</x>
                      <y>0</y>
                      <width>198</width>
-                     <height>421</height>
+                     <height>419</height>
                     </rect>
                    </property>
                   </widget>

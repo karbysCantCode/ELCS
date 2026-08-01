@@ -3,6 +3,29 @@
 #include "notifications.h"
 #include "projectmanager.h"
 
+#include <QWidget>
+#include <QStyle>
+
+void repolishVariants(QWidget* widget)
+{
+    if (!widget)
+        return;
+
+    if (widget->property("variant").isValid())
+    {
+        widget->style()->unpolish(widget);
+        widget->style()->polish(widget);
+        widget->update();
+    }
+
+    const auto children = widget->findChildren<QWidget*>(
+        QString(),
+        Qt::FindDirectChildrenOnly);
+
+    for (QWidget* child : children)
+        repolishVariants(child);
+}
+
 #include <QShortcut>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -11,6 +34,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
   ui->setupUi(this);
   __circuitworkspace = ui->SimulatorCircuitWorkspace;
+
+  repolishVariants(this);
 
   QShortcut* saveShortcut = new QShortcut(
     QKeySequence(Qt::CTRL | Qt::Key_S),

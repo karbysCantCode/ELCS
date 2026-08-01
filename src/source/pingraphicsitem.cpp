@@ -4,9 +4,9 @@
 
 QRectF PinGraphicsItem::boundingRect() const {
   QFontMetrics fm(QFont("Arial",12));
-  int width = fm.horizontalAdvance(name)+40;
+  int width = fm.horizontalAdvance(name) + PADDING;
 
-  return QRectF(-5,-20,width,40);
+  return QRectF(30,-20,width,40);
 }
 
 void PinGraphicsItem::paint(

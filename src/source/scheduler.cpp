@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-// Scheduler::Scheduler() {}
+Scheduler* globalScheduler = new Scheduler(0);
 
 void Tick::run() {
     for (const auto& ptr : callbacks) {
@@ -171,4 +171,8 @@ void Scheduler::runTick() {
             it++;
         }
     }
+}
+
+void Scheduler::clear() {
+  ticks.clear();
 }

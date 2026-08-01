@@ -63,6 +63,10 @@ public:
     //begins at data.
     virtual void saveEffectorsAndAffectorsToAddres(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const;
 
+    virtual void addToGrid() const;
+    virtual void removeFromGrid() const;
+    virtual void moveAlongGrid() const;
+
     void copyEffectorsAndEffectors(const Propagator& propagator, std::unordered_map<Propagator*, Propagator*>& oldNewPropagatorPointerMap);
 
     Propagator() {};

@@ -6,6 +6,7 @@
 #include <functional>
 #include "component.h"
 #include "circuitworkspace.h"
+#include "componentholder.h"
 
 class ProjectManager
 {
@@ -15,6 +16,7 @@ public:
     std::unordered_map<std::string, Component> components;
     Component* currentOpenComponent = nullptr;
     CircuitWorkspace* workspace = nullptr;
+    ComponentHolder gridManager;
 
     void dummyLoad();
     bool createNewComponent(const std::string& name);

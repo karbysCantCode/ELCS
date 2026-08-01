@@ -16,13 +16,12 @@ struct pair_hash {
 
 
 
-class componentHolder
+class ComponentHolder
 {
 private:
     std::unordered_set<Propagator*> addToGridAlongTwoPoints(const Position& posA, const Position& posB, Propagator* propagator);
     void removeFromGridAlongTwoPoints(const Position& posA, const Position& posB, Propagator* propagator);
 public:
-    std::vector<std::unique_ptr<Propagator>> components;
     std::unordered_map<std::pair<unsigned int, unsigned int>, std::unordered_set<Propagator*>, pair_hash> gridMap;
 
     std::unordered_set<Propagator*> addToGrid(const Position& position, Propagator* propagator);
