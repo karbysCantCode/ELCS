@@ -10,12 +10,15 @@
 
 #include "component.h"
 
+#include "wiregraphicsitem.h"
+
 class CircuitWorkspace : public QGraphicsView
 {
     Q_OBJECT
 public:
     CircuitWorkspace(QFrame*&);
 
+    void reset();
 protected:
     void resizeEvent ( QResizeEvent * event ) override;
     void wheelEvent(QWheelEvent *event) override;
@@ -40,10 +43,23 @@ private:
     float p_magnification = 1;
 
     bool p_isMoving = false;
+    bool p_isWiring = false;
+    WireGraphicsItem* tempWireItem = nullptr;
+
+    /*
+        anchors
+        0: start
+        1: midpoint
+        2: end
+    */
+    Wire tempWire;
+    
     std::unique_ptr<QPoint> p_movementBegunQPoint = nullptr; // unique ptr only used for the null state + safety
 
     QGraphicsScene workspaceScene;
     QGraphicsPixmapItem* backgroundGridItem = nullptr;
+
+    Position convertEventPosToPosition(const QPoint& point) const;
 
     void moveWorkspaceToCurrentMouse(const QPoint& event);
     void updateWorkspacePosition();

@@ -45,6 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
   connect(saveShortcut, &QShortcut::activated, this, [this](){
     if (this->ui->simulatorPage->isVisible()) {
       globalProjectManager->saveCurrentComponent();
+      globalNotificationManager->notify("Save", std::format("Successfully saved component \"{}\" to \"{}\"", globalProjectManager->currentOpenComponent->name, globalProjectManager->currentOpenComponent->filePath.string()));
     } else {
       qDebug("NAHHH!!");
     }

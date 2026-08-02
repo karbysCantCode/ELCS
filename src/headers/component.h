@@ -3,9 +3,12 @@
 
 #include <QObject>
 #include <QPointF>
+#include <QGraphicsItem>
 #include <unordered_set>
 #include <filesystem>
 #include <fstream>
+
+class WireGraphicsItem;
 
 enum States
 {
@@ -25,8 +28,15 @@ public:
     Position(int _x, int _y) : x(_x), y(_y) {}
     Position() {}
 
-    inline int getX() const {return x;}
-    inline int getY() const {return y;}
+    constexpr int getX() const {return x;}
+    constexpr int getY() const {return y;}
+    constexpr QPointF getQPointF() const {return {(qreal)x,(qreal)y};}
+    constexpr QPoint getQPoint() const {return {x,y};}
+
+    Position getGridScaledCopy(int offset = 5) const;
+
+    constexpr bool operator==(const Position& other) const {return other.x == x && other.y == y;}
+    constexpr bool operator!=(const Position& other) const {return !(other.x == x && other.y == y);}
 };
 
 class Component;
@@ -63,10 +73,6 @@ public:
     //begins at data.
     virtual void saveEffectorsAndAffectorsToAddres(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const;
 
-    virtual void addToGrid() const;
-    virtual void removeFromGrid() const;
-    virtual void moveAlongGrid() const;
-
     void copyEffectorsAndEffectors(const Propagator& propagator, std::unordered_map<Propagator*, Propagator*>& oldNewPropagatorPointerMap);
 
     Propagator() {};
@@ -78,12 +84,18 @@ class Wire : public Propagator
 {
 public:
     std::vector<Position> anchors;
+    WireGraphicsItem* graphicsItem = nullptr;
     virtual uint32_t getUint32sToSave() const override;
     virtual void saveToAddress(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const override;
+    void trimForCollidingWires(std::unordered_set<Propagator *>& collidingSet);
+    void reset();
 
     // does not sync effectors and affectors.
     Wire(const Wire& wireToCopy);
     Wire() {}
+
+private:    
+    
 };
 
 class Pin : public Propagator

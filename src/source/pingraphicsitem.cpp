@@ -1,5 +1,7 @@
 #include "pingraphicsitem.h" 
 
+#include "projectmanager.h"
+
 #define PADDING 20
 
 QRectF PinGraphicsItem::boundingRect() const {
@@ -136,14 +138,22 @@ void PinGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
       (event->scenePos()-pressPosition).manhattanLength() > 5)
     {
       moving = true;
+      globalProjectManager->gridManager.removeFromGrid(pin.relPosition, &pin);
     }
 
     if(moving) {
       auto pos = event->scenePos()-dragOffset;
-      pin.relPosition = {int((pos.x()-5)/10),int((pos.y()-5)/10)};
-      setPos(pin.qGridPosition());
-      prepareGeometryChange();
-      update();
+      Position nPos = {int(std::floor((pos.x()-5)/10.0)),
+                       int(std::floor((pos.y()-5)/10.0))};
+      qDebug(std::format("{}x {}y :old {}x {}y", nPos.x,nPos.y, pin.relPosition.x, pin.relPosition.y).c_str());
+      if (nPos != pin.relPosition) {
+        // globalProjectManager->gridManager.removeFromGrid(pin.relPosition, &pin);
+        // globalProjectManager->gridManager.addToGrid(nPos, &pin);
+        pin.relPosition = nPos;
+        setPos(pin.qGridPosition());
+        prepareGeometryChange();
+        update();
+      }
     }
 
     event->accept();
@@ -156,6 +166,7 @@ void PinGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     pressed = false;
     if (moving) {
       moving = false;
+      globalProjectManager->gridManager.addToGrid(pin.relPosition, &pin);
     }
     event->accept();
     return;

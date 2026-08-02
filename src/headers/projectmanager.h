@@ -25,11 +25,13 @@ public:
     void removeCallbackOnNewComponent(std::function<void()>* func);
     void openComponent(const std::string& name);
     void saveCurrentComponent();
+    Propagator* addNewPropagator(std::unique_ptr<Propagator> propagator);
     ProjectManager();
 
 private:
   void removeExistingComponentFromWorkspace();
   void addCurrentComponentToWorkspace();
+  void visuallyRegisterPropagator(Propagator* ptr);
 };
 
 extern ProjectManager* globalProjectManager;

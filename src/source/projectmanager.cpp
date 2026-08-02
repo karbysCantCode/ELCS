@@ -51,19 +51,13 @@ void ProjectManager::openComponent(const std::string& name) {
 }
 
 void ProjectManager::removeExistingComponentFromWorkspace() {
-  workspace->scene()->clear();
+  gridManager.reset();
+  workspace->reset();
 }
 
 void ProjectManager::addCurrentComponentToWorkspace() {
   for (auto& propagator : currentOpenComponent->propagators) {
-    if (propagator->getKind() == Propagator::Kinds::PIN) {
-      auto pin = (Pin*)propagator.get();
-      PinGraphicsItem* item = new PinGraphicsItem(*pin);
-      item->setZValue(1);
-      item->setPos(pin->qGridPosition());
-      workspace->scene()->addItem(item);
-      
-    }
+    visuallyRegisterPropagator(propagator.get());
   }
 }
 
@@ -73,4 +67,30 @@ void ProjectManager::saveCurrentComponent() {
   } else {
     globalNotificationManager->notify("Couldn't Save Circuit.", "Couldn't find a currently opened component to save.");
   }
+}
+
+Propagator* ProjectManager::addNewPropagator(std::unique_ptr<Propagator> propagator) {
+    auto ptr = propagator.get();
+    currentOpenComponent->propagators.push_back(std::move(propagator));
+    visuallyRegisterPropagator(ptr);
+    return ptr;
+}
+
+void ProjectManager::visuallyRegisterPropagator(Propagator* ptr) {
+    if (ptr->getKind() == Propagator::Kinds::PIN) {
+        auto np = (Pin*)ptr;
+        globalProjectManager->gridManager.addToGrid(np->relPosition, np);
+        auto* item = new PinGraphicsItem(*np);
+        workspace->scene()->addItem(item);
+        item->setZValue(1);
+        item->setPos(np->relPosition.getGridScaledCopy().getQPointF());
+    } else if (ptr->getKind() == Propagator::Kinds::WIRE) {
+        auto np = (Wire*)ptr;
+        auto touchingElements = globalProjectManager->gridManager.addToGrid(np->anchors, np);
+        auto* item = new WireGraphicsItem(*np);
+        workspace->scene()->addItem(item);
+        item->setZValue(1);
+
+        np->trimForCollidingWires(touchingElements);
+    }
 }

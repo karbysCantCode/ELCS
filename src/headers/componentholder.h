@@ -30,7 +30,12 @@ public:
     std::unordered_set<Propagator*> addToGrid(const std::vector<Position>& anchors, Propagator* propagator);
     void removeFromGrid(const std::vector<Position>& anchors, Propagator* propagator);
 
-    componentHolder();
+    bool isOccupied(const Position& pos) const;
+    std::unordered_set<Propagator*> getOccupied(const Position& pos) const;
+    
+    void reset();
+    
+    ComponentHolder();
 };
 
 #endif // COMPONENTHOLDER_H

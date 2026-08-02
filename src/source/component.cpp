@@ -5,7 +5,102 @@
 #include <iostream>
 #include <cstdint>
 
+#include "notifications.h"
+
 Component::Component() {}
+
+struct CollidingWireData {
+    int thisA = 0;
+    int otherA = 0;
+
+    int begin = 0;
+    int end = 0;
+
+    bool vertical = false; //else hori
+
+    CollidingWireData(int _thisA, int _otherA, int _begin, int _end, bool _vertical) :
+        thisA(_thisA),
+        otherA(_otherA),
+        begin(_begin),
+        end(_end),
+        vertical(_vertical) {}
+};
+
+void Wire::trimForCollidingWires(std::unordered_set<Propagator *>& collidingSet) {
+    for (const auto* propagator : collidingSet) {
+        if (propagator->getKind() != Propagator::Kinds::WIRE)
+            continue;
+
+        Wire* other = (Wire*)propagator;
+
+        if (other->anchors.size() < 2) 
+            continue;
+
+        std::vector<CollidingWireData> collisions;
+
+        for (size_t i = 0; i < anchors.size() - 1; i++) {
+            const auto& thisAnchorA = anchors[i];
+            const auto& thisAnchorB = anchors[i+1];
+            bool thisHorizontal = thisAnchorA.y == thisAnchorB.y;
+            for (size_t j = 0; j < other->anchors.size() - 1; j++) {
+                const auto& otherAnchorA = other->anchors[j];
+                const auto& otherAnchorB = other->anchors[j+1];
+
+                bool otherHorizontal = otherAnchorA.y == otherAnchorB.y;
+                
+                if (otherHorizontal != thisHorizontal) 
+                    continue; //opposite directions
+
+                if (thisHorizontal) {
+                    if (thisAnchorA.y != otherAnchorA.y)
+                        continue;
+
+                    int thisMin = std::min(thisAnchorA.x, thisAnchorB.x);
+                    int thisMax = std::max(thisAnchorA.x, thisAnchorB.x);
+
+                    int otherMin = std::min(otherAnchorA.x, otherAnchorB.x);
+                    int otherMax = std::max(otherAnchorA.x, otherAnchorB.x);
+
+                    if (std::max(thisMin, otherMin) < std::min(thisMax, otherMax))
+                    {
+                        int overlapStart = std::max(thisMin, otherMin);
+                        int overlapEnd = std::min(thisMax, otherMax);
+
+                        qDebug(std::format("horizontal {}A, {}B", overlapStart, overlapEnd).c_str());
+                        // globalNotificationManager->notify("overlap", std::format("horizontal {}A, {}B", overlapStart, overlapEnd).c_str());
+                    }
+                } else {
+                    //vertical
+                    if (thisAnchorA.x != otherAnchorA.x)
+                        continue;
+
+                    int thisMin = std::min(thisAnchorA.y, thisAnchorB.y);
+                    int thisMax = std::max(thisAnchorA.y, thisAnchorB.y);
+
+                    int otherMin = std::min(otherAnchorA.y, otherAnchorB.y);
+                    int otherMax = std::max(otherAnchorA.y, otherAnchorB.y);
+
+                    if (std::max(thisMin, otherMin) < std::min(thisMax, otherMax))
+                    {
+                        int overlapStart = std::max(thisMin, otherMin);
+                        int overlapEnd = std::min(thisMax, otherMax);
+
+                        qDebug(std::format("vertical {}A, {}B", overlapStart, overlapEnd).c_str());
+                        // globalNotificationManager->notify("overlap", std::format("vertical {}A, {}B", overlapStart, overlapEnd).c_str());
+                    }
+                }
+            }
+        }
+    }
+}
+
+Position Position::getGridScaledCopy(int offset) const {
+    return {x*10+offset,y*10+offset};
+}
+
+void Wire::reset() {
+    anchors.clear();
+}
 
 void Propagator::evaluateEffectingState() {
     auto it = affectors.begin();

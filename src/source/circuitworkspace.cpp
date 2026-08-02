@@ -1,4 +1,8 @@
 #include "circuitworkspace.h"
+
+#include "projectmanager.h"
+#include "notifications.h"
+
 #include <iostream>
 
 CircuitWorkspace::CircuitWorkspace(QFrame*& frame) {
@@ -68,33 +72,94 @@ void CircuitWorkspace::drawBackground(QPainter *painter, const QRectF &rect) {
 void CircuitWorkspace::wheelEvent(QWheelEvent *event)  {
   
 }
+
+Position CircuitWorkspace::convertEventPosToPosition(const QPoint& point) const {
+  const auto np = mapToScene(point);
+  return {int(std::floor((np.x()+2.5)/10.0)),
+          int(std::floor((np.y()+2.5)/10.0))};
+}
+
 void CircuitWorkspace::mousePressEvent(QMouseEvent *event)  {
 
-    if (event->button() == Qt::LeftButton) {
-        QGraphicsItem* item = itemAt(event->pos());
+  if (event->button() == Qt::LeftButton) {
+    QGraphicsItem* item = itemAt(event->pos());
 
-        if (item == nullptr || item == backgroundGridItem) {
-            p_isMoving = true;
-
-            p_movementBegunQPoint = std::make_unique<QPoint>();
-            p_movementBegunQPoint->setX(event->pos().x());
-            p_movementBegunQPoint->setY(event->pos().y());
-
-            p_preMoveXPosition = p_xposition;
-            p_preMoveYPosition = p_yposition;
-
-            event->accept();
-            return;
+    if (item == nullptr || item == backgroundGridItem) {
+      qDebug("is perss");
+      Position nPos = convertEventPosToPosition((event->pos()));
+      qDebug(std::format("{}x {}y", nPos.x, nPos.y).c_str());
+      if (globalProjectManager->gridManager.isOccupied(nPos)) {
+        //wire
+        globalNotificationManager->notify("Debug", "is occupied", 1000);
+        p_isWiring = true;
+        if (tempWireItem) {
+          scene()->removeItem(tempWireItem);
+          delete tempWireItem;
+          tempWireItem = nullptr;
         }
-    }
 
-    QGraphicsView::mousePressEvent(event);
+        tempWire.reset();
+        tempWire.anchors.push_back(nPos);
+        tempWire.anchors.push_back(nPos);
+        tempWire.anchors.push_back(nPos);
+
+        tempWireItem = new WireGraphicsItem(tempWire);
+        scene()->addItem(tempWireItem);
+        tempWireItem->update();
+      } else {
+        globalNotificationManager->notify("Debug", "NOT occupied", 1000);
+        p_isMoving = true;
+
+        p_movementBegunQPoint = std::make_unique<QPoint>();
+        p_movementBegunQPoint->setX(event->pos().x());
+        p_movementBegunQPoint->setY(event->pos().y());
+
+        p_preMoveXPosition = p_xposition;
+        p_preMoveYPosition = p_yposition;
+      }
+      event->accept();
+      return;
+    }
+  }
+
+  QGraphicsView::mousePressEvent(event);
 }
 void CircuitWorkspace::mouseMoveEvent(QMouseEvent *event)  {
     if (p_isMoving) {
         moveWorkspaceToCurrentMouse(event->pos());
         update(); // signal redraw
         std::cout << "X:" << p_xposition << " Y:" << p_yposition << " mouse moved with redraw" << std::endl;
+    }
+    if (p_isWiring) {
+      constexpr double margin = 20;
+      tempWireItem->beginGeometryChange();
+      tempWire.anchors[2] = convertEventPosToPosition(event->pos());
+
+      if (tempWire.anchors[0].x != tempWire.anchors[2].x && tempWire.anchors[0].y != tempWire.anchors[2].y) {
+        tempWire.anchors[1] = {tempWire.anchors[0].x,tempWire.anchors[2].y};
+      } else {
+        tempWire.anchors[1] = tempWire.anchors[0];
+      }
+
+      tempWireItem->update();
+      // const QRectF bounds = scene()->sceneRect();
+      // double leftRate =
+      //     1.0 - std::clamp(std::min(p_wiringFinalPoint.x() - bounds.left(), margin) / margin, 0.0, 1.0);
+
+      // double rightRate =
+      //     1.0 - std::clamp(std::min(bounds.right() - p_wiringFinalPoint.x(), margin) / margin, 0.0, 1.0);
+
+      // double topRate =
+      //     1.0 - std::clamp(std::min(p_wiringFinalPoint.y() - bounds.top(), margin) / margin, 0.0, 1.0);
+
+      // double bottomRate =
+      //     1.0 - std::clamp(std::min(bounds.bottom() - p_wiringFinalPoint.y(), margin) / margin, 0.0, 1.0);
+      // globalNotificationManager->notify("DEUBG", std::format("L{} R{} T{} B{}", leftRate,rightRate,topRate,bottomRate), 100);
+      // constexpr double speed = 3;
+      // p_xposition = std::clamp(int(p_xposition + speed * (rightRate - leftRate)), 0, getMaxXPosition());
+      // p_yposition = std::clamp(int(p_yposition + speed * (bottomRate - topRate)), 0, getMaxYPosition());
+
+      // updateWorkspacePosition();
     }
 
     QGraphicsView::mouseMoveEvent(event);
@@ -104,10 +169,25 @@ void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
     std::cout << "mouse up" << std::endl;
     if (p_isMoving) {
       p_isMoving = false;
-        moveWorkspaceToCurrentMouse(event->pos());
-        update(); // signal redraw
+      moveWorkspaceToCurrentMouse(event->pos());
+      update(); // signal redraw
 
-        p_movementBegunQPoint.reset();
+      p_movementBegunQPoint.reset();
+    }
+
+    if (p_isWiring) {
+      p_isWiring = false;
+      scene()->removeItem(tempWireItem);
+      tempWire.graphicsItem = nullptr;
+      delete tempWireItem;
+      tempWireItem = nullptr;
+
+      if (tempWire.anchors[1] == tempWire.anchors[0]) {
+        tempWire.anchors.erase(tempWire.anchors.begin()+1);
+      }
+
+      auto unique = std::make_unique<Wire>(tempWire);
+      globalProjectManager->addNewPropagator(std::move(unique));
     }
 
     QGraphicsView::mouseReleaseEvent(event);
@@ -134,4 +214,9 @@ int CircuitWorkspace::getMaxXPosition() const {
 }
 int CircuitWorkspace::getMaxYPosition() const {
     return p_maxHeight - (int)(size().height() / p_magnification);
+}
+
+void CircuitWorkspace::reset() {
+  scene()->clear();
+  updateWorkspacePosition();
 }

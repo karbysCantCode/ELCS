@@ -5,9 +5,10 @@
 ComponentHolder::ComponentHolder() {}
 
 std::unordered_set<Propagator*> ComponentHolder::addToGrid(const Position& position, Propagator* propagator) {
-    auto cell = gridMap[{position.x, position.y}];
+    auto& cell = gridMap[{position.x, position.y}];
+    auto returnCell = cell;
     cell.emplace(propagator);
-    return cell;
+    return returnCell;
 }
 
 void ComponentHolder::removeFromGrid(const Position& position, Propagator* propagator) {
@@ -122,4 +123,20 @@ void ComponentHolder::removeFromGridAlongTwoPoints(const Position& posA, const P
         std::cout << "same two positions componentholder.cpp" << std::endl;
         return; //erorr.....
     }
+}
+
+bool ComponentHolder::isOccupied(const Position& pos) const {
+    return gridMap.end() != gridMap.find({pos.x,pos.y});
+}
+
+std::unordered_set<Propagator*> ComponentHolder::getOccupied(const Position& pos) const {
+    auto it = gridMap.find({pos.x,pos.y});
+    if (it != gridMap.end()) {
+        return it->second;
+    }
+    return {};
+}
+
+void ComponentHolder::reset() {
+    gridMap.clear();
 }
