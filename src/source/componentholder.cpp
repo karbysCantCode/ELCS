@@ -23,31 +23,32 @@ void ComponentHolder::removeFromGrid(const Position& position, Propagator* propa
 
 std::unordered_set<Propagator*> ComponentHolder::addToGrid(const std::vector<Position>& anchors, Propagator* propagator) {
     if (anchors.size() < 2) return {};
+
     std::unordered_set<Propagator*> retSet;
-    Position posA = anchors[0];
-    Position posB = anchors[1];
-    unsigned int a = 1;
-    while(a < anchors.size() - 1) {
-        retSet.merge(addToGridAlongTwoPoints(posA, posB, propagator));
-        a++;
-        posA = posB;
-        posB = anchors[a];
+
+    // FIX: the old `while (a < anchors.size() - 1)` loop always dropped the
+    // final segment (and ran zero times for a 2-anchor straight wire).
+    // Iterate directly over adjacent anchor pairs instead.
+    for (size_t i = 0; i + 1 < anchors.size(); i++) {
+        retSet.merge(addToGridAlongTwoPoints(anchors[i], anchors[i + 1], propagator));
     }
+
+    retSet.erase(propagator);
+
     return retSet;
 }
 
 void ComponentHolder::removeFromGrid(const std::vector<Position>& anchors, Propagator* propagator) {
     if (anchors.size() < 2) return;
-    Position posA = anchors[0];
-    Position posB = anchors[1];
-    unsigned int a = 1;
-    while(a < anchors.size() - 1) {
-        removeFromGridAlongTwoPoints(posA, posB, propagator);
-        a++;
-        posA = posB;
-        posB = anchors[a];
+
+    // FIX: same off-by-one as addToGrid() above — must match it exactly,
+    // or removal will leave stale entries for whichever segment addToGrid
+    // added but removeFromGrid failed to remove (or vice versa).
+    for (size_t i = 0; i + 1 < anchors.size(); i++) {
+        removeFromGridAlongTwoPoints(anchors[i], anchors[i + 1], propagator);
     }
 }
+
 
 //A to B
 std::unordered_set<Propagator*> ComponentHolder::addToGridAlongTwoPoints(const Position& posA, const Position& posB, Propagator* propagator) {

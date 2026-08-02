@@ -31,7 +31,7 @@ public:
 private:
   void removeExistingComponentFromWorkspace();
   void addCurrentComponentToWorkspace();
-  void visuallyRegisterPropagator(Propagator* ptr);
+  bool visuallyRegisterPropagator(Propagator* ptr);
 };
 
 extern ProjectManager* globalProjectManager;

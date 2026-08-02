@@ -56,8 +56,14 @@ void ProjectManager::removeExistingComponentFromWorkspace() {
 }
 
 void ProjectManager::addCurrentComponentToWorkspace() {
-  for (auto& propagator : currentOpenComponent->propagators) {
-    visuallyRegisterPropagator(propagator.get());
+   std::vector<Propagator*> rawVec;
+
+   for (const auto& ptr : currentOpenComponent->propagators)
+   {
+    	rawVec.push_back(ptr.get());
+   }
+  for (auto& propagator : rawVec) {
+    visuallyRegisterPropagator(propagator);
   }
 }
 
@@ -72,11 +78,41 @@ void ProjectManager::saveCurrentComponent() {
 Propagator* ProjectManager::addNewPropagator(std::unique_ptr<Propagator> propagator) {
     auto ptr = propagator.get();
     currentOpenComponent->propagators.push_back(std::move(propagator));
-    visuallyRegisterPropagator(ptr);
+
+    if (visuallyRegisterPropagator(ptr)) {
+        // FIX: visuallyRegisterPropagator() can recurse back into
+        // addNewPropagator() (e.g. Wire::trimForCollidingWires splitting a
+        // wire into fragments and registering each one). Those recursive
+        // calls push additional entries onto `propagators` *after* ours,
+        // so by the time we get here `ptr` is no longer guaranteed to be
+        // at the back — pop_back() would silently delete the wrong
+        // (possibly perfectly valid) propagator instead of this one.
+        //
+        // Find and erase the specific entry that owns `ptr` instead.
+        auto& propagators = currentOpenComponent->propagators;
+        auto it = std::find_if(
+            propagators.begin(),
+            propagators.end(),
+            [ptr](const std::unique_ptr<Propagator>& p) { return p.get() == ptr; }
+        );
+
+        if (it != propagators.end()) {
+            propagators.erase(it);
+        }
+
+        // NOTE: `ptr` is dangling after this point, same as it already was
+        // in the original code's pop_back() path. Callers that discard the
+        // return value (as trimForCollidingWires and the wiring code do)
+        // are fine; anything that uses the return value when registration
+        // fails needs to check for that case first.
+        return nullptr;
+    }
+
     return ptr;
 }
 
-void ProjectManager::visuallyRegisterPropagator(Propagator* ptr) {
+//returns true if it needs to be destroyed
+bool ProjectManager::visuallyRegisterPropagator(Propagator* ptr) {
     if (ptr->getKind() == Propagator::Kinds::PIN) {
         auto np = (Pin*)ptr;
         globalProjectManager->gridManager.addToGrid(np->relPosition, np);
@@ -87,10 +123,14 @@ void ProjectManager::visuallyRegisterPropagator(Propagator* ptr) {
     } else if (ptr->getKind() == Propagator::Kinds::WIRE) {
         auto np = (Wire*)ptr;
         auto touchingElements = globalProjectManager->gridManager.addToGrid(np->anchors, np);
-        auto* item = new WireGraphicsItem(*np);
-        workspace->scene()->addItem(item);
-        item->setZValue(1);
-
-        np->trimForCollidingWires(touchingElements);
+        
+        if (np->trimForCollidingWires(touchingElements)) {
+            return true;
+        }
+        
+        np->graphicsItem = new WireGraphicsItem(*np);
+        workspace->scene()->addItem(np->graphicsItem);
+        np->graphicsItem->setZValue(1);
     }
+    return false;
 }

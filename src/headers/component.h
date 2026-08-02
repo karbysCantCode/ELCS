@@ -80,22 +80,29 @@ public:
     virtual ~Propagator() = default;
 };
 
+struct Segment {
+    Position begin;
+    Position end;
+};
 class Wire : public Propagator
 {
 public:
-    std::vector<Position> anchors;
+    std::vector<Segment> segments;
     WireGraphicsItem* graphicsItem = nullptr;
     virtual uint32_t getUint32sToSave() const override;
     virtual void saveToAddress(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const override;
-    void trimForCollidingWires(std::unordered_set<Propagator *>& collidingSet);
+    //returns true if it needs to be destroyed
+    bool trimForCollidingWires(std::unordered_set<Propagator *>& collidingSet);
     void reset();
 
     // does not sync effectors and affectors.
     Wire(const Wire& wireToCopy);
     Wire() {}
 
+    ~Wire();
+
 private:    
-    
+
 };
 
 class Pin : public Propagator

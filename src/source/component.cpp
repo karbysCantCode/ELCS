@@ -6,8 +6,16 @@
 #include <cstdint>
 
 #include "notifications.h"
+#include "projectmanager.h"
 
 Component::Component() {}
+
+Wire::~Wire() {
+if (graphicsItem) {
+	globalProjectManager->workspace->scene()->removeItem(graphicsItem);
+	delete graphicsItem;
+}
+}
 
 struct CollidingWireData {
     int thisA = 0;
@@ -26,30 +34,37 @@ struct CollidingWireData {
         vertical(_vertical) {}
 };
 
-void Wire::trimForCollidingWires(std::unordered_set<Propagator *>& collidingSet) {
+bool Wire::trimForCollidingWires(std::unordered_set<Propagator *>& collidingSet) {
+    // FIX: guard against underflow of `anchors.size() - 1` below when this
+    // wire has fewer than 2 anchors (size_t wraparound -> huge loop bound).
+    if (anchors.size() < 2)
+        return false;
+
     for (const auto* propagator : collidingSet) {
         if (propagator->getKind() != Propagator::Kinds::WIRE)
             continue;
 
         Wire* other = (Wire*)propagator;
 
-        if (other->anchors.size() < 2) 
+        if (other->anchors.size() < 2)
             continue;
 
         std::vector<CollidingWireData> collisions;
 
         for (size_t i = 0; i < anchors.size() - 1; i++) {
             const auto& thisAnchorA = anchors[i];
-            const auto& thisAnchorB = anchors[i+1];
+            const auto& thisAnchorB = anchors[i + 1];
+
             bool thisHorizontal = thisAnchorA.y == thisAnchorB.y;
+
             for (size_t j = 0; j < other->anchors.size() - 1; j++) {
                 const auto& otherAnchorA = other->anchors[j];
-                const auto& otherAnchorB = other->anchors[j+1];
+                const auto& otherAnchorB = other->anchors[j + 1];
 
                 bool otherHorizontal = otherAnchorA.y == otherAnchorB.y;
-                
-                if (otherHorizontal != thisHorizontal) 
-                    continue; //opposite directions
+
+                if (otherHorizontal != thisHorizontal)
+                    continue;
 
                 if (thisHorizontal) {
                     if (thisAnchorA.y != otherAnchorA.y)
@@ -61,16 +76,20 @@ void Wire::trimForCollidingWires(std::unordered_set<Propagator *>& collidingSet)
                     int otherMin = std::min(otherAnchorA.x, otherAnchorB.x);
                     int otherMax = std::max(otherAnchorA.x, otherAnchorB.x);
 
-                    if (std::max(thisMin, otherMin) < std::min(thisMax, otherMax))
-                    {
-                        int overlapStart = std::max(thisMin, otherMin);
-                        int overlapEnd = std::min(thisMax, otherMax);
+                    int overlapStart = std::max(thisMin, otherMin);
+                    int overlapEnd = std::min(thisMax, otherMax);
 
-                        qDebug(std::format("horizontal {}A, {}B", overlapStart, overlapEnd).c_str());
-                        // globalNotificationManager->notify("overlap", std::format("horizontal {}A, {}B", overlapStart, overlapEnd).c_str());
+                    if (overlapStart < overlapEnd) {
+                        collisions.emplace_back(
+                            i,
+                            j,
+                            overlapStart,
+                            overlapEnd,
+                            false
+                        );
                     }
-                } else {
-                    //vertical
+                }
+                else {
                     if (thisAnchorA.x != otherAnchorA.x)
                         continue;
 
@@ -80,18 +99,206 @@ void Wire::trimForCollidingWires(std::unordered_set<Propagator *>& collidingSet)
                     int otherMin = std::min(otherAnchorA.y, otherAnchorB.y);
                     int otherMax = std::max(otherAnchorA.y, otherAnchorB.y);
 
-                    if (std::max(thisMin, otherMin) < std::min(thisMax, otherMax))
-                    {
-                        int overlapStart = std::max(thisMin, otherMin);
-                        int overlapEnd = std::min(thisMax, otherMax);
+                    int overlapStart = std::max(thisMin, otherMin);
+                    int overlapEnd = std::min(thisMax, otherMax);
 
-                        qDebug(std::format("vertical {}A, {}B", overlapStart, overlapEnd).c_str());
-                        // globalNotificationManager->notify("overlap", std::format("vertical {}A, {}B", overlapStart, overlapEnd).c_str());
+                    if (overlapStart < overlapEnd) {
+                        collisions.emplace_back(
+                            i,
+                            j,
+                            overlapStart,
+                            overlapEnd,
+                            true
+                        );
                     }
                 }
             }
         }
+
+
+        for (const auto& collision : collisions) {
+            size_t segmentStart = collision.thisA;
+            size_t segmentEnd = collision.thisA + 1;
+
+            auto a = anchors[segmentStart];
+            auto b = anchors[segmentEnd];
+
+            int segmentMin;
+            int segmentMax;
+
+            if (collision.vertical) {
+                segmentMin = std::min(a.y, b.y);
+                segmentMax = std::max(a.y, b.y);
+            }
+            else {
+                segmentMin = std::min(a.x, b.x);
+                segmentMax = std::max(a.x, b.x);
+            }
+
+
+            bool fullOverlap =
+                collision.begin <= segmentMin &&
+                collision.end >= segmentMax;
+
+
+            if (fullOverlap) {
+                //
+                // Remove the overlapped segment.
+                //
+                // Split:
+                //
+                //  A------B------C
+                //
+                // becomes:
+                //
+                //  A------B
+                //
+                // and:
+                //
+                //        B------C
+                //
+                
+                std::vector<Position> before;
+                std::vector<Position> after;
+
+
+                // before includes thisA
+                if (collision.thisA > 0) {
+                    before.insert(
+                        before.end(),
+                        anchors.begin(),
+                        anchors.begin() + collision.thisA + 1
+                    );
+
+                    // REGISTER NEW WIRE HERE
+                    // with "before"
+
+                    auto nw = std::make_unique<Wire>();
+                    nw->anchors = before;
+										// globalProjectManager->gridManager.addToGrid(nw->anchors, nw.get());
+                    globalProjectManager->addNewPropagator(std::move(nw));
+                }
+
+
+                // after begins at thisB
+                if (collision.thisA + 1 < anchors.size() - 1) {
+                    after.insert(
+                        after.end(),
+                        anchors.begin() + collision.thisA + 1,
+                        anchors.end()
+                    );
+
+                    // REGISTER NEW WIRE HERE
+                    // with "after"
+                    auto nw = std::make_unique<Wire>();
+                    nw->anchors = after;
+										// globalProjectManager->gridManager.addToGrid(nw->anchors, nw.get());
+                    globalProjectManager->addNewPropagator(std::move(nw));
+                }
+
+
+                // UNREGISTER ORIGINAL HERE
+                // DESTROY ORIGINAL HERE
+                globalProjectManager->gridManager.removeFromGrid(anchors, this);
+
+
+                return true;
+            }
+            else {
+                //
+                // Partial overlap: the colliding range covers only part of
+                // this segment (touching one end, or sitting in the middle).
+                //
+                // FIX: the segment a->b can run in either direction (a can be
+                // at the low OR high coordinate). The original code always
+                // treated `a` as the low end and `b` as the high end, which
+                // silently dropped the real non-overlapping piece and kept
+                // the overlapping piece whenever a segment ran "backwards".
+                // We now figure out which end is which before picking cut
+                // points, and only emit a new wire if it isn't degenerate
+                // (i.e. the cut point doesn't coincide with the anchor).
+                //
+
+                std::vector<Position> before;
+                std::vector<Position> after;
+
+                int aCoord = collision.vertical ? a.y : a.x;
+                int bCoord = collision.vertical ? b.y : b.x;
+
+                bool aIsMin = aCoord <= bCoord;
+
+                // boundary of the overlap adjacent to 'a', and adjacent to 'b'
+                int nearACoord = aIsMin ? collision.begin : collision.end;
+                int nearBCoord = aIsMin ? collision.end   : collision.begin;
+
+                Position cutNearA, cutNearB;
+                if (collision.vertical) {
+                    cutNearA = { a.x, nearACoord };
+                    cutNearB = { a.x, nearBCoord };
+                }
+                else {
+                    cutNearA = { nearACoord, a.y };
+                    cutNearB = { nearBCoord, a.y };
+                }
+
+                //
+                // First wire:
+                // original beginning -> boundary nearest 'a'
+                //
+                before.insert(
+                    before.end(),
+                    anchors.begin(),
+                    anchors.begin() + segmentStart + 1
+                );
+
+                if (nearACoord != aCoord) {
+                    before.push_back(cutNearA);
+                }
+
+                //
+                // Second wire:
+                // boundary nearest 'b' -> original ending
+                //
+                if (nearBCoord != bCoord) {
+                    after.push_back(cutNearB);
+                }
+
+                after.insert(
+                    after.end(),
+                    anchors.begin() + segmentEnd,
+                    anchors.end()
+                );
+
+
+                // REGISTER NEW WIRE HERE
+                // with before (skip if degenerate, i.e. fewer than 2 anchors)
+                if (before.size() >= 2) {
+                    auto nwb = std::make_unique<Wire>();
+                    nwb->anchors = before;
+										// globalProjectManager->gridManager.addToGrid(nwb->anchors, nwb.get());
+                    globalProjectManager->addNewPropagator(std::move(nwb));
+                }
+
+                // REGISTER NEW WIRE HERE
+                // with after (skip if degenerate, i.e. fewer than 2 anchors)
+                if (after.size() >= 2) {
+                    auto nwa = std::make_unique<Wire>();
+                    nwa->anchors = after;
+										// globalProjectManager->gridManager.addToGrid(nwa->anchors, nwa.get());
+                    globalProjectManager->addNewPropagator(std::move(nwa));
+                }
+
+
+                // UNREGISTER ORIGINAL HERE
+                // DESTROY ORIGINAL HERE
+                globalProjectManager->gridManager.removeFromGrid(anchors, this);
+
+                return true;
+            }
+        }
     }
+
+    return false;
 }
 
 Position Position::getGridScaledCopy(int offset) const {
