@@ -16,289 +16,74 @@ if (graphicsItem) {
 	delete graphicsItem;
 }
 }
+// bool Position::doesPositionSitBetweenManhattenLines(bool targetLineHorizontal, const Position& positionA, const Position& positionB) const {
+// 	if (targetLineHorizontal) {
+// 		if (y != positionA.y) return false;
+// 		return x <= std::max(positionA.x,positionB.x) && x >= std::min(positionA.x,positionB.x);
+// 	} else {
+// 		if (x != positionA.x) return false;
+// 		return y <= std::max(positionA.y,positionB.y) && y >= std::min(positionA.y,positionB.y);
+// 	}
+// }
 
+std::pair<bool,bool> Segment::doesSegmentEndsSitAlongSegment(bool targetLineHorizontal, const Segment& segment) const {
+	std::pair<bool,bool> pair = {false,false};
+
+	if (targetLineHorizontal) {
+		int xmax = std::max(segment.begin.x,segment.end.x);
+		int xmin = std::min(segment.begin.x,segment.end.x);
+		if (begin.y == segment.begin.y) {
+			pair.first = begin.x <= xmax && begin.x >= xmin;
+		}
+		if (end.y == segment.begin.y) {
+			pair.second = end.x <= xmax && end.x >= xmin;
+		}
+	} else {
+		int ymax = std::max(segment.begin.y,segment.end.y);
+		int ymin = std::min(segment.begin.y,segment.end.y);
+		if (begin.x == segment.begin.x) {
+			pair.first = begin.y <= ymax && begin.y >= ymax;
+		}
+		if (end.x == segment.begin.x) {
+			pair.second = end.y <= ymax && end.y >= ymax;
+		}
+	}
+
+	return pair;
+}
 struct CollidingWireData {
-    int thisA = 0;
-    int otherA = 0;
-
-    int begin = 0;
-    int end = 0;
-
-    bool vertical = false; //else hori
-
-    CollidingWireData(int _thisA, int _otherA, int _begin, int _end, bool _vertical) :
-        thisA(_thisA),
-        otherA(_otherA),
-        begin(_begin),
-        end(_end),
-        vertical(_vertical) {}
+	Segment segmentThis;
+	Segment segmentOther;
 };
 
 bool Wire::trimForCollidingWires(std::unordered_set<Propagator *>& collidingSet) {
-    // FIX: guard against underflow of `anchors.size() - 1` below when this
-    // wire has fewer than 2 anchors (size_t wraparound -> huge loop bound).
-    if (anchors.size() < 2)
-        return false;
+	for (const auto& propagator : collidingSet) {
+		if (propagator->getKind() != Propagator::Kinds::WIRE) continue;
+		Wire* other = (Wire*)propagator;
+		for (const auto& segment : segments) {
+			bool thisIsHorizontal = segment->begin.y == segment->end.y;
 
-    for (const auto* propagator : collidingSet) {
-        if (propagator->getKind() != Propagator::Kinds::WIRE)
-            continue;
+			for (const auto& otherSegment : other->segments) {
+				bool otherIsHorizontal = otherSegment->begin.y == otherSegment->end.y;
 
-        Wire* other = (Wire*)propagator;
+				if (thisIsHorizontal != otherIsHorizontal) {
+					//detect ends along line
+					const auto [beginCollide, endCollide] = segment->doesSegmentEndsSitAlongSegment(otherIsHorizontal, otherSegment);
 
-        if (other->anchors.size() < 2)
-            continue;
+					for (const auto& segment : segments) {
+						other->segments.push_back(std::move(segment));
+					}
 
-        std::vector<CollidingWireData> collisions;
-
-        for (size_t i = 0; i < anchors.size() - 1; i++) {
-            const auto& thisAnchorA = anchors[i];
-            const auto& thisAnchorB = anchors[i + 1];
-
-            bool thisHorizontal = thisAnchorA.y == thisAnchorB.y;
-
-            for (size_t j = 0; j < other->anchors.size() - 1; j++) {
-                const auto& otherAnchorA = other->anchors[j];
-                const auto& otherAnchorB = other->anchors[j + 1];
-
-                bool otherHorizontal = otherAnchorA.y == otherAnchorB.y;
-
-                if (otherHorizontal != thisHorizontal)
-                    continue;
-
-                if (thisHorizontal) {
-                    if (thisAnchorA.y != otherAnchorA.y)
-                        continue;
-
-                    int thisMin = std::min(thisAnchorA.x, thisAnchorB.x);
-                    int thisMax = std::max(thisAnchorA.x, thisAnchorB.x);
-
-                    int otherMin = std::min(otherAnchorA.x, otherAnchorB.x);
-                    int otherMax = std::max(otherAnchorA.x, otherAnchorB.x);
-
-                    int overlapStart = std::max(thisMin, otherMin);
-                    int overlapEnd = std::min(thisMax, otherMax);
-
-                    if (overlapStart < overlapEnd) {
-                        collisions.emplace_back(
-                            i,
-                            j,
-                            overlapStart,
-                            overlapEnd,
-                            false
-                        );
-                    }
-                }
-                else {
-                    if (thisAnchorA.x != otherAnchorA.x)
-                        continue;
-
-                    int thisMin = std::min(thisAnchorA.y, thisAnchorB.y);
-                    int thisMax = std::max(thisAnchorA.y, thisAnchorB.y);
-
-                    int otherMin = std::min(otherAnchorA.y, otherAnchorB.y);
-                    int otherMax = std::max(otherAnchorA.y, otherAnchorB.y);
-
-                    int overlapStart = std::max(thisMin, otherMin);
-                    int overlapEnd = std::min(thisMax, otherMax);
-
-                    if (overlapStart < overlapEnd) {
-                        collisions.emplace_back(
-                            i,
-                            j,
-                            overlapStart,
-                            overlapEnd,
-                            true
-                        );
-                    }
-                }
-            }
-        }
+					return true;
+				} else {
+					//check partial/full overlap
 
 
-        for (const auto& collision : collisions) {
-            size_t segmentStart = collision.thisA;
-            size_t segmentEnd = collision.thisA + 1;
-
-            auto a = anchors[segmentStart];
-            auto b = anchors[segmentEnd];
-
-            int segmentMin;
-            int segmentMax;
-
-            if (collision.vertical) {
-                segmentMin = std::min(a.y, b.y);
-                segmentMax = std::max(a.y, b.y);
-            }
-            else {
-                segmentMin = std::min(a.x, b.x);
-                segmentMax = std::max(a.x, b.x);
-            }
-
-
-            bool fullOverlap =
-                collision.begin <= segmentMin &&
-                collision.end >= segmentMax;
-
-
-            if (fullOverlap) {
-                //
-                // Remove the overlapped segment.
-                //
-                // Split:
-                //
-                //  A------B------C
-                //
-                // becomes:
-                //
-                //  A------B
-                //
-                // and:
-                //
-                //        B------C
-                //
-                
-                std::vector<Position> before;
-                std::vector<Position> after;
-
-
-                // before includes thisA
-                if (collision.thisA > 0) {
-                    before.insert(
-                        before.end(),
-                        anchors.begin(),
-                        anchors.begin() + collision.thisA + 1
-                    );
-
-                    // REGISTER NEW WIRE HERE
-                    // with "before"
-
-                    auto nw = std::make_unique<Wire>();
-                    nw->anchors = before;
-										// globalProjectManager->gridManager.addToGrid(nw->anchors, nw.get());
-                    globalProjectManager->addNewPropagator(std::move(nw));
-                }
-
-
-                // after begins at thisB
-                if (collision.thisA + 1 < anchors.size() - 1) {
-                    after.insert(
-                        after.end(),
-                        anchors.begin() + collision.thisA + 1,
-                        anchors.end()
-                    );
-
-                    // REGISTER NEW WIRE HERE
-                    // with "after"
-                    auto nw = std::make_unique<Wire>();
-                    nw->anchors = after;
-										// globalProjectManager->gridManager.addToGrid(nw->anchors, nw.get());
-                    globalProjectManager->addNewPropagator(std::move(nw));
-                }
-
-
-                // UNREGISTER ORIGINAL HERE
-                // DESTROY ORIGINAL HERE
-                globalProjectManager->gridManager.removeFromGrid(anchors, this);
-
-
-                return true;
-            }
-            else {
-                //
-                // Partial overlap: the colliding range covers only part of
-                // this segment (touching one end, or sitting in the middle).
-                //
-                // FIX: the segment a->b can run in either direction (a can be
-                // at the low OR high coordinate). The original code always
-                // treated `a` as the low end and `b` as the high end, which
-                // silently dropped the real non-overlapping piece and kept
-                // the overlapping piece whenever a segment ran "backwards".
-                // We now figure out which end is which before picking cut
-                // points, and only emit a new wire if it isn't degenerate
-                // (i.e. the cut point doesn't coincide with the anchor).
-                //
-
-                std::vector<Position> before;
-                std::vector<Position> after;
-
-                int aCoord = collision.vertical ? a.y : a.x;
-                int bCoord = collision.vertical ? b.y : b.x;
-
-                bool aIsMin = aCoord <= bCoord;
-
-                // boundary of the overlap adjacent to 'a', and adjacent to 'b'
-                int nearACoord = aIsMin ? collision.begin : collision.end;
-                int nearBCoord = aIsMin ? collision.end   : collision.begin;
-
-                Position cutNearA, cutNearB;
-                if (collision.vertical) {
-                    cutNearA = { a.x, nearACoord };
-                    cutNearB = { a.x, nearBCoord };
-                }
-                else {
-                    cutNearA = { nearACoord, a.y };
-                    cutNearB = { nearBCoord, a.y };
-                }
-
-                //
-                // First wire:
-                // original beginning -> boundary nearest 'a'
-                //
-                before.insert(
-                    before.end(),
-                    anchors.begin(),
-                    anchors.begin() + segmentStart + 1
-                );
-
-                if (nearACoord != aCoord) {
-                    before.push_back(cutNearA);
-                }
-
-                //
-                // Second wire:
-                // boundary nearest 'b' -> original ending
-                //
-                if (nearBCoord != bCoord) {
-                    after.push_back(cutNearB);
-                }
-
-                after.insert(
-                    after.end(),
-                    anchors.begin() + segmentEnd,
-                    anchors.end()
-                );
-
-
-                // REGISTER NEW WIRE HERE
-                // with before (skip if degenerate, i.e. fewer than 2 anchors)
-                if (before.size() >= 2) {
-                    auto nwb = std::make_unique<Wire>();
-                    nwb->anchors = before;
-										// globalProjectManager->gridManager.addToGrid(nwb->anchors, nwb.get());
-                    globalProjectManager->addNewPropagator(std::move(nwb));
-                }
-
-                // REGISTER NEW WIRE HERE
-                // with after (skip if degenerate, i.e. fewer than 2 anchors)
-                if (after.size() >= 2) {
-                    auto nwa = std::make_unique<Wire>();
-                    nwa->anchors = after;
-										// globalProjectManager->gridManager.addToGrid(nwa->anchors, nwa.get());
-                    globalProjectManager->addNewPropagator(std::move(nwa));
-                }
-
-
-                // UNREGISTER ORIGINAL HERE
-                // DESTROY ORIGINAL HERE
-                globalProjectManager->gridManager.removeFromGrid(anchors, this);
-
-                return true;
-            }
-        }
-    }
-
-    return false;
+					
+				}
+			}
+		}
+	}
 }
 
 Position Position::getGridScaledCopy(int offset) const {
@@ -306,7 +91,7 @@ Position Position::getGridScaledCopy(int offset) const {
 }
 
 void Wire::reset() {
-    anchors.clear();
+    segments.clear();
 }
 
 void Propagator::evaluateEffectingState() {
@@ -516,11 +301,13 @@ void Component::saveToFile(const std::filesystem::path& path) {
     0x000c: number of wires (4b)
     0x0010: first wire of wires:
         wire layout:
-        0x0000: number of anchors (4b)
-        0x0004: first anchor pos of anchors
-            anchor layout:
-            0x0000: int x (4b)
-            0x0004: int y (4b)
+        0x0000: number of seg (4b)
+        0x0004: first seg pos of segs
+            seg layout:
+            0x0000: int ax (4b)
+            0x0004: int ay (4b)
+            0x0000: int bx (4b)
+            0x0004: int by (4b)
         0x....: number of effectors (4b)
         0x....: number of affectors (4b)
         0x....: first effector id (4b)
@@ -629,9 +416,11 @@ void Component::loadFromFile(const std::filesystem::path& path) {
 
         uint32_t anchorCount = *bufferPos++;
         for (uint32_t j = 0; j < anchorCount; j++) {
-            wire->anchors.emplace_back();
-            wire->anchors.back().x = *bufferPos++;
-            wire->anchors.back().y = *bufferPos++;
+            wire->segments.emplace_back();
+            wire->segments.back().begin.x = *bufferPos++;
+            wire->segments.back().begin.y = *bufferPos++;
+            wire->segments.back().end.x = *bufferPos++;
+            wire->segments.back().end.y = *bufferPos++;
         }
         uint32_t effectorCount = *bufferPos++;
         uint32_t affectorCount = *bufferPos++;
@@ -768,21 +557,23 @@ uint32_t Propagator::getUint32sToSaveEffectorsAndAffectors() const {
 
 uint32_t Wire::getUint32sToSave() const {
     uint32_t count = 1;
-    count += anchors.size()*2;
+    count += segments.size()*4;
     count += getUint32sToSaveEffectorsAndAffectors();
     return count;
 }
 
 void Wire::saveToAddress(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const {
-    *data++ = anchors.size();
-    for (uint32_t i = 0; i < anchors.size(); i++) {
-        *data++ = anchors[i].x;
-        *data++ = anchors[i].y;
+    *data++ = segments.size();
+    for (uint32_t i = 0; i < segments.size(); i++) {
+        *data++ = segments[i].begin.x;
+        *data++ = segments[i].begin.y;
+        *data++ = segments[i].end.x;
+        *data++ = segments[i].end.y;
     }
     saveEffectorsAndAffectorsToAddres(data, map);
 }
 
-Wire::Wire(const Wire& wireToCopy) : anchors(wireToCopy.anchors), Propagator(wireToCopy) {}
+Wire::Wire(const Wire& wireToCopy) : segments(wireToCopy.segments), Propagator(wireToCopy) {}
 
 Component::Component(const Component& componentToCopy) 
     :   name(componentToCopy.name),
@@ -910,15 +701,21 @@ void Component::debugPrintPropagators() const
         {
             const Wire* wire = static_cast<const Wire*>(p);
 
-            qDebug() << "Anchor count:" << wire->anchors.size();
+            qDebug() << "Segment count:" << wire->segments.size();
 
-            for (size_t j = 0; j < wire->anchors.size(); ++j)
+            for (size_t j = 0; j < wire->segments.size(); ++j)
             {
                 qDebug() << "   Anchor" << j
                          << "("
-                         << wire->anchors[j].x
+                         << wire->segments[j].begin.x
                          << ","
-                         << wire->anchors[j].y
+                         << wire->segments[j].begin.y
+                         << ")"
+												 << ":"
+												 << "("
+                         << wire->segments[j].end.x
+                         << ","
+                         << wire->segments[j].end.y
                          << ")";
             }
         }

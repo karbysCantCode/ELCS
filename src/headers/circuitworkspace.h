@@ -44,7 +44,7 @@ private:
 
     bool p_isMoving = false;
     bool p_isWiring = false;
-    WireGraphicsItem* tempWireItem = nullptr;
+    // WireGraphicsItem* tempWireItem = nullptr;
 
     /*
         anchors

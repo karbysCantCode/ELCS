@@ -8,6 +8,8 @@
 #include <filesystem>
 #include <fstream>
 
+#include "segmentgraphicsitem.h"
+
 class WireGraphicsItem;
 
 enum States
@@ -26,6 +28,7 @@ public:
     int y = 0;
 
     Position(int _x, int _y) : x(_x), y(_y) {}
+    Position(const Position& _other) : x(_other.x), y(_other.y) {}
     Position() {}
 
     constexpr int getX() const {return x;}
@@ -34,6 +37,8 @@ public:
     constexpr QPoint getQPoint() const {return {x,y};}
 
     Position getGridScaledCopy(int offset = 5) const;
+
+    //bool doesPositionSitBetweenManhattenLines(bool targetLineHorizontal = false, const Position& positionA, const Position& positionB) const;
 
     constexpr bool operator==(const Position& other) const {return other.x == x && other.y == y;}
     constexpr bool operator!=(const Position& other) const {return !(other.x == x && other.y == y);}
@@ -83,12 +88,20 @@ public:
 struct Segment {
     Position begin;
     Position end;
+
+    Segment(int ax, int ay, int bx, int by) : begin(ax,ay), end(bx,by) {}
+    Segment(const Position& _begin, const Position& _end) : begin(_begin), end(_end) {}
+    Segment() {}
+
+    // first = begin, second = end
+    std::pair<bool,bool> doesSegmentEndsSitAlongSegment(bool targetLineHorizontal, const Segment& segment) const;
+    
 };
 class Wire : public Propagator
 {
 public:
-    std::vector<Segment> segments;
-    WireGraphicsItem* graphicsItem = nullptr;
+    std::vector<std::unique_ptr<Segment>> segments;
+    SegmentGraphicsItem* graphicsItem = nullptr;
     virtual uint32_t getUint32sToSave() const override;
     virtual void saveToAddress(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const override;
     //returns true if it needs to be destroyed

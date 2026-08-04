@@ -30,6 +30,9 @@ public:
     std::unordered_set<Propagator*> addToGrid(const std::vector<Position>& anchors, Propagator* propagator);
     void removeFromGrid(const std::vector<Position>& anchors, Propagator* propagator);
 
+    std::unordered_set<Propagator*> addToGrid(const std::vector<Segment>& segments, Propagator* propagator);
+    void removeFromGrid(const std::vector<Segment>& segments, Propagator* propagator);
+    
     bool isOccupied(const Position& pos) const;
     std::unordered_set<Propagator*> getOccupied(const Position& pos) const;
     

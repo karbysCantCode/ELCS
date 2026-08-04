@@ -38,6 +38,18 @@ std::unordered_set<Propagator*> ComponentHolder::addToGrid(const std::vector<Pos
     return retSet;
 }
 
+std::unordered_set<Propagator*> ComponentHolder::addToGrid(const std::vector<Segment>& segments, Propagator* propagator) {
+    std::unordered_set<Propagator*> retSet;
+
+    for (const auto& segment : segments) {
+        retSet.merge(addToGridAlongTwoPoints(segment.begin, segment.end, propagator));
+    }
+
+    retSet.erase(propagator);
+
+    return retSet;
+}
+
 void ComponentHolder::removeFromGrid(const std::vector<Position>& anchors, Propagator* propagator) {
     if (anchors.size() < 2) return;
 
@@ -46,6 +58,13 @@ void ComponentHolder::removeFromGrid(const std::vector<Position>& anchors, Propa
     // added but removeFromGrid failed to remove (or vice versa).
     for (size_t i = 0; i + 1 < anchors.size(); i++) {
         removeFromGridAlongTwoPoints(anchors[i], anchors[i + 1], propagator);
+    }
+}
+
+void ComponentHolder::removeFromGrid(const std::vector<Segment>& segments, Propagator* propagator) {
+
+    for (const auto& segment : segments) {
+        removeFromGridAlongTwoPoints(segment.begin, segment.end, propagator);
     }
 }
 

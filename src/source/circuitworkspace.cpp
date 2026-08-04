@@ -3,6 +3,8 @@
 #include "projectmanager.h"
 #include "notifications.h"
 
+#include "segmentgraphicsitem.h"
+
 #include <iostream>
 
 CircuitWorkspace::CircuitWorkspace(QFrame*& frame) {
@@ -92,20 +94,23 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event)  {
         //wire
         globalNotificationManager->notify("Debug", "is occupied", 1000);
         p_isWiring = true;
-        if (tempWireItem) {
-          scene()->removeItem(tempWireItem);
-          delete tempWireItem;
-          tempWireItem = nullptr;
+        
+        if (tempWire.graphicsItem) {
+          scene()->removeItem(tempWire.graphicsItem);
+          delete tempWire.graphicsItem;
+          tempWire.graphicsItem = nullptr;
         }
 
         tempWire.reset();
-        tempWire.anchors.push_back(nPos);
-        tempWire.anchors.push_back(nPos);
-        tempWire.anchors.push_back(nPos);
+        tempWire.segments.push_back({nPos,nPos});
+        tempWire.segments.push_back({nPos,nPos});
 
-        tempWireItem = new WireGraphicsItem(tempWire);
-        scene()->addItem(tempWireItem);
-        tempWireItem->update();
+        tempWire.graphicsItem = new SegmentGraphicsItem(tempWire);
+        scene()->addItem(tempWire.graphicsItem);
+        tempWire.graphicsItem->update();
+
+
+
       } else {
         globalNotificationManager->notify("Debug", "NOT occupied", 1000);
         p_isMoving = true;
@@ -132,16 +137,14 @@ void CircuitWorkspace::mouseMoveEvent(QMouseEvent *event)  {
     }
     if (p_isWiring) {
       constexpr double margin = 20;
-      tempWireItem->beginGeometryChange();
-      tempWire.anchors[2] = convertEventPosToPosition(event->pos());
+      tempWire.graphicsItem->beginGeometryChange();
+      const auto eventPosTemp = convertEventPosToPosition(event->pos());
+      const Position eventPosIntermediate = {tempWire.segments[0].begin.x, eventPosTemp.y};
+      tempWire.segments[0].end = eventPosIntermediate;
+      tempWire.segments[1].begin = eventPosIntermediate;
+      tempWire.segments[1].end = eventPosTemp;
 
-      if (tempWire.anchors[0].x != tempWire.anchors[2].x && tempWire.anchors[0].y != tempWire.anchors[2].y) {
-        tempWire.anchors[1] = {tempWire.anchors[0].x,tempWire.anchors[2].y};
-      } else {
-        tempWire.anchors[1] = tempWire.anchors[0];
-      }
-
-      tempWireItem->update();
+      tempWire.graphicsItem->update();
       // const QRectF bounds = scene()->sceneRect();
       // double leftRate =
       //     1.0 - std::clamp(std::min(p_wiringFinalPoint.x() - bounds.left(), margin) / margin, 0.0, 1.0);
@@ -177,14 +180,10 @@ void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
 
     if (p_isWiring) {
       p_isWiring = false;
-      scene()->removeItem(tempWireItem);
+      scene()->removeItem(tempWire.graphicsItem);
       tempWire.graphicsItem = nullptr;
-      delete tempWireItem;
-      tempWireItem = nullptr;
-
-      if (tempWire.anchors[1] == tempWire.anchors[0]) {
-        tempWire.anchors.erase(tempWire.anchors.begin()+1);
-      }
+      delete tempWire.graphicsItem;
+      tempWire.graphicsItem = nullptr;
 
       auto unique = std::make_unique<Wire>(tempWire);
       globalProjectManager->addNewPropagator(std::move(unique));

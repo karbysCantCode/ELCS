@@ -122,13 +122,13 @@ bool ProjectManager::visuallyRegisterPropagator(Propagator* ptr) {
         item->setPos(np->relPosition.getGridScaledCopy().getQPointF());
     } else if (ptr->getKind() == Propagator::Kinds::WIRE) {
         auto np = (Wire*)ptr;
-        auto touchingElements = globalProjectManager->gridManager.addToGrid(np->anchors, np);
+        auto touchingElements = globalProjectManager->gridManager.addToGrid(np->segments, np);
         
         if (np->trimForCollidingWires(touchingElements)) {
             return true;
         }
         
-        np->graphicsItem = new WireGraphicsItem(*np);
+        np->graphicsItem = new SegmentGraphicsItem(*np);
         workspace->scene()->addItem(np->graphicsItem);
         np->graphicsItem->setZValue(1);
     }
