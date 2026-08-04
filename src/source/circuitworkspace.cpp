@@ -102,8 +102,8 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event)  {
         }
 
         tempWire.reset();
-        tempWire.segments.push_back({nPos,nPos});
-        tempWire.segments.push_back({nPos,nPos});
+        tempWire.segments.push_back(Segment(nPos,nPos));
+        tempWire.segments.push_back(Segment(nPos,nPos));
 
         tempWire.graphicsItem = new SegmentGraphicsItem(tempWire);
         scene()->addItem(tempWire.graphicsItem);

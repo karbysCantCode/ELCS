@@ -10,11 +10,28 @@
 
 Component::Component() {}
 
+struct SegmentHash
+{
+    std::size_t operator()(const Segment& segment) const
+    {
+        std::size_t h1 = std::hash<int>{}(segment.begin.x) ^
+                         (std::hash<int>{}(segment.begin.y) << 1);
+
+        std::size_t h2 = std::hash<int>{}(segment.end.x) ^
+                         (std::hash<int>{}(segment.end.y) << 1);
+
+        return h1 ^ (h2 << 1);
+    }
+};
+
+//if attending to destroy, ensure destroy is correct in mergeCollidingWires.
 Wire::~Wire() {
-if (graphicsItem) {
-	globalProjectManager->workspace->scene()->removeItem(graphicsItem);
-	delete graphicsItem;
-}
+  qDebug(std::format("destroyingguhhhh 0x{:x}",(unsigned long long)graphicsItem).c_str());
+  if (graphicsItem) {
+    qDebug("graphicsItem");
+    globalProjectManager->workspace->scene()->removeItem(graphicsItem);
+    delete graphicsItem;
+  }
 }
 // bool Position::doesPositionSitBetweenManhattenLines(bool targetLineHorizontal, const Position& positionA, const Position& positionB) const {
 // 	if (targetLineHorizontal) {
@@ -26,64 +43,194 @@ if (graphicsItem) {
 // 	}
 // }
 
-std::pair<bool,bool> Segment::doesSegmentEndsSitAlongSegment(bool targetLineHorizontal, const Segment& segment) const {
-	std::pair<bool,bool> pair = {false,false};
+std::pair<bool,bool> Segment::doesSegmentEndsSitAlongSegment(
+    bool targetLineHorizontal,
+    const Segment& segment
+) const
+{
+    bool beginHit = false;
+    bool endHit = false;
 
-	if (targetLineHorizontal) {
-		int xmax = std::max(segment.begin.x,segment.end.x);
-		int xmin = std::min(segment.begin.x,segment.end.x);
-		if (begin.y == segment.begin.y) {
-			pair.first = begin.x <= xmax && begin.x >= xmin;
-		}
-		if (end.y == segment.begin.y) {
-			pair.second = end.x <= xmax && end.x >= xmin;
-		}
-	} else {
-		int ymax = std::max(segment.begin.y,segment.end.y);
-		int ymin = std::min(segment.begin.y,segment.end.y);
-		if (begin.x == segment.begin.x) {
-			pair.first = begin.y <= ymax && begin.y >= ymax;
-		}
-		if (end.x == segment.begin.x) {
-			pair.second = end.y <= ymax && end.y >= ymax;
-		}
-	}
+    if (targetLineHorizontal)
+    {
+        int xmin = std::min(segment.begin.x, segment.end.x);
+        int xmax = std::max(segment.begin.x, segment.end.x);
 
-	return pair;
+        beginHit = begin.y == segment.begin.y &&
+                   begin.x >= xmin &&
+                   begin.x <= xmax;
+
+        endHit = end.y == segment.begin.y &&
+                 end.x >= xmin &&
+                 end.x <= xmax;
+    }
+    else
+    {
+        int ymin = std::min(segment.begin.y, segment.end.y);
+        int ymax = std::max(segment.begin.y, segment.end.y);
+
+        beginHit = begin.x == segment.begin.x &&
+                   begin.y >= ymin &&
+                   begin.y <= ymax;
+
+        endHit = end.x == segment.begin.x &&
+                 end.y >= ymin &&
+                 end.y <= ymax;
+    }
+
+    return {beginHit, endHit};
 }
-struct CollidingWireData {
-	Segment segmentThis;
-	Segment segmentOther;
-};
+// struct CollidingSegmentData {
+// 	Wire* merger;
+//   CollidingSegmentData(Wire* _merger) : merger(_merger) {}
+// };
 
-bool Wire::trimForCollidingWires(std::unordered_set<Propagator *>& collidingSet) {
-	for (const auto& propagator : collidingSet) {
+//return true if its destruction is expected
+std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAgainstWire(Wire* other) {
+  bool merges = false;
+  std::vector<int> segmentsToRemove;
+  for (int i = 0; i < segments.size(); i++) {
+    auto& segment  = segments[i];
+    bool thisIsHorizontal = segment.begin.y == segment.end.y;
+
+    for (int j = 0; j < other->segments.size(); j++) {
+      auto& otherSegment = other->segments[j];
+      bool otherIsHorizontal = otherSegment.begin.y == otherSegment.end.y;
+
+      if (thisIsHorizontal != otherIsHorizontal) {
+        //detect ends along line
+        const auto [beginCollide, endCollide] = segment.doesSegmentEndsSitAlongSegment(otherIsHorizontal, otherSegment);
+
+        if (beginCollide || endCollide)
+          merges = true;
+      } else {
+        if (thisIsHorizontal) {
+          if (otherSegment.begin.y != segment.begin.y) continue;
+        } else {
+          if (otherSegment.begin.x != segment.begin.x) continue;
+        }
+        //check partial/full overlap
+
+        int otherMax = 0;
+        int thisMax = 0;
+
+        int otherMin = 0;
+        int thisMin = 0;
+
+        bool thisMinBegin = false;
+        bool thisMaxBegin = false;
+
+        bool otherMinBegin = false;
+        bool otherMaxBegin = false;
+
+        if (thisIsHorizontal) {
+          otherMax = std::max(otherSegment.begin.x,otherSegment.end.x);
+          thisMax = std::max(segment.begin.x,segment.end.x);
+          thisMaxBegin = thisMax == segment.begin.x;
+          otherMaxBegin = otherMax == otherSegment.begin.x;
+
+          otherMin = std::min(otherSegment.begin.x,otherSegment.end.x);
+          thisMin = std::min(segment.begin.x,segment.end.x);
+          thisMinBegin = thisMin == segment.begin.x;
+          otherMinBegin = otherMin == otherSegment.begin.x;
+        } else {
+          otherMax = std::max(otherSegment.begin.y,otherSegment.end.y);
+          thisMax = std::max(segment.begin.y,segment.end.y);
+          thisMaxBegin = thisMax == segment.begin.y;
+          otherMaxBegin = otherMax == otherSegment.begin.y;
+
+          otherMin = std::min(otherSegment.begin.y,otherSegment.end.y);
+          thisMin = std::min(segment.begin.y,segment.end.y);
+          thisMinBegin = thisMin == segment.begin.y;
+          otherMinBegin = otherMin == otherSegment.begin.y;
+        }
+
+        bool thisMaxInsideOther = thisMax <= otherMax;
+        bool thisMinInsideOther = thisMin >= otherMin;
+
+        if (thisMin >= otherMin && thisMax <= otherMax) {
+          //full
+
+          merges = true;
+          segmentsToRemove.push_back(i);
+          globalProjectManager->gridManager.addToGrid(otherSegment, this);
+          break;
+        } else if (thisMin <= otherMax && thisMax >= otherMin) {
+          //partial
+          int newMin = std::min(thisMin, otherMin);
+          int newMax = std::max(thisMax, otherMax);
+          if (thisIsHorizontal)
+          {
+              otherSegment.begin.x = newMin;
+              otherSegment.end.x = newMax;
+          }
+          else
+          {
+              otherSegment.begin.y = newMin;
+              otherSegment.end.y = newMax;
+          }
+
+          merges = true;
+          segmentsToRemove.push_back(i);
+          globalProjectManager->gridManager.addToGrid(otherSegment, this);
+          break;
+        }
+        
+      }
+    }
+  }
+
+  int offset = 0;
+  for (const auto& i : segmentsToRemove) {
+    segments.erase(segments.begin() + i - offset);
+    offset++;
+  }
+
+  return {merges,{}};
+}
+
+void Wire::mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::unordered_set<Propagator *>* collidingSet, std::unordered_set<Propagator *> excludeSet) {
+  excludeSet.emplace(this);
+  std::unordered_map<Wire*, std::unordered_set<Segment, SegmentHash>> mergingWires;
+
+  bool wasNewList = false;
+  if (collidingSet == nullptr) {
+    wasNewList = true;
+    collidingSet = new std::unordered_set<Propagator*>(globalProjectManager->gridManager.getOccupied(segments, excludeSet));
+  }
+	for (const auto& propagator : *collidingSet) {
 		if (propagator->getKind() != Propagator::Kinds::WIRE) continue;
 		Wire* other = (Wire*)propagator;
-		for (const auto& segment : segments) {
-			bool thisIsHorizontal = segment->begin.y == segment->end.y;
 
-			for (const auto& otherSegment : other->segments) {
-				bool otherIsHorizontal = otherSegment->begin.y == otherSegment->end.y;
-
-				if (thisIsHorizontal != otherIsHorizontal) {
-					//detect ends along line
-					const auto [beginCollide, endCollide] = segment->doesSegmentEndsSitAlongSegment(otherIsHorizontal, otherSegment);
-
-					for (const auto& segment : segments) {
-						other->segments.push_back(std::move(segment));
-					}
-
-					return true;
-				} else {
-					//check partial/full overlap
-
-
-					
-				}
-			}
-		}
+    auto [colliding, excludedSegments] = trimCollidingAgainstWire(other);
+    if (colliding) {
+      mergingWires.emplace(other,excludedSegments);
+      other->mergeCollidingWires(deathRegistry, nullptr, excludeSet);
+    }
 	}
+
+  for (auto& [merger, excludedSegments] : mergingWires) {
+    if (deathRegistry.find(merger) != deathRegistry.end()) continue;
+    deathRegistry.emplace(merger);
+    globalProjectManager->gridManager.removeFromGrid(merger->segments, merger);
+
+    for (auto& seggy : merger->segments) { //seggy meant 2 be segment but i thought it was already used but it isnt..
+      if(excludedSegments.find(seggy) != excludedSegments.end()) continue;
+      segments.push_back(std::move(seggy));
+    }
+    for (int i = 0; i < globalProjectManager->currentOpenComponent->propagators.size(); i++) {
+      auto& propagator = globalProjectManager->currentOpenComponent->propagators[i];
+      if (propagator.get() == merger) {
+        globalProjectManager->currentOpenComponent->propagators[i].release();
+        globalProjectManager->currentOpenComponent->propagators.erase(globalProjectManager->currentOpenComponent->propagators.begin() + i);
+        delete merger;
+        break;
+      }
+    }
+  }
+
+  if (wasNewList)
+    delete collidingSet;
 }
 
 Position Position::getGridScaledCopy(int offset) const {
@@ -573,7 +720,8 @@ void Wire::saveToAddress(uint32_t* data, const std::unordered_map<Propagator*, u
     saveEffectorsAndAffectorsToAddres(data, map);
 }
 
-Wire::Wire(const Wire& wireToCopy) : segments(wireToCopy.segments), Propagator(wireToCopy) {}
+Wire::Wire(const Wire& wireToCopy) : segments(wireToCopy.segments), Propagator(wireToCopy) {
+}
 
 Component::Component(const Component& componentToCopy) 
     :   name(componentToCopy.name),

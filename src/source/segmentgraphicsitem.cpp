@@ -1,6 +1,10 @@
 #include "segmentgraphicsitem.h"
 
 #include "component.h"
+#include "projectmanager.h"
+
+#include <QGraphicsSceneMouseEvent>
+#include <QGraphicsScene>
 
 
 QRectF SegmentGraphicsItem::boundingRect() const
@@ -9,8 +13,10 @@ QRectF SegmentGraphicsItem::boundingRect() const
 
     for (const auto& segment : wire.segments)
     {
-        rect |= QRectF(segment.begin.getGridScaledCopy().getQPointF(), QSizeF(0,0));
-        rect |= QRectF(segment.end.getGridScaledCopy().getQPointF(), QSizeF(0,0));
+        rect |= QRectF(
+            segment.begin.getGridScaledCopy().getQPointF(),
+            segment.end.getGridScaledCopy().getQPointF()
+        );
     }
 
     return rect.adjusted(-5, -5, 5, 5);
@@ -59,6 +65,15 @@ void SegmentGraphicsItem::paint(
         );
     }
 
+    QPen debugPen(Qt::red);
+    debugPen.setWidthF(1);
+    painter->setPen(debugPen);
+    painter->setBrush(Qt::NoBrush);
+
+    painter->drawPath(shape());
+
+    painter->setPen(QPen(Qt::blue, 1));
+    painter->drawRect(boundingRect());
 
     // optional selection outline
     if (isSelected())
@@ -100,4 +115,11 @@ void SegmentGraphicsItem::setColor(const QColor& c)
 void SegmentGraphicsItem::beginGeometryChange()
 {
     prepareGeometryChange();
+}
+
+void SegmentGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent* event) {
+  event->ignore();
+}
+void SegmentGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
+  event->ignore();
 }

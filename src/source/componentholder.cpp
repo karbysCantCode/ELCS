@@ -1,6 +1,8 @@
 #include "componentholder.h"
 
 #include <iostream>
+#include <algorithm> 
+#include <iterator> 
 
 ComponentHolder::ComponentHolder() {}
 
@@ -26,9 +28,6 @@ std::unordered_set<Propagator*> ComponentHolder::addToGrid(const std::vector<Pos
 
     std::unordered_set<Propagator*> retSet;
 
-    // FIX: the old `while (a < anchors.size() - 1)` loop always dropped the
-    // final segment (and ran zero times for a 2-anchor straight wire).
-    // Iterate directly over adjacent anchor pairs instead.
     for (size_t i = 0; i + 1 < anchors.size(); i++) {
         retSet.merge(addToGridAlongTwoPoints(anchors[i], anchors[i + 1], propagator));
     }
@@ -48,6 +47,20 @@ std::unordered_set<Propagator*> ComponentHolder::addToGrid(const std::vector<Seg
     retSet.erase(propagator);
 
     return retSet;
+}
+
+std::unordered_set<Propagator*> ComponentHolder::getOccupied(const std::vector<Segment>& segments, std::unordered_set<Propagator*> excludes) const {
+  std::unordered_set<Propagator*> tempSet;
+
+  for (const auto& segment : segments) {
+      tempSet.merge(getOccupiedAlongTwoPoints(segment.begin, segment.end));
+  }
+  std::unordered_set<Propagator*> retSet;
+  for (const auto& elem : excludes) {
+    retSet.erase(elem);
+  }
+
+  return retSet;
 }
 
 void ComponentHolder::removeFromGrid(const std::vector<Position>& anchors, Propagator* propagator) {
@@ -98,6 +111,60 @@ std::unordered_set<Propagator*> ComponentHolder::addToGridAlongTwoPoints(const P
         } else {
             while (interpPos >= posB.x) {
                 retSet.merge(addToGrid({interpPos, posA.y}, propagator));
+                interpPos--;
+            }
+        }
+    } else {
+        std::cout << "same two positions componentholder.cpp" << std::endl;
+        return {}; //erorr.....
+    }
+    return retSet;
+}
+
+std::unordered_set<Propagator*> ComponentHolder::getInGridMap(const Position& position) const {
+  const auto it = gridMap.find({position.x,position.y});
+  if (it == gridMap.end())
+    return {};
+
+  return it->second;
+}
+
+std::unordered_set<Propagator*> ComponentHolder::addToGrid(const Segment& segment, Propagator* propagator) {
+  return addToGridAlongTwoPoints(segment.begin,segment.end, propagator);
+}
+void ComponentHolder::removeFromGrid(const Segment& segment, Propagator* propagator) {
+  removeFromGridAlongTwoPoints(segment.begin, segment.end, propagator);
+}
+
+//A to B
+std::unordered_set<Propagator*> ComponentHolder::getOccupiedAlongTwoPoints(const Position& posA, const Position& posB ) const {
+    std::unordered_set<Propagator*> retSet;
+    if (posA.x == posB.x) {
+        // change y
+        int interpPos = posA.y;
+        int aLessThanB = posA.y < posB.y;
+        if (aLessThanB) {
+            while (interpPos <= posB.y) {
+                retSet.merge(getInGridMap({posA.x, interpPos}));
+                interpPos++;
+            }
+        } else {
+            while (interpPos >= posB.y) {
+                retSet.merge(getInGridMap({posA.x, interpPos}));
+                interpPos--;
+            }
+        }
+    } else if (posA.y == posB.y) {
+        int interpPos = posA.x;
+        int aLessThanB = posA.x < posB.x;
+        if (aLessThanB) {
+            while (interpPos <= posB.x) {
+                retSet.merge(getInGridMap({interpPos, posA.y}));
+                interpPos++;
+            }
+        } else {
+            while (interpPos >= posB.x) {
+                retSet.merge(getInGridMap({interpPos, posA.y}));
                 interpPos--;
             }
         }

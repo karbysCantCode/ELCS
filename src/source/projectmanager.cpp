@@ -124,9 +124,8 @@ bool ProjectManager::visuallyRegisterPropagator(Propagator* ptr) {
         auto np = (Wire*)ptr;
         auto touchingElements = globalProjectManager->gridManager.addToGrid(np->segments, np);
         
-        if (np->trimForCollidingWires(touchingElements)) {
-            return true;
-        }
+        std::unordered_set<Wire *> tempDeathReg;
+        np->mergeCollidingWires(tempDeathReg, &touchingElements);
         
         np->graphicsItem = new SegmentGraphicsItem(*np);
         workspace->scene()->addItem(np->graphicsItem);

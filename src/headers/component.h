@@ -93,19 +93,29 @@ struct Segment {
     Segment(const Position& _begin, const Position& _end) : begin(_begin), end(_end) {}
     Segment() {}
 
+     bool operator==(const Segment& other) const
+      {
+        return begin == other.begin &&
+              end == other.end;
+      }
+
     // first = begin, second = end
     std::pair<bool,bool> doesSegmentEndsSitAlongSegment(bool targetLineHorizontal, const Segment& segment) const;
     
 };
+
+struct SegmentHash;
+
 class Wire : public Propagator
 {
 public:
-    std::vector<std::unique_ptr<Segment>> segments;
+    std::vector<Segment> segments;
     SegmentGraphicsItem* graphicsItem = nullptr;
     virtual uint32_t getUint32sToSave() const override;
     virtual void saveToAddress(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const override;
     //returns true if it needs to be destroyed
-    bool trimForCollidingWires(std::unordered_set<Propagator *>& collidingSet);
+    void mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::unordered_set<Propagator *>* collidingSet = nullptr, std::unordered_set<Propagator *> excludeSet = {});
+    std::pair<bool, std::unordered_set<Segment, SegmentHash>> trimCollidingAgainstWire(Wire* other);
     void reset();
 
     // does not sync effectors and affectors.
@@ -115,7 +125,6 @@ public:
     ~Wire();
 
 private:    
-
 };
 
 class Pin : public Propagator

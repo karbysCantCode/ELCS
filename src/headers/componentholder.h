@@ -20,12 +20,17 @@ class ComponentHolder
 {
 private:
     std::unordered_set<Propagator*> addToGridAlongTwoPoints(const Position& posA, const Position& posB, Propagator* propagator);
+    std::unordered_set<Propagator*> getOccupiedAlongTwoPoints(const Position& posA, const Position& posB) const;
+    std::unordered_set<Propagator*> getInGridMap(const Position& position) const;
     void removeFromGridAlongTwoPoints(const Position& posA, const Position& posB, Propagator* propagator);
 public:
     std::unordered_map<std::pair<unsigned int, unsigned int>, std::unordered_set<Propagator*>, pair_hash> gridMap;
 
     std::unordered_set<Propagator*> addToGrid(const Position& position, Propagator* propagator);
     void removeFromGrid(const Position& position, Propagator* propagator);
+
+    std::unordered_set<Propagator*> addToGrid(const Segment& segment, Propagator* propagator);
+    void removeFromGrid(const Segment& segment, Propagator* propagator);
 
     std::unordered_set<Propagator*> addToGrid(const std::vector<Position>& anchors, Propagator* propagator);
     void removeFromGrid(const std::vector<Position>& anchors, Propagator* propagator);
@@ -35,6 +40,7 @@ public:
     
     bool isOccupied(const Position& pos) const;
     std::unordered_set<Propagator*> getOccupied(const Position& pos) const;
+    std::unordered_set<Propagator*> getOccupied(const std::vector<Segment>& segments, std::unordered_set<Propagator*> excludes) const;
     
     void reset();
     
