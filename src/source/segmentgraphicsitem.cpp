@@ -56,9 +56,8 @@ void SegmentGraphicsItem::paint(
 
     painter->setPen(pen);
 
-
     for (const auto& segment : wire.segments)
-    {
+    {   
         painter->drawLine(
             segment.begin.getGridScaledCopy().getQPointF(),
             segment.end.getGridScaledCopy().getQPointF()

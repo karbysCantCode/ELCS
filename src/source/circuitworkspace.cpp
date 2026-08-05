@@ -185,6 +185,13 @@ void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
       delete tempWire.graphicsItem;
       tempWire.graphicsItem = nullptr;
 
+      std::vector<Segment> newSegments;
+      for (auto& segment : tempWire.segments) {
+        if (segment.begin == segment.end) continue;
+        newSegments.push_back(segment);
+      }
+      tempWire.segments = std::move(newSegments);
+
       auto unique = std::make_unique<Wire>(tempWire);
       globalProjectManager->addNewPropagator(std::move(unique));
     }

@@ -53,29 +53,29 @@ std::pair<bool,bool> Segment::doesSegmentEndsSitAlongSegment(
 
     if (targetLineHorizontal)
     {
-        int xmin = std::min(segment.begin.x, segment.end.x);
-        int xmax = std::max(segment.begin.x, segment.end.x);
+			int xmin = std::min(segment.begin.x, segment.end.x);
+			int xmax = std::max(segment.begin.x, segment.end.x);
 
-        beginHit = begin.y == segment.begin.y &&
-                   begin.x >= xmin &&
-                   begin.x <= xmax;
+			beginHit = begin.y == segment.begin.y &&
+									begin.x >= xmin &&
+									begin.x <= xmax;
 
-        endHit = end.y == segment.begin.y &&
-                 end.x >= xmin &&
-                 end.x <= xmax;
+			endHit = end.y == segment.begin.y &&
+								end.x >= xmin &&
+								end.x <= xmax;
     }
     else
     {
-        int ymin = std::min(segment.begin.y, segment.end.y);
-        int ymax = std::max(segment.begin.y, segment.end.y);
+			int ymin = std::min(segment.begin.y, segment.end.y);
+			int ymax = std::max(segment.begin.y, segment.end.y);
 
-        beginHit = begin.x == segment.begin.x &&
-                   begin.y >= ymin &&
-                   begin.y <= ymax;
+			beginHit = begin.x == segment.begin.x &&
+									begin.y >= ymin &&
+									begin.y <= ymax;
 
-        endHit = end.x == segment.begin.x &&
-                 end.y >= ymin &&
-                 end.y <= ymax;
+			endHit = end.x == segment.begin.x &&
+								end.y >= ymin &&
+								end.y <= ymax;
     }
 
     return {beginHit, endHit};
@@ -100,8 +100,9 @@ std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAga
       if (thisIsHorizontal != otherIsHorizontal) {
         //detect ends along line
         const auto [beginCollide, endCollide] = segment.doesSegmentEndsSitAlongSegment(otherIsHorizontal, otherSegment);
+				const auto [otherBeginCollide, otherEndCollide] = otherSegment.doesSegmentEndsSitAlongSegment(thisIsHorizontal, segment);
 
-        if (beginCollide || endCollide)
+        if (beginCollide || endCollide || otherBeginCollide || otherEndCollide)
           merges = true;
       } else {
         if (thisIsHorizontal) {
@@ -154,6 +155,7 @@ std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAga
           merges = true;
           segmentsToRemove.push_back(i);
           globalProjectManager->gridManager.addToGrid(otherSegment, this);
+					globalProjectManager->gridManager.addToGrid(otherSegment, other);
           break;
         } else if (thisMin <= otherMax && thisMax >= otherMin) {
           //partial
@@ -173,6 +175,7 @@ std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAga
           merges = true;
           segmentsToRemove.push_back(i);
           globalProjectManager->gridManager.addToGrid(otherSegment, this);
+					globalProjectManager->gridManager.addToGrid(otherSegment, other);
           break;
         }
         
@@ -198,6 +201,13 @@ void Wire::mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::u
     wasNewList = true;
     collidingSet = new std::unordered_set<Propagator*>(globalProjectManager->gridManager.getOccupied(segments, excludeSet));
   }
+	qDebug() << "colliding count =" << collidingSet->size();
+	qDebug() << "this" << this;
+	for (auto *p : *collidingSet)
+			qDebug() << p;
+	qDebug() << "excluding count =" << excludeSet.size();
+	for (auto *p : excludeSet)
+			qDebug() << p;
 	for (const auto& propagator : *collidingSet) {
 		if (propagator->getKind() != Propagator::Kinds::WIRE) continue;
 		Wire* other = (Wire*)propagator;
