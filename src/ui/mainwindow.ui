@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>960</width>
-    <height>545</height>
+    <height>549</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -425,8 +425,8 @@ QLabel#successLabel {
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>205</width>
-                <height>428</height>
+                <width>213</width>
+                <height>494</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout">
@@ -1419,8 +1419,8 @@ QLabel#successLabel {
                     <rect>
                      <x>0</x>
                      <y>0</y>
-                     <width>198</width>
-                     <height>378</height>
+                     <width>192</width>
+                     <height>367</height>
                     </rect>
                    </property>
                    <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -1863,8 +1863,8 @@ QLabel#successLabel {
                     <rect>
                      <x>0</x>
                      <y>0</y>
-                     <width>198</width>
-                     <height>419</height>
+                     <width>192</width>
+                     <height>414</height>
                     </rect>
                    </property>
                   </widget>

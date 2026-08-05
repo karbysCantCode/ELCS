@@ -125,11 +125,18 @@ bool ProjectManager::visuallyRegisterPropagator(Propagator* ptr) {
         auto touchingElements = globalProjectManager->gridManager.addToGrid(np->segments, np);
         
         std::unordered_set<Wire *> tempDeathReg;
-        np->mergeCollidingWires(tempDeathReg, &touchingElements);
+				std::unordered_set<Propagator *> excludeSet;
+        np->mergeCollidingWires(tempDeathReg, excludeSet, &touchingElements);
         
         np->graphicsItem = new SegmentGraphicsItem(*np);
         workspace->scene()->addItem(np->graphicsItem);
         np->graphicsItem->setZValue(1);
+
+				int i = 0;
+				for (const auto& propagator : currentOpenComponent->propagators) {
+					if (propagator->getKind() == Propagator::Kinds::WIRE) i++;
+				}
+				qDebug() << "wire count =" << i;
     }
     return false;
 }

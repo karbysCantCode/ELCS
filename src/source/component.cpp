@@ -43,6 +43,47 @@ Wire::~Wire() {
 // 	}
 // }
 
+std::vector<Position> Wire::junctionPoints() const {
+    std::unordered_map<Position, int, PositionHash> degree;
+
+    for (const auto& segment : segments) {
+        degree[segment.begin] += 1;
+        degree[segment.end]   += 1;
+    }
+
+    for (size_t i = 0; i < segments.size(); i++) {
+        const auto& segment = segments[i];
+        bool horizontal = segment.begin.y == segment.end.y;
+
+        int lo = horizontal ? std::min(segment.begin.x, segment.end.x)
+                             : std::min(segment.begin.y, segment.end.y);
+        int hi = horizontal ? std::max(segment.begin.x, segment.end.x)
+                             : std::max(segment.begin.y, segment.end.y);
+
+        for (size_t j = 0; j < segments.size(); j++) {
+            if (i == j) continue;
+            const auto& other = segments[j];
+
+            for (const Position& p : {other.begin, other.end}) {
+                if (horizontal) {
+                    if (p.y != segment.begin.y) continue;
+                    if (p.x <= lo || p.x >= hi) continue; 
+                } else {
+                    if (p.x != segment.begin.x) continue;
+                    if (p.y <= lo || p.y >= hi) continue;
+                }
+                degree[p] += 2;
+            }
+        }
+    }
+
+    std::vector<Position> junctions;
+    for (const auto& [pos, count] : degree) {
+        if (count >= 3) junctions.push_back(pos);
+    }
+    return junctions;
+}
+
 std::pair<bool,bool> Segment::doesSegmentEndsSitAlongSegment(
     bool targetLineHorizontal,
     const Segment& segment
@@ -188,11 +229,16 @@ std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAga
     segments.erase(segments.begin() + i - offset);
     offset++;
   }
+	if (merges) {
+		for (auto& seggy : other->segments) { //seggy meant 2 be segment but i thought it was already used but it isnt..
+			segments.push_back(seggy);
+		}
+	}
 
   return {merges,{}};
 }
 
-void Wire::mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::unordered_set<Propagator *>* collidingSet, std::unordered_set<Propagator *> excludeSet) {
+void Wire::mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::unordered_set<Propagator *>& excludeSet, std::unordered_set<Propagator *>* collidingSet) {
   excludeSet.emplace(this);
   std::unordered_map<Wire*, std::unordered_set<Segment, SegmentHash>> mergingWires;
 
@@ -213,9 +259,11 @@ void Wire::mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::u
 		Wire* other = (Wire*)propagator;
 
     auto [colliding, excludedSegments] = trimCollidingAgainstWire(other);
-    if (colliding) {
+    qDebug() << "checkjming";
+		if (colliding) {
+			markJunctionsDirty();
       mergingWires.emplace(other,excludedSegments);
-      other->mergeCollidingWires(deathRegistry, nullptr, excludeSet);
+      other->mergeCollidingWires(deathRegistry, excludeSet);
     }
 	}
 
@@ -224,10 +272,6 @@ void Wire::mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::u
     deathRegistry.emplace(merger);
     globalProjectManager->gridManager.removeFromGrid(merger->segments, merger);
 
-    for (auto& seggy : merger->segments) { //seggy meant 2 be segment but i thought it was already used but it isnt..
-      if(excludedSegments.find(seggy) != excludedSegments.end()) continue;
-      segments.push_back(std::move(seggy));
-    }
     for (int i = 0; i < globalProjectManager->currentOpenComponent->propagators.size(); i++) {
       auto& propagator = globalProjectManager->currentOpenComponent->propagators[i];
       if (propagator.get() == merger) {

@@ -122,7 +122,7 @@ public:
     virtual uint32_t getUint32sToSave() const override;
     virtual void saveToAddress(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const override;
     //returns true if it needs to be destroyed
-    void mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::unordered_set<Propagator *>* collidingSet = nullptr, std::unordered_set<Propagator *> excludeSet = {});
+    void mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::unordered_set<Propagator *>& excludeSet, std::unordered_set<Propagator *>* collidingSet = nullptr);
     std::pair<bool, std::unordered_set<Segment, SegmentHash>> trimCollidingAgainstWire(Wire* other);
     void reset();
 
@@ -132,7 +132,12 @@ public:
 
     ~Wire();
 
+    void updateJunctions() {cachedJunctions=junctionPoints();}
+    std::vector<Position> cachedJunctions;
+    bool junctionsDirty = true;
+    void markJunctionsDirty() { junctionsDirty = true; }
 private:    
+    std::vector<Position> junctionPoints() const;
 };
 
 class Pin : public Propagator

@@ -55,6 +55,7 @@ void SegmentGraphicsItem::paint(
     pen.setJoinStyle(Qt::RoundJoin);
 
     painter->setPen(pen);
+    painter->setBrush(color);
 
     for (const auto& segment : wire.segments)
     {   
@@ -62,6 +63,14 @@ void SegmentGraphicsItem::paint(
             segment.begin.getGridScaledCopy().getQPointF(),
             segment.end.getGridScaledCopy().getQPointF()
         );
+    }
+
+    if (wire.junctionsDirty)
+        wire.updateJunctions();
+
+    for (const auto& junction : wire.cachedJunctions) {
+        QPointF center = junction.getGridScaledCopy().getQPointF();
+        painter->drawEllipse(center, 3.0, 3.0);
     }
 
     QPen debugPen(Qt::red);
