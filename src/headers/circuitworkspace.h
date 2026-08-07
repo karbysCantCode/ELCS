@@ -19,7 +19,15 @@ public:
     CircuitWorkspace(QFrame*&);
 
     void reset();
+    
+    enum class EditingStates {
+        SELECT,
+        POKE,
+    };
 
+    void setState(EditingStates _state) {state = _state;};
+    inline EditingStates getState() const {return state;}
+    
 protected:
     void resizeEvent ( QResizeEvent * event ) override;
     void wheelEvent(QWheelEvent *event) override;
@@ -28,6 +36,8 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void drawBackground(QPainter *painter, const QRectF &rect) override;
 private:
+    EditingStates state;
+
     int p_width = 0;
     int p_height = 0; // TODO set to window size?
 

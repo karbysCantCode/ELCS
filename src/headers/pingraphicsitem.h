@@ -20,6 +20,7 @@
 class PinGraphicsItem : public QGraphicsItem
 {
 public:
+  enum { Type = UserType + 2 };
   PinGraphicsItem(Pin& _pin, QGraphicsItem *parent = nullptr)
       : QGraphicsItem(parent), name(QString::fromStdString(_pin.name)), pin(_pin)
   {
@@ -30,10 +31,14 @@ public:
 
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) override;
 protected:
-  void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override;
-  void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
-  void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
-  void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
+  // void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override;
+  // void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
+  // void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
+  // void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
+  int type() const override
+  {
+      return PinGraphicsItem::Type;
+  }
 private:
   QString name;
   Pin& pin;

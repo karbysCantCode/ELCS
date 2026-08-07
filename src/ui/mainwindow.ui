@@ -90,7 +90,7 @@ QTextEdit:focus {
 QPushButton[variant=&quot;create&quot;] {
     background: rgb(30, 59, 84);
     color: white;
-    border: none;
+    border: 1px solid #a3ccff;
     border-radius: 4px;
     padding: 8px 18px;
     font-size: 14px;
@@ -98,10 +98,12 @@ QPushButton[variant=&quot;create&quot;] {
 
 QPushButton[variant=&quot;create&quot;]:hover {
     background: rgb(45, 78, 107);
+	border: 1px solid #a3ccff;
 }
 
 QPushButton[variant=&quot;create&quot;]:pressed {
     background: rgb(20, 42, 60);
+	border: 1px solid #a3ccff;
 }
 
 QPushButton {
@@ -124,7 +126,7 @@ QPushButton:pressed {
 QPushButton#mainButton {
     background: #2d8cff;
     color: white;
-    border: none;
+    border: 1px solid #a3ccff;
     border-radius: 4px;
     padding: 8px 18px;
     font-size: 14px;
@@ -133,7 +135,7 @@ QPushButton#mainButton {
 QFrame#toolbar QToolButton {
     background: rgb(30, 59, 84);
     color: white;
-    border: none;
+	border: 1px solid #a3ccff;
     border-radius: 4px;
     padding: 2px 2px;
     font-size: 14px;
@@ -1380,6 +1382,12 @@ QLabel#successLabel {
             </property>
             <item>
              <widget class="QSplitter" name="splitter_2">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>1</verstretch>
+               </sizepolicy>
+              </property>
               <property name="lineWidth">
                <number>0</number>
               </property>
@@ -1389,11 +1397,11 @@ QLabel#successLabel {
               <property name="childrenCollapsible">
                <bool>false</bool>
               </property>
-              <widget class="QFrame" name="frame_5">
+              <widget class="QFrame" name="propertySideMenu">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
                  <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
+                 <verstretch>1</verstretch>
                 </sizepolicy>
                </property>
                <property name="minimumSize">
@@ -1408,93 +1416,157 @@ QLabel#successLabel {
                <property name="frameShadow">
                 <enum>QFrame::Shadow::Raised</enum>
                </property>
-               <layout class="QVBoxLayout" name="verticalLayout_8">
+               <layout class="QVBoxLayout" name="verticalLayout_8" stretch="1,0">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
                 <item>
-                 <widget class="QScrollArea" name="scrollArea_2">
-                  <property name="widgetResizable">
-                   <bool>true</bool>
+                 <widget class="QFrame" name="frame_7">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
                   </property>
-                  <widget class="QWidget" name="scrollAreaWidgetContents_2">
-                   <property name="geometry">
-                    <rect>
-                     <x>0</x>
-                     <y>0</y>
-                     <width>192</width>
-                     <height>367</height>
-                    </rect>
+                  <property name="frameShape">
+                   <enum>QFrame::Shape::StyledPanel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Shadow::Raised</enum>
+                  </property>
+                  <layout class="QVBoxLayout" name="verticalLayout_12">
+                   <property name="spacing">
+                    <number>10</number>
                    </property>
-                   <layout class="QVBoxLayout" name="verticalLayout_11">
-                    <item>
-                     <widget class="QFrame" name="frame_25">
-                      <property name="frameShape">
-                       <enum>QFrame::Shape::StyledPanel</enum>
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                   <item>
+                    <widget class="QScrollArea" name="scrollArea_2">
+                     <property name="widgetResizable">
+                      <bool>true</bool>
+                     </property>
+                     <widget class="QWidget" name="scrollAreaWidgetContents_2">
+                      <property name="geometry">
+                       <rect>
+                        <x>0</x>
+                        <y>0</y>
+                        <width>214</width>
+                        <height>381</height>
+                       </rect>
                       </property>
-                      <property name="frameShadow">
-                       <enum>QFrame::Shadow::Raised</enum>
-                      </property>
-                      <layout class="QVBoxLayout" name="verticalLayout_10">
-                       <property name="spacing">
-                        <number>0</number>
-                       </property>
-                       <property name="leftMargin">
-                        <number>0</number>
-                       </property>
-                       <property name="topMargin">
-                        <number>0</number>
-                       </property>
-                       <property name="rightMargin">
-                        <number>0</number>
-                       </property>
-                       <property name="bottomMargin">
-                        <number>0</number>
-                       </property>
+                      <layout class="QVBoxLayout" name="verticalLayout_11">
                        <item>
-                        <widget class="QPushButton" name="pushButton_19">
-                         <property name="text">
-                          <string>PushButton</string>
-                         </property>
-                         <property name="icon">
-                          <iconset theme="appointment-new"/>
-                         </property>
-                        </widget>
-                       </item>
-                       <item>
-                        <widget class="QFrame" name="frame_26">
+                        <widget class="QFrame" name="frame_25">
                          <property name="frameShape">
                           <enum>QFrame::Shape::StyledPanel</enum>
                          </property>
                          <property name="frameShadow">
                           <enum>QFrame::Shadow::Raised</enum>
                          </property>
+                         <layout class="QVBoxLayout" name="verticalLayout_10">
+                          <property name="spacing">
+                           <number>0</number>
+                          </property>
+                          <property name="leftMargin">
+                           <number>0</number>
+                          </property>
+                          <property name="topMargin">
+                           <number>0</number>
+                          </property>
+                          <property name="rightMargin">
+                           <number>0</number>
+                          </property>
+                          <property name="bottomMargin">
+                           <number>0</number>
+                          </property>
+                          <item>
+                           <widget class="QPushButton" name="pushButton_19">
+                            <property name="text">
+                             <string>PushButton</string>
+                            </property>
+                            <property name="icon">
+                             <iconset theme="appointment-new"/>
+                            </property>
+                           </widget>
+                          </item>
+                          <item>
+                           <widget class="QFrame" name="frame_26">
+                            <property name="frameShape">
+                             <enum>QFrame::Shape::StyledPanel</enum>
+                            </property>
+                            <property name="frameShadow">
+                             <enum>QFrame::Shadow::Raised</enum>
+                            </property>
+                           </widget>
+                          </item>
+                         </layout>
                         </widget>
+                       </item>
+                       <item>
+                        <spacer name="verticalSpacer_3">
+                         <property name="orientation">
+                          <enum>Qt::Orientation::Vertical</enum>
+                         </property>
+                         <property name="sizeHint" stdset="0">
+                          <size>
+                           <width>20</width>
+                           <height>40</height>
+                          </size>
+                         </property>
+                        </spacer>
                        </item>
                       </layout>
                      </widget>
-                    </item>
-                    <item>
-                     <spacer name="verticalSpacer_3">
-                      <property name="orientation">
-                       <enum>Qt::Orientation::Vertical</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>20</width>
-                        <height>40</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                   </layout>
-                  </widget>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="createNewCircuitButton">
+                     <property name="text">
+                      <string>Create New Circuit</string>
+                     </property>
+                     <property name="variant" stdset="0">
+                      <string>create</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="createNewCircuitButton">
-                  <property name="text">
-                   <string>Create New Circuit</string>
+                 <widget class="QFrame" name="propertyHolder">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
                   </property>
-                  <property name="variant" stdset="0">
-                   <string>create</string>
+                  <property name="frameShape">
+                   <enum>QFrame::Shape::StyledPanel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Shadow::Raised</enum>
                   </property>
                  </widget>
                 </item>

@@ -18,7 +18,7 @@
 "QPushButton {" \
 " background: #444444;" \
 " color: white;" \
-" border: none;" \
+" border: 1px solid #555555;" \
 " border-radius: 4px;" \
 " padding: 8px 18px;" \
 " font-size: 14px;" \
@@ -35,7 +35,7 @@
 "QPushButton {" \
 " background: #2d8cff;" \
 " color: white;" \
-" border: none;" \
+" border: 1px solid #a3ccff;" \
 " border-radius: 4px;" \
 " padding: 8px 18px;" \
 " font-size: 14px;" \
@@ -51,7 +51,7 @@
 "QPushButton {" \
 " background: #d9534f;" \
 " color: white;" \
-" border: none;" \
+" border: 1px solid #ffbab8;" \
 " border-radius: 4px;" \
 " padding: 8px 18px;" \
 " font-size: 14px;" \
@@ -114,5 +114,71 @@
 " color: #4caf50;" \
 " font-size: 13px;" \
 " font-weight: bold;" \
+"}"
+
+#define STYLESHEET_PROPERTY_SECTION_HEADER \
+"QToolButton {" \
+" background: #3a3a3a;" \
+" color: white;" \
+" border: 1px solid #555555;" \
+" border-radius: 4px;" \
+" padding: 2px;" \
+" text-align: left;" \
+" font-size: 14px;" \
+" font-weight: bold;" \
+"}" \
+"QToolButton:hover {" \
+" background: #454545;" \
+"}" \
+"QToolButton:pressed {" \
+" background: #2f2f2f;" \
+"}"
+
+
+#define STYLESHEET_PROPERTY_SECTION_SCROLLAREA \
+"QScrollArea {" \
+" border: none;" \
+" background: #2b2b2b;" \
+"}" \
+"QScrollBar:vertical {" \
+" background: #2b2b2b;" \
+" width: 10px;" \
+" margin: 0px;" \
+"}" \
+"QScrollBar::handle:vertical {" \
+" background: #555555;" \
+" min-height: 20px;" \
+" border-radius: 5px;" \
+"}" \
+"QScrollBar::handle:vertical:hover {" \
+" background: #666666;" \
+"}" \
+"QScrollBar::add-line:vertical," \
+"QScrollBar::sub-line:vertical {" \
+" height: 0px;" \
+"}" \
+"QScrollBar::add-page:vertical," \
+"QScrollBar::sub-page:vertical {" \
+" background: transparent;" \
+"}"
+
+
+#define STYLESHEET_PROPERTY_CONTENT \
+"QWidget {" \
+" background: #2b2b2b;" \
+"}"
+
+
+#define STYLESHEET_PROPERTY_ROW \
+"QWidget {" \
+" background: #333333;" \
+" border: 1px solid #555555;" \
+" border-radius: 4px;" \
+"}" \
+"QLabel {" \
+" color: #dddddd;" \
+" border: none;" \
+" background: transparent;" \
+" font-size: 13px;" \
 "}"
 #endif // STYLES_H

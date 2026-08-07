@@ -4,6 +4,7 @@
 #include "notifications.h"
 
 #include "segmentgraphicsitem.h"
+#include "pingraphicsitem.h"
 
 #include <iostream>
 
@@ -85,11 +86,14 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event)  {
 
   if (event->button() == Qt::LeftButton) {
     QGraphicsItem* item = itemAt(event->pos());
+    
 
-    if (item == nullptr || item == backgroundGridItem) {
-      qDebug("is perss");
+    if (item == nullptr || item == backgroundGridItem || item->type() == SegmentGraphicsItem::Type || item->type() == PinGraphicsItem::Type) {
+      if (state == EditingStates::POKE) {
+
+      } else if (state == EditingStates::SELECT) {
+      {
       Position nPos = convertEventPosToPosition((event->pos()));
-      qDebug(std::format("{}x {}y", nPos.x, nPos.y).c_str());
       if (globalProjectManager->gridManager.isOccupied(nPos)) {
         //wire
         globalNotificationManager->notify("Debug", "is occupied", 1000);
@@ -122,6 +126,7 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event)  {
         p_preMoveXPosition = p_xposition;
         p_preMoveYPosition = p_yposition;
       }
+    }
       event->accept();
       return;
     }

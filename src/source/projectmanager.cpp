@@ -140,3 +140,7 @@ bool ProjectManager::visuallyRegisterPropagator(Propagator* ptr) {
     }
     return false;
 }
+
+void ProjectManager::initiateSimulatorUIPropertyManager(PropertySection* _propertySection) {
+	simulatorPropertySection = _propertySection;
+}

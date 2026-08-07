@@ -7,6 +7,7 @@
 #include "component.h"
 #include "circuitworkspace.h"
 #include "componentholder.h"
+#include "propertysection.h"
 
 class ProjectManager
 {
@@ -25,6 +26,7 @@ public:
     void removeCallbackOnNewComponent(std::function<void()>* func);
     void openComponent(const std::string& name);
     void saveCurrentComponent();
+    void initiateSimulatorUIPropertyManager(PropertySection* _propertySection);
     Propagator* addNewPropagator(std::unique_ptr<Propagator> propagator);
     ProjectManager();
 
@@ -32,6 +34,8 @@ private:
   void removeExistingComponentFromWorkspace();
   void addCurrentComponentToWorkspace();
   bool visuallyRegisterPropagator(Propagator* ptr);
+
+  PropertySection* simulatorPropertySection = nullptr;
 };
 
 extern ProjectManager* globalProjectManager;

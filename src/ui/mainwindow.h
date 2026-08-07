@@ -20,6 +20,10 @@ public:
 private slots:
     void on_createNewCircuitButton_clicked();
 
+    void on_selectTool_clicked();
+
+    void on_pokeTool_clicked();
+
 private:
     Ui::MainWindow *ui;
 };

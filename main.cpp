@@ -1,7 +1,7 @@
+#include <QApplication>
 #include "mainwindow.h"
 #include "notifications.h"
 #include "projectmanager.h"
-#include <QApplication>
 #include <iostream>
 int main(int argc, char *argv[])
 {

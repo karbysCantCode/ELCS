@@ -17,6 +17,8 @@ class Wire;
 class SegmentGraphicsItem : public QGraphicsItem
 {
 public:
+    enum { Type = UserType + 1 };
+    
     SegmentGraphicsItem(
         Wire& _wire,
         QGraphicsItem* parent = nullptr
@@ -25,6 +27,7 @@ public:
           wire(_wire)
     {
         setZValue(1);
+        setAcceptedMouseButtons(Qt::NoButton);
         auto* rng = QRandomGenerator::global();
 
         color = QColor::fromHsv(
@@ -50,7 +53,10 @@ public:
 protected:
   void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
   void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
-
+  int type() const override
+  {
+    return SegmentGraphicsItem::Type;
+  }
 private:
     Wire& wire;
     QColor color = Qt::black;
