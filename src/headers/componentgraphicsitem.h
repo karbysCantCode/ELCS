@@ -1,18 +1,19 @@
 #ifndef COMPONENTGRAPHICSITEM_H
 #define COMPONENTGRAPHICSITEM_H
 
-#include <QGraphicsObject>
+#include <QGraphicsItem>
 #include <QPainter>
 #include <QStyleOptionGraphicsItem>
 
 #include "component.h"
 // #include "componentappearance.h"
 
-class ComponentGraphicsItem : public QGraphicsObject
+class ComponentGraphicsItem : public QGraphicsItem
 {
     Q_OBJECT
 
 public:
+    enum { Type = UserType + 3 };
     explicit ComponentGraphicsItem(
         const Component& component,
         QGraphicsItem* parent = nullptr
@@ -33,12 +34,18 @@ public:
 
     void refresh();
 
+    
+
 protected:
     // void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
     // void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
     // void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
 
     //handled by circuitworkspace
+    int type() const override
+    {
+      return ComponentGraphicsItem::Type;
+    }
 
 private:
     const Component& component;

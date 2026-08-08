@@ -233,6 +233,7 @@ std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAga
 	if (merges) {
 		for (auto& seggy : other->segments) { //seggy meant 2 be segment but i thought it was already used but it isnt..
 			segments.push_back(seggy);
+      globalProjectManager->gridManager.addToGrid(seggy, this);
 		}
 	}
 

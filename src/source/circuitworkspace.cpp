@@ -5,6 +5,7 @@
 
 #include "segmentgraphicsitem.h"
 #include "pingraphicsitem.h"
+#include "componentgraphicsitem.h"
 
 #include <iostream>
 
@@ -86,17 +87,18 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
           tempWire.graphicsItem = new SegmentGraphicsItem(tempWire);
           scene()->addItem(tempWire.graphicsItem);
           tempWire.graphicsItem->update();
+        } else {
+          globalNotificationManager->notify("Debug", "NOT occupied", 1000);
 
-          event->accept();
-          return;
+          if (item->type() == PinGraphicsItem::Type) {
 
+          } else if (item->type() == ComponentGraphicsItem::Type) {
+            
+          }
         }
       }
     }
-    event->accept();
-    return;
   } else if (event->button() == Qt::RightButton) {
-    globalNotificationManager->notify("Debug", "NOT occupied", 1000);
     p_isMoving = true;
 
     p_movementBegunQPoint = std::make_unique<QPoint>();
@@ -106,6 +108,8 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
     p_preMoveXPosition = p_xposition;
     p_preMoveYPosition = p_yposition;
   }
+  event->accept();
+  return;
   QGraphicsView::mousePressEvent(event);
 }
 
@@ -153,15 +157,8 @@ void CircuitWorkspace::mouseDoubleClickEvent(QMouseEvent *event) {
 
 }
 void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
-    std::cout << "mouse up" << std::endl;
-    if (p_isMoving) {
-      p_isMoving = false;
-      moveWorkspaceToCurrentMouse(event->pos());
-      update(); // signal redraw
-
-      p_movementBegunQPoint.reset();
-    }
-
+  std::cout << "mouse up" << std::endl;
+  if (event->button() == Qt::LeftButton) {
     if (p_isWiring) {
       p_isWiring = false;
       scene()->removeItem(tempWire.graphicsItem);
@@ -179,8 +176,16 @@ void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
       auto unique = std::make_unique<Wire>(tempWire);
       globalProjectManager->addNewPropagator(std::move(unique));
     }
+  } else if (event->button() == Qt::RightButton) {
+    if (p_isMoving) {
+      p_isMoving = false;
+      moveWorkspaceToCurrentMouse(event->pos());
+      update(); // signal redraw
 
-    QGraphicsView::mouseReleaseEvent(event);
+      p_movementBegunQPoint.reset();
+    }
+  }
+  QGraphicsView::mouseReleaseEvent(event);
 }
 
 void CircuitWorkspace::updateWorkspacePosition() {
