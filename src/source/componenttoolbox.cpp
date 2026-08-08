@@ -1,10 +1,11 @@
 #include "componenttoolbox.h"
 
-#include "ui_componentToolboxElement.h"
+// #include "ui_componentToolboxElement.h"
 #include "projectmanager.h"
 #include "circuitworkspace.h"
 
 #include <QLabel>
+#include <QVBoxLayout>
 #include "styles.h"
 
 componentToolbox* simulatorCircuitToolbox = nullptr;

@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QWidget>
 #include <QScrollArea>
+#include <QLabel>
 
 #include "projectmanager.h"
 

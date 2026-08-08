@@ -1,0 +1,29 @@
+{
+  "version": 5,
+  "configurePresets": [
+    {
+      "name": "my-debug",
+      "inherits": "debug",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "/Users/karbys/Qt/6.11.1/macos"
+      }
+    },
+    {
+      "name": "my-release",
+      "inherits": "release",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "/Users/karbys/Qt/6.11.1/macos"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "my-debug",
+      "configurePreset": "my-debug"
+    },
+    {
+      "name": "my-release",
+      "configurePreset": "my-release"
+    }
+  ]
+}
