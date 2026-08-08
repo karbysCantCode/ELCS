@@ -161,16 +161,16 @@ void PinGraphicsItem::paint(
 // }
 
 // void PinGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
-{
-  if (event->button() == Qt::LeftButton) {
-    pressed = false;
-    if (moving) {
-      moving = false;
-      globalProjectManager->gridManager.addToGrid(pin.relPosition, &pin);
-    }
-    event->accept();
-    return;
-  }
+// {
+//   if (event->button() == Qt::LeftButton) {
+//     pressed = false;
+//     if (moving) {
+//       moving = false;
+//       globalProjectManager->gridManager.addToGrid(pin.relPosition, &pin);
+//     }
+//     event->accept();
+//     return;
+//   }
 
-  QGraphicsItem::mouseReleaseEvent(event);
-}
+//   QGraphicsItem::mouseReleaseEvent(event);
+// }

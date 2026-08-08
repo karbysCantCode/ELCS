@@ -1,22 +1,29 @@
 #include "projectmanager.h"
 #include "notifications.h"
 #include "pingraphicsitem.h"
+#include "component.h"
+#include "componenttoolbox.h"
 
 #include <format>
 
 ProjectManager* globalProjectManager = nullptr;
- CircuitWorkspace* __circuitworkspace = nullptr;
+CircuitWorkspace* __circuitworkspace = nullptr;
 
 ProjectManager::ProjectManager() {
   
 }
 
 void ProjectManager::dummyLoad() {
+  qDebug("0");
   loadNewComponent(std::filesystem::path(RESOURCES_PATH)/"and.csf");
+  qDebug("A");
   openComponent("AND");
-  components["AND"].debugPrintPropagators();
+  qDebug("B");
+  // components["AND"].debugPrintPropagators();
   components["AND"].saveToFile(std::filesystem::path(RESOURCES_PATH)/"savedand.csf");
-  
+  qDebug("c");
+  simulatorCircuitToolbox->updateElements();
+  qDebug("D");
 }
 
 bool ProjectManager::createNewComponent(const std::string& name) {
@@ -24,9 +31,14 @@ bool ProjectManager::createNewComponent(const std::string& name) {
   return success;
 }
 bool ProjectManager::loadNewComponent(const std::filesystem::path& path) {
-  Component component;
+  SentinelComponent component;
+  qDebug("1A");
   component.loadFromFile(path);
+  qDebug("1B");
   auto [element,success] = components.emplace(component.name, std::move(component));
+  qDebug("1C");
+  simulatorCircuitToolbox->updateElements();
+  qDebug("1D");
   return success;
 }
 
@@ -56,7 +68,7 @@ void ProjectManager::removeExistingComponentFromWorkspace() {
 }
 
 void ProjectManager::addCurrentComponentToWorkspace() {
-   std::vector<Propagator*> rawVec;
+   std::vector<AbstractPropagator*> rawVec;
 
    for (const auto& ptr : currentOpenComponent->propagators)
    {
@@ -75,7 +87,7 @@ void ProjectManager::saveCurrentComponent() {
   }
 }
 
-Propagator* ProjectManager::addNewPropagator(std::unique_ptr<Propagator> propagator) {
+AbstractPropagator* ProjectManager::addNewPropagator(std::unique_ptr<AbstractPropagator> propagator) {
     auto ptr = propagator.get();
     currentOpenComponent->propagators.push_back(std::move(propagator));
 
@@ -93,7 +105,7 @@ Propagator* ProjectManager::addNewPropagator(std::unique_ptr<Propagator> propaga
         auto it = std::find_if(
             propagators.begin(),
             propagators.end(),
-            [ptr](const std::unique_ptr<Propagator>& p) { return p.get() == ptr; }
+            [ptr](const std::unique_ptr<AbstractPropagator>& p) { return p.get() == ptr; }
         );
 
         if (it != propagators.end()) {
@@ -112,7 +124,12 @@ Propagator* ProjectManager::addNewPropagator(std::unique_ptr<Propagator> propaga
 }
 
 //returns true if it needs to be destroyed
-bool ProjectManager::visuallyRegisterPropagator(Propagator* ptr) {
+bool ProjectManager::visuallyRegisterPropagator(AbstractPropagator* _ptr) {
+  if (_ptr->isAbstract()) {
+    auto ptr = (Component*)_ptr;
+    // globalProjectManager->gridManager.addToGrid(np->relPosition, np);
+  } else {
+    auto ptr = (Propagator*)_ptr;
     if (ptr->getKind() == Propagator::Kinds::PIN) {
         auto np = (Pin*)ptr;
         globalProjectManager->gridManager.addToGrid(np->relPosition, np);
@@ -132,13 +149,14 @@ bool ProjectManager::visuallyRegisterPropagator(Propagator* ptr) {
         workspace->scene()->addItem(np->graphicsItem);
         np->graphicsItem->setZValue(1);
 
-				int i = 0;
-				for (const auto& propagator : currentOpenComponent->propagators) {
-					if (propagator->getKind() == Propagator::Kinds::WIRE) i++;
-				}
-				qDebug() << "wire count =" << i;
+				// int i = 0;
+				// for (const auto& propagator : currentOpenComponent->propagators) {
+				// 	if (propagator->getKind() == Propagator::Kinds::WIRE) i++;
+				// }
+				// qDebug() << "wire count =" << i;
     }
     return false;
+  }
 }
 
 void ProjectManager::initiateSimulatorUIPropertyManager(PropertySection* _propertySection) {

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
 #include "component.h"
 #include "circuitworkspace.h"
@@ -11,13 +12,12 @@
 
 class ProjectManager
 {
-private:
-  std::unordered_set<std::function<void()>*> newComponentCallbacks;
 public:
-    std::unordered_map<std::string, Component> components;
-    Component* currentOpenComponent = nullptr;
+    std::unordered_map<std::string, SentinelComponent> components;
+    SentinelComponent* currentOpenComponent = nullptr;
     CircuitWorkspace* workspace = nullptr;
     ComponentHolder gridManager;
+    std::unordered_set<SentinelComponent*> unresolvedSentinelComponents;
 
     void dummyLoad();
     bool createNewComponent(const std::string& name);
@@ -27,13 +27,14 @@ public:
     void openComponent(const std::string& name);
     void saveCurrentComponent();
     void initiateSimulatorUIPropertyManager(PropertySection* _propertySection);
-    Propagator* addNewPropagator(std::unique_ptr<Propagator> propagator);
+    AbstractPropagator* addNewPropagator(std::unique_ptr<AbstractPropagator> propagator);
     ProjectManager();
 
 private:
   void removeExistingComponentFromWorkspace();
   void addCurrentComponentToWorkspace();
-  bool visuallyRegisterPropagator(Propagator* ptr);
+  bool visuallyRegisterPropagator(AbstractPropagator* _ptr);
+  std::unordered_set<std::function<void()>*> newComponentCallbacks;
 
   PropertySection* simulatorPropertySection = nullptr;
 };

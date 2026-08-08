@@ -73,6 +73,13 @@
 " background: #333333;" \
 "}"
 
+#define STYLESHEET_WIDGET_SECONDARY \
+"QWidget {" \
+" background: #333333;" \
+" border: none;" \
+" border-radius: 4px;" \
+"}"
+
 #define STYLESHEET_FRAME_CARD \
 "QFrame {" \
 " background: #3a3a3a;" \

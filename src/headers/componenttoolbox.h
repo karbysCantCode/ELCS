@@ -7,34 +7,47 @@
 
 #include "projectmanager.h"
 
-namespace Ui {
-class componentToolboxElement;
-}
-
-class ToolboxElement : public QWidget {
+class ToolboxElement : public QFrame
+{
     Q_OBJECT
+
 public:
-    const Component& component;
+    explicit ToolboxElement(
+        const Component& component,
+        QWidget* parent = nullptr
+    );
 
-    explicit ToolboxElement(const Component& _component, QWidget* parent = nullptr);
-        ~ToolboxElement();
+    const Component& getComponent() const;
 
-    
+signals:
+    void componentSelected(const Component& component);
+    void componentEditRequested(const Component& component);
+
+protected:
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseDoubleClickEvent(QMouseEvent* event) override;
+
 private:
-    Ui::componentToolboxElement* ui;
+    const Component& component;
+    QLabel* nameLabel = nullptr;
 };
 
 class componentToolbox : public QScrollArea
 {
     Q_OBJECT
 private:
-    
+    QVBoxLayout* layout;
+    QWidget* scrollArea = nullptr;
 public:
-    std::unordered_map<std::string, ToolboxElement> toolboxElements;
+    std::unordered_map<std::string, ToolboxElement*> toolboxElements;
 
+    void initScrollArea(QWidget* _scrollArea);
     void updateElements();
     componentToolbox(QWidget* parent = nullptr);
 
+    
 };
 
+extern componentToolbox* simulatorCircuitToolbox;
+extern componentToolbox* styleCircuitToolbox;
 #endif // COMPONENTTOOLBOX_H

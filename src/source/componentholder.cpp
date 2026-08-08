@@ -55,12 +55,11 @@ std::unordered_set<Propagator*> ComponentHolder::getOccupied(const std::vector<S
   for (const auto& segment : segments) {
       tempSet.merge(getOccupiedAlongTwoPoints(segment.begin, segment.end));
   }
-  std::unordered_set<Propagator*> retSet;
   for (const auto& elem : excludes) {
-    retSet.erase(elem);
+    tempSet.erase(elem);
   }
 
-  return retSet;
+  return tempSet;
 }
 
 void ComponentHolder::removeFromGrid(const std::vector<Position>& anchors, Propagator* propagator) {
@@ -216,12 +215,16 @@ bool ComponentHolder::isOccupied(const Position& pos) const {
     return gridMap.end() != gridMap.find({pos.x,pos.y});
 }
 
-std::unordered_set<Propagator*> ComponentHolder::getOccupied(const Position& pos) const {
+std::unordered_set<Propagator*> ComponentHolder::getOccupied(const Position& pos, std::unordered_set<Propagator*> excludes) const {
     auto it = gridMap.find({pos.x,pos.y});
+    std::unordered_set<Propagator*> retSet = {};
     if (it != gridMap.end()) {
-        return it->second;
+        retSet = it->second;
     }
-    return {};
+    for (const auto& elem : excludes) {
+      retSet.erase(elem);
+    }
+    return retSet;
 }
 
 void ComponentHolder::reset() {

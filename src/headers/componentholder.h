@@ -39,7 +39,7 @@ public:
     void removeFromGrid(const std::vector<Segment>& segments, Propagator* propagator);
     
     bool isOccupied(const Position& pos) const;
-    std::unordered_set<Propagator*> getOccupied(const Position& pos) const;
+    std::unordered_set<Propagator*> getOccupied(const Position& pos, std::unordered_set<Propagator*> excludes) const;
     std::unordered_set<Propagator*> getOccupied(const std::vector<Segment>& segments, std::unordered_set<Propagator*> excludes) const;
     
     void reset();

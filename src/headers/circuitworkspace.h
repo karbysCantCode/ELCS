@@ -21,22 +21,25 @@ public:
     void reset();
     
     enum class EditingStates {
-        SELECT,
+        EDIT,
         POKE,
     };
 
-    void setState(EditingStates _state) {state = _state;};
+    void setState(EditingStates _state) {state = _state;}
     inline EditingStates getState() const {return state;}
-    
+public slots:
+    void onComponentSelected(const Component& component);
+    void onComponentEditRequested(const Component& component);
 protected:
     void resizeEvent ( QResizeEvent * event ) override;
     void wheelEvent(QWheelEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void drawBackground(QPainter *painter, const QRectF &rect) override;
 private:
-    EditingStates state;
+    EditingStates state = EditingStates::EDIT;
 
     int p_width = 0;
     int p_height = 0; // TODO set to window size?

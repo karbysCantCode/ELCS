@@ -3,6 +3,7 @@
 #include "notifications.h"
 #include "projectmanager.h"
 #include "propertysection.h"
+#include "componenttoolbox.h"
 
 #include <QWidget>
 #include <QStyle>
@@ -35,13 +36,16 @@ MainWindow::MainWindow(QWidget *parent)
 {
   ui->setupUi(this);
   __circuitworkspace = ui->SimulatorCircuitWorkspace;
+
   auto* propertyHolderLayout = new QVBoxLayout(ui->propertyHolder);
   propertyHolderLayout->setContentsMargins(0,0,0,0);
   auto* section = new PropertySection();
   section->setTitle("Properties");
   propertyHolderLayout->addWidget(section);
 
-
+  simulatorCircuitToolbox = ui->SimulatorCircuitToolbox;
+  simulatorCircuitToolbox->initScrollArea(ui->SimulatorCircuitToolboxScrollArea);
+  // styleCircuitToolbox = 
   // leave this past any ui creation
 
   repolishVariants(this);
@@ -91,7 +95,7 @@ void MainWindow::on_createNewCircuitButton_clicked()
 
 void MainWindow::on_selectTool_clicked()
 {
-    globalProjectManager->workspace->setState(CircuitWorkspace::EditingStates::SELECT);
+    globalProjectManager->workspace->setState(CircuitWorkspace::EditingStates::EDIT);
 }
 
 
