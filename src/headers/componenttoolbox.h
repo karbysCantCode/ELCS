@@ -14,14 +14,14 @@ class ToolboxElement : public QFrame
 
 public:
     explicit ToolboxElement(
-        const SentinelComponent& component,
+        SentinelComponent& component,
         QWidget* parent = nullptr
     );
 
     const SentinelComponent& getComponent() const;
 
 signals:
-    void componentSelected(const SentinelComponent& component);
+    void componentSelected(SentinelComponent& component);
     void componentEditRequested(const SentinelComponent& component);
 
 protected:
@@ -29,17 +29,27 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent* event) override;
 
 private:
-    const SentinelComponent& component;
+    SentinelComponent& component;
     QLabel* nameLabel = nullptr;
 };
 
+using ToolboxConnectionFunction =
+    std::function<void(ToolboxElement*)>;
 class componentToolbox : public QScrollArea
 {
     Q_OBJECT
 private:
     QVBoxLayout* layout;
     QWidget* scrollArea = nullptr;
+
+
+    std::vector<ToolboxConnectionFunction> registeredConnections;
+
+    void applyConnections(ToolboxElement* element);
 public:
+    void registerConnection(
+            ToolboxConnectionFunction connection
+    );
     std::unordered_map<std::string, ToolboxElement*> toolboxElements;
 
     void initScrollArea(QWidget* _scrollArea);

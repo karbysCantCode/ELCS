@@ -24,6 +24,12 @@ private slots:
 
     void on_pokeTool_clicked();
 
+    void on_AddCurveButton_clicked();
+
+    void on_AddLineButton_clicked();
+
+    void on_AddLabelButton_clicked();
+
 private:
     Ui::MainWindow *ui;
 };

@@ -37,6 +37,27 @@ QWidget#centralwidget {
     background: rgb(11, 11, 17);
 }
 
+QToolButton {
+    background: rgb(30, 59, 84);
+    color: white;
+	border: 1px solid #a3ccff;
+    border-radius: 4px;
+    padding: 2px 2px;
+    font-size: 14px;
+}
+
+QToolButton:hover {
+    background: rgb(45, 78, 107);
+}
+
+QToolButton:pressed {
+    background: rgb(20, 42, 60);
+}
+
+QToolButton:checked {
+    background: rgb(45, 78, 107);
+}
+
 QTabWidget#tabWidget QWidget[variant=&quot;page&quot;] {
  background: rgb(30, 30, 50);
 }
@@ -130,23 +151,6 @@ QPushButton#mainButton {
     border-radius: 4px;
     padding: 8px 18px;
     font-size: 14px;
-}
-
-QFrame#toolbar QToolButton {
-    background: rgb(30, 59, 84);
-    color: white;
-	border: 1px solid #a3ccff;
-    border-radius: 4px;
-    padding: 2px 2px;
-    font-size: 14px;
-}
-
-QFrame#toolbar QToolButton:hover {
-    background: rgb(45, 78, 107);
-}
-
-QFrame#toolbar QToolButton:pressed {
-    background: rgb(20, 42, 60);
 }
 
 QPushButton#mainButton:hover {
@@ -353,7 +357,7 @@ QLabel#successLabel {
        <enum>QTabWidget::TabShape::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>3</number>
       </property>
       <property name="usesScrollButtons">
        <bool>false</bool>
@@ -427,8 +431,8 @@ QLabel#successLabel {
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>205</width>
-                <height>428</height>
+                <width>213</width>
+                <height>494</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout">
@@ -1255,7 +1259,7 @@ QLabel#successLabel {
                      <string>Poke</string>
                     </property>
                     <property name="variant" stdset="0">
-                     <string>variant</string>
+                     <string>create</string>
                     </property>
                    </widget>
                   </item>
@@ -1473,7 +1477,7 @@ QLabel#successLabel {
                         <x>0</x>
                         <y>0</y>
                         <width>214</width>
-                        <height>382</height>
+                        <height>381</height>
                        </rect>
                       </property>
                      </widget>
@@ -1595,7 +1599,7 @@ QLabel#successLabel {
        <attribute name="title">
         <string>Style</string>
        </attribute>
-       <layout class="QHBoxLayout" name="horizontalLayout_20">
+       <layout class="QHBoxLayout" name="horizontalLayout_25">
         <property name="spacing">
          <number>0</number>
         </property>
@@ -1612,20 +1616,11 @@ QLabel#successLabel {
          <number>0</number>
         </property>
         <item>
-         <widget class="QSplitter" name="splitter_3">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>1</horstretch>
-            <verstretch>1</verstretch>
-           </sizepolicy>
-          </property>
+         <widget class="QSplitter" name="splitter_5">
           <property name="orientation">
            <enum>Qt::Orientation::Vertical</enum>
           </property>
-          <property name="childrenCollapsible">
-           <bool>false</bool>
-          </property>
-          <widget class="QFrame" name="frame_11">
+          <widget class="QFrame" name="frame_15">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
              <horstretch>0</horstretch>
@@ -1644,7 +1639,7 @@ QLabel#successLabel {
            <property name="frameShadow">
             <enum>QFrame::Shadow::Raised</enum>
            </property>
-           <layout class="QVBoxLayout" name="verticalLayout_9">
+           <layout class="QVBoxLayout" name="verticalLayout_20">
             <property name="spacing">
              <number>0</number>
             </property>
@@ -1661,7 +1656,7 @@ QLabel#successLabel {
              <number>0</number>
             </property>
             <item>
-             <widget class="QFrame" name="frame_19">
+             <widget class="QFrame" name="frame_16">
               <property name="frameShape">
                <enum>QFrame::Shape::StyledPanel</enum>
               </property>
@@ -1671,14 +1666,14 @@ QLabel#successLabel {
              </widget>
             </item>
             <item>
-             <widget class="QFrame" name="frame_20">
+             <widget class="QFrame" name="toolbar_7">
               <property name="frameShape">
                <enum>QFrame::Shape::StyledPanel</enum>
               </property>
               <property name="frameShadow">
                <enum>QFrame::Shadow::Raised</enum>
               </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_10" stretch="0,0,1">
+              <layout class="QHBoxLayout" name="horizontalLayout_19" stretch="0,0,1">
                <property name="spacing">
                 <number>6</number>
                </property>
@@ -1695,18 +1690,21 @@ QLabel#successLabel {
                 <number>0</number>
                </property>
                <item>
-                <widget class="QFrame" name="frame_21">
+                <widget class="QFrame" name="toolbar_8">
                  <property name="frameShape">
                   <enum>QFrame::Shape::StyledPanel</enum>
                  </property>
                  <property name="frameShadow">
                   <enum>QFrame::Shadow::Raised</enum>
                  </property>
-                 <layout class="QHBoxLayout" name="horizontalLayout_16">
+                 <layout class="QHBoxLayout" name="horizontalLayout_21">
                   <item>
                    <widget class="QToolButton" name="selectTool_3">
                     <property name="text">
                      <string>Select</string>
+                    </property>
+                    <property name="variant" stdset="0">
+                     <string>create</string>
                     </property>
                    </widget>
                   </item>
@@ -1715,12 +1713,18 @@ QLabel#successLabel {
                     <property name="text">
                      <string>Poke</string>
                     </property>
+                    <property name="variant" stdset="0">
+                     <string>create</string>
+                    </property>
                    </widget>
                   </item>
                   <item>
                    <widget class="QToolButton" name="toolButton_3">
                     <property name="text">
                      <string>...</string>
+                    </property>
+                    <property name="variant" stdset="0">
+                     <string>create</string>
                     </property>
                    </widget>
                   </item>
@@ -1738,14 +1742,14 @@ QLabel#successLabel {
                 </widget>
                </item>
                <item>
-                <widget class="QFrame" name="frame_22">
+                <widget class="QFrame" name="toolbar_9">
                  <property name="frameShape">
                   <enum>QFrame::Shape::StyledPanel</enum>
                  </property>
                  <property name="frameShadow">
                   <enum>QFrame::Shadow::Raised</enum>
                  </property>
-                 <layout class="QHBoxLayout" name="horizontalLayout_17">
+                 <layout class="QHBoxLayout" name="horizontalLayout_22">
                   <property name="spacing">
                    <number>0</number>
                   </property>
@@ -1762,23 +1766,44 @@ QLabel#successLabel {
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QToolButton" name="toolButton_10">
+                   <widget class="QToolButton" name="AddLineButton">
                     <property name="text">
-                     <string>Rectangle</string>
+                     <string>Add Line</string>
+                    </property>
+                    <property name="checkable">
+                     <bool>true</bool>
+                    </property>
+                    <property name="variant" stdset="0">
+                     <string>create</string>
                     </property>
                    </widget>
                   </item>
                   <item>
-                   <widget class="QToolButton" name="toolButton_11">
+                   <widget class="QToolButton" name="AddCurveButton">
                     <property name="text">
-                     <string>Elliptical Curve</string>
+                     <string>Add Curve</string>
+                    </property>
+                    <property name="checkable">
+                     <bool>true</bool>
+                    </property>
+                    <property name="checked">
+                     <bool>false</bool>
+                    </property>
+                    <property name="variant" stdset="0">
+                     <string>create</string>
                     </property>
                    </widget>
                   </item>
                   <item>
-                   <widget class="QToolButton" name="toolButton_12">
+                   <widget class="QToolButton" name="AddLabelButton">
                     <property name="text">
-                     <string>Line</string>
+                     <string>Add Label</string>
+                    </property>
+                    <property name="checkable">
+                     <bool>true</bool>
+                    </property>
+                    <property name="variant" stdset="0">
+                     <string>create</string>
                     </property>
                    </widget>
                   </item>
@@ -1810,10 +1835,7 @@ QLabel#successLabel {
              <verstretch>1</verstretch>
             </sizepolicy>
            </property>
-           <property name="styleSheet">
-            <string notr="true">QWidget {background: rgb(255, 0, 255)}</string>
-           </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_18">
+           <layout class="QHBoxLayout" name="horizontalLayout_23">
             <property name="spacing">
              <number>0</number>
             </property>
@@ -1830,7 +1852,13 @@ QLabel#successLabel {
              <number>0</number>
             </property>
             <item>
-             <widget class="QSplitter" name="splitter_5">
+             <widget class="QSplitter" name="splitter_6">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>1</verstretch>
+               </sizepolicy>
+              </property>
               <property name="lineWidth">
                <number>0</number>
               </property>
@@ -1840,11 +1868,11 @@ QLabel#successLabel {
               <property name="childrenCollapsible">
                <bool>false</bool>
               </property>
-              <widget class="QFrame" name="frame_23">
+              <widget class="QFrame" name="propertySideMenu_3">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
                  <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
+                 <verstretch>1</verstretch>
                 </sizepolicy>
                </property>
                <property name="minimumSize">
@@ -1853,36 +1881,97 @@ QLabel#successLabel {
                  <height>0</height>
                 </size>
                </property>
-               <property name="styleSheet">
-                <string notr="true">QFrame {background: rgb(0, 255, 0)}</string>
-               </property>
                <property name="frameShape">
                 <enum>QFrame::Shape::StyledPanel</enum>
                </property>
                <property name="frameShadow">
                 <enum>QFrame::Shadow::Raised</enum>
                </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_11">
+               <layout class="QVBoxLayout" name="verticalLayout_21" stretch="1,0">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
                 <item>
-                 <widget class="componentToolbox" name="scrollArea_3">
-                  <property name="widgetResizable">
-                   <bool>true</bool>
+                 <widget class="QFrame" name="frame_17">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
                   </property>
-                  <widget class="QWidget" name="scrollAreaWidgetContents_3">
-                   <property name="geometry">
-                    <rect>
-                     <x>0</x>
-                     <y>0</y>
-                     <width>198</width>
-                     <height>423</height>
-                    </rect>
+                  <property name="frameShape">
+                   <enum>QFrame::Shape::StyledPanel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Shadow::Raised</enum>
+                  </property>
+                  <layout class="QVBoxLayout" name="verticalLayout_22">
+                   <property name="spacing">
+                    <number>10</number>
                    </property>
-                  </widget>
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                   <item>
+                    <widget class="componentToolbox" name="StyleCircuitToolbox">
+                     <property name="widgetResizable">
+                      <bool>true</bool>
+                     </property>
+                     <widget class="QWidget" name="StyleCircuitToolboxScrollArea">
+                      <property name="geometry">
+                       <rect>
+                        <x>0</x>
+                        <y>0</y>
+                        <width>214</width>
+                        <height>426</height>
+                       </rect>
+                      </property>
+                     </widget>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QFrame" name="propertyHolder_3">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="frameShape">
+                   <enum>QFrame::Shape::StyledPanel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Shadow::Raised</enum>
+                  </property>
                  </widget>
                 </item>
                </layout>
               </widget>
-              <widget class="QFrame" name="frame_24">
+              <widget class="QFrame" name="frame_18">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                  <horstretch>1</horstretch>
@@ -1901,7 +1990,7 @@ QLabel#successLabel {
                <property name="lineWidth">
                 <number>0</number>
                </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_19">
+               <layout class="QHBoxLayout" name="horizontalLayout_24">
                 <property name="spacing">
                  <number>0</number>
                 </property>
@@ -1918,7 +2007,7 @@ QLabel#successLabel {
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="CircuitWorkspace" name="graphicsView_3">
+                 <widget class="CircuitStyleWorkspace" name="StyleCircuitWorkspace">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                     <horstretch>1</horstretch>
@@ -1968,6 +2057,11 @@ QLabel#successLabel {
    <extends>QScrollArea</extends>
    <header>componenttoolbox.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CircuitStyleWorkspace</class>
+   <extends>QGraphicsView</extends>
+   <header>circuitstyleworkspace.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

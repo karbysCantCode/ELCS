@@ -8,11 +8,12 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     MainWindow w;
     w.show();
-    globalProjectManager = new ProjectManager();
-    globalProjectManager->workspace = __circuitworkspace;
-    globalProjectManager->dummyLoad();
     globalNotificationManager = new NotificationManager(&w);
     globalNotificationManager->show();
     globalNotificationManager->raise();
+    globalProjectManager = new ProjectManager();
+    globalProjectManager->workspace = __circuitworkspace;
+    globalProjectManager->styleWorkspace = __circuitStyleWorkspace;
+    globalProjectManager->dummyLoad();
     return QApplication::exec();
 }

@@ -617,7 +617,7 @@ void SentinelComponent::saveToFile(const std::filesystem::path& path) {
 
 }
 
-void SentinelComponent::loadFromFile(const std::filesystem::path& path) {
+bool SentinelComponent::loadFromFile(const std::filesystem::path& path) {
   try
   {
     filePath = path;
@@ -630,6 +630,7 @@ void SentinelComponent::loadFromFile(const std::filesystem::path& path) {
             qDebug() << "READ PAST END OF BUFFER!";
             qDebug() << "pos =" << pos;
             qDebug() << "size =" << buffer.size();
+            // return false;
             throw std::runtime_error("Unexpected EOF");
         }
         if (inc)
@@ -784,7 +785,10 @@ void SentinelComponent::loadFromFile(const std::filesystem::path& path) {
   catch(const std::exception& e)
   {
     std::cerr << e.what() << '\n';
+    return false;
   }
+
+  return true;
 }
 
 Propagator* Component::findPropagatorPointerOfId(uint32_t id, const std::unordered_map<uint32_t, PropagatorIdentity>& map) {
@@ -881,7 +885,8 @@ Wire::Wire(const Wire& wireToCopy) : segments(wireToCopy.segments), Propagator(w
 
 Component::Component(const Component& componentToCopy) 
     :   name(componentToCopy.name),
-    filePath(componentToCopy.filePath) 
+    filePath(componentToCopy.filePath),
+    appearance(componentToCopy.getAppearance())
     {
     std::unordered_map<Propagator*, Propagator*> oldNewPropagatorPointerMap;
     std::unordered_map<Pin*, Propagator*> pins;
@@ -1113,7 +1118,7 @@ bool SentinelComponent::informAddedComponentToSeeIfFullyResolved(const std::stri
 }
 
 size_t Component::getUint32sToSave() const {
-  size_t i = 1;
+  size_t i = 3;
   i += name.length()/4 + 0!=(name.length()%4);
   return i;
 }

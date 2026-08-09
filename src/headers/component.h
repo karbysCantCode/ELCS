@@ -140,6 +140,8 @@ public:
     std::pair<bool, std::unordered_set<Segment, SegmentHash>> trimCollidingAgainstWire(Wire* other);
     void reset();
 
+    void setGraphicsObject(SegmentGraphicsObject* object)  {graphicsObject=object;}
+
     // does not sync effectors and affectors.
     Wire(const Wire& wireToCopy);
     Wire() {}
@@ -242,13 +244,27 @@ public:
         return propagators;
     }
 
-    std::vector<Pin*>& getPins() {
+    std::vector<Pin*> getPins() {
         std::vector<Pin*> pins;
         for (auto& propagator : propagators) {
             if (!propagator->isAbstract() && ((Propagator*)propagator.get())->getKind() == Propagator::Kinds::PIN)
                 pins.push_back((Pin*)propagator.get());
         }
+        return pins;
     }
+
+    std::vector<const Pin*> getPins() const
+    {
+        std::vector<const Pin*> pins;
+
+        for (auto& propagator : propagators) {
+            if (!propagator->isAbstract() && ((Propagator*)propagator.get())->getKind() == Propagator::Kinds::PIN)
+                pins.push_back((Pin*)propagator.get());
+        }
+
+        return pins;
+    }
+    
 
     void addPropagator(std::unique_ptr<AbstractPropagator> propagator) {
         propagators.push_back(std::move(propagator));
@@ -304,7 +320,7 @@ public:
     
     bool informAddedComponentToSeeIfFullyResolved(const std::string& name, const Component& _component);
 
-  void loadFromFile(const std::filesystem::path& path);
+  bool loadFromFile(const std::filesystem::path& path);
   void saveToFile(const std::filesystem::path& path);
 
   void createComponent(const Position& _position, const Component& _component);

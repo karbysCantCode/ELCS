@@ -309,7 +309,6 @@ void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
     case InteractionState::WIRING: {
       setInteractionState(InteractionState::NONE);
       scene()->removeItem(tempWire.graphicsObject);
-      tempWire.graphicsObject = nullptr;
       delete tempWire.graphicsObject;
       tempWire.graphicsObject = nullptr;
 
@@ -379,6 +378,13 @@ int CircuitWorkspace::getMaxYPosition() const {
 
 void CircuitWorkspace::reset() {
   scene()->clear();
+  p_componentGhost = nullptr;
+  p_selectedItem = nullptr;
+  backgroundGridItem = nullptr;
+
+  p_componentToPlace = nullptr;
+  p_temporaryComponentToPlace.reset();
+
   updateWorkspacePosition();
 }
 
@@ -387,7 +393,7 @@ void CircuitWorkspace::onComponentSelected(
 {
     // Cancel any existing interaction
     if (p_componentGhost) {
-        scene()->removeItem(p_componentGhost);
+        p_componentGhost->scene()->removeItem(p_componentGhost);
         delete p_componentGhost;
         p_componentGhost = nullptr;
     }
@@ -425,6 +431,11 @@ void CircuitWorkspace::onComponentEditRequested(
     const SentinelComponent& component)
 {
   //please cancel any component placement!
+  setInteractionState(InteractionState::NONE);
+  p_temporaryComponentToPlace.reset();
+  p_componentToPlace = nullptr;
+  p_componentGhost->scene()->removeItem(p_componentGhost);
+  p_componentGhost = nullptr;
     qDebug() << "edit reuqested"
              << QString::fromStdString(component.getName());
 }

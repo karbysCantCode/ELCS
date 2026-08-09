@@ -73,7 +73,7 @@ private:
     void setInteractionState(InteractionState state);
 
     std::unique_ptr<Component> p_temporaryComponentToPlace;
-    const SentinelComponent* p_componentToPlace;
+    const SentinelComponent* p_componentToPlace = nullptr;
     ComponentGraphicsObject* p_componentGhost = nullptr;
     InteractionState interactionState = InteractionState::NONE;
     AbstractGraphicsObject* p_selectedItem = nullptr;

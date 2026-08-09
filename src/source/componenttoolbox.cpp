@@ -32,7 +32,7 @@ componentToolbox::componentToolbox(QWidget* parent)
 // }
 
 ToolboxElement::ToolboxElement(
-    const SentinelComponent& component,
+    SentinelComponent& component,
     QWidget* parent
 )
     : QFrame(parent),
@@ -91,43 +91,69 @@ void componentToolbox::initScrollArea(QWidget* _scrollArea) {
   scrollArea->setStyleSheet(STYLESHEET_WIDGET_SECONDARY);
 }
 
-void componentToolbox::updateElements() {
-  for (const auto& [name, component] : globalProjectManager->components) {
-    if (toolboxElements.find(name) == toolboxElements.end()) {
-      auto* ptr = new ToolboxElement(*component.get(), scrollArea);
-      toolboxElements.emplace(name, ptr);
-      layout->insertWidget(layout->count() - 1, ptr);
-      connect(
-        ptr,
-        &ToolboxElement::componentSelected,
-        globalProjectManager->workspace,
-        &CircuitWorkspace::onComponentSelected
-      );
-      connect(
-        ptr,
-        &ToolboxElement::componentEditRequested,
-        globalProjectManager->workspace,
-        &CircuitWorkspace::onComponentEditRequested
-      );
-      connect(
-        ptr,
-        &ToolboxElement::componentEditRequested,
-        [](const SentinelComponent& component) {
-            globalProjectManager->onComponentEditRequested(component);
+void componentToolbox::registerConnection(
+    ToolboxConnectionFunction connection
+)
+{
+    registeredConnections.push_back(
+        std::move(connection)
+    );
+}
+
+void componentToolbox::applyConnections(
+    ToolboxElement* element
+)
+{
+    for (const auto& connection : registeredConnections)
+    {
+        connection(element);
+    }
+}
+
+void componentToolbox::updateElements()
+{
+    for (const auto& [name, component]
+         : globalProjectManager->components)
+    {
+        if (toolboxElements.find(name)
+            == toolboxElements.end())
+        {
+            auto* ptr =
+                new ToolboxElement(
+                    *component.get(),
+                    scrollArea
+                );
+
+            toolboxElements.emplace(
+                name,
+                ptr
+            );
+
+            layout->insertWidget(
+                layout->count() - 1,
+                ptr
+            );
+
+            applyConnections(ptr);
         }
-      );
     }
-  }
 
-  for (auto it = toolboxElements.begin(); it != toolboxElements.end(); ) {
-    const auto& name = it->first;
+    for (auto it = toolboxElements.begin();
+         it != toolboxElements.end();)
+    {
+        const auto& name = it->first;
 
-    if (globalProjectManager->components.find(name) == globalProjectManager->components.end()) {
-      layout->removeWidget(it->second);
-      it->second->deleteLater();
-      it = toolboxElements.erase(it);
-    } else {
-      ++it;
+        if (globalProjectManager->components.find(name)
+            == globalProjectManager->components.end())
+        {
+            layout->removeWidget(it->second);
+            it->second->deleteLater();
+
+            it = toolboxElements.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
     }
-  }
 }

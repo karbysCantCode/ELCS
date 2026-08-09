@@ -3,19 +3,18 @@
 
 #include <QColor>
 #include <QString>
-#include <QFont>
 
 #include <vector>
 
-// #include "component.h"
 #include "position.h"
+
 
 struct ComponentLine
 {
     Position begin;
     Position end;
 
-    QColor color = Qt::white;
+    QColor color = Qt::black;
     double width = 2.0;
 
     ComponentLine() = default;
@@ -23,7 +22,7 @@ struct ComponentLine
     ComponentLine(
         const Position& begin,
         const Position& end,
-        const QColor& color = Qt::white,
+        const QColor& color = Qt::black,
         double width = 2.0
     )
         : begin(begin),
@@ -33,6 +32,7 @@ struct ComponentLine
     {}
 };
 
+
 struct ComponentCurve
 {
     Position begin;
@@ -40,7 +40,7 @@ struct ComponentCurve
     Position control2;
     Position end;
 
-    QColor color = Qt::white;
+    QColor color = Qt::black;
     double width = 2.0;
 
     ComponentCurve() = default;
@@ -50,7 +50,7 @@ struct ComponentCurve
         const Position& control1,
         const Position& control2,
         const Position& end,
-        const QColor& color = Qt::white,
+        const QColor& color = Qt::black,
         double width = 2.0
     )
         : begin(begin),
@@ -62,12 +62,13 @@ struct ComponentCurve
     {}
 };
 
+
 struct ComponentLabel
 {
     QString text;
     Position position;
 
-    QColor color = Qt::white;
+    QColor color = Qt::black;
     int fontSize = 14;
 
     ComponentLabel() = default;
@@ -75,7 +76,7 @@ struct ComponentLabel
     ComponentLabel(
         const QString& text,
         const Position& position,
-        const QColor& color = Qt::white,
+        const QColor& color = Qt::black,
         int fontSize = 14
     )
         : text(text),
@@ -85,36 +86,39 @@ struct ComponentLabel
     {}
 };
 
+
 struct ComponentAppearance
 {
     std::vector<ComponentLine> lines;
     std::vector<ComponentCurve> curves;
     std::vector<ComponentLabel> labels;
-    // Component& component;
-    Position anchor;
 
-    // ComponentAppearance(Component& _component) : component(_component) {}
+    Position anchor;
 
     void addLine(
         const Position& begin,
-        const Position& end
+        const Position& end,
+        const QColor& color = Qt::black,
+        double width = 2.0
     );
 
     void addCurve(
         const Position& begin,
         const Position& control1,
         const Position& control2,
-        const Position& end
+        const Position& end,
+        const QColor& color = Qt::black,
+        double width = 2.0
     );
 
     void addLabel(
         const QString& text,
-        const Position& position
+        const Position& position,
+        const QColor& color = Qt::black,
+        int fontSize = 14
     );
 
-    void setAnchor(
-      const Position& position
-    );
+    void setAnchor(const Position& position);
 };
 
 #endif

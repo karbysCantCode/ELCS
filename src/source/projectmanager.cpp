@@ -6,12 +6,13 @@
 #include "component.h"
 #include "componenttoolbox.h"
 #include "filehelper.h"
+#include "circuitstyleworkspace.h"
 
 #include <format>
 
 ProjectManager* globalProjectManager = nullptr;
 CircuitWorkspace* __circuitworkspace = nullptr;
-
+CircuitStyleWorkspace* __circuitStyleWorkspace = nullptr;
 ProjectManager::ProjectManager() {
   
 }
@@ -30,7 +31,7 @@ void ProjectManager::dummyLoad() {
       openComponent(component->getName());
     }
   }
-  simulatorCircuitToolbox->updateElements();
+  updateToolboxes();
   components["AND"]->saveToFile(std::filesystem::path(RESOURCES_PATH)/"savedand.csf");
 
 }
@@ -38,7 +39,7 @@ void ProjectManager::dummyLoad() {
 bool ProjectManager::createNewComponent(const std::string& name) {
   auto [element, success] =
     components.try_emplace(name,std::make_unique<SentinelComponent>(name));
-  simulatorCircuitToolbox->updateElements();
+  updateToolboxes();
   qDebug("ee");
   auto path = std::filesystem::path(RESOURCES_PATH)/(name+SAVE_FILE_EXTENSION);
   if (!doesFileExist(path)) {
@@ -49,11 +50,20 @@ bool ProjectManager::createNewComponent(const std::string& name) {
   }
   return success;
 }
+
+void ProjectManager::updateToolboxes() const {
+  simulatorCircuitToolbox->updateElements();
+  styleCircuitToolbox->updateElements();
+}
 std::pair<SentinelComponent*, bool> ProjectManager::loadNewComponent(const std::filesystem::path& path) {
   auto component = std::make_unique<SentinelComponent>();
-  component->loadFromFile(path);
+  bool successFileLoad = component->loadFromFile(path);
+  if (!successFileLoad) {
+    globalNotificationManager->notify("Failed Loading...", std::format("Failed to load component at file \"{}\"", path.string()), 15000);
+    return {nullptr, false};
+  }
   auto [element,success] = components.emplace(component->getName(), std::move(component));
-  simulatorCircuitToolbox->updateElements();
+  updateToolboxes();
   return {element->second.get(), success};
 }
 
@@ -103,7 +113,7 @@ void ProjectManager::saveCurrentComponent() {
 }
 
 AbstractPropagator* ProjectManager::addNewPropagator(std::unique_ptr<AbstractPropagator> propagator) {
-    auto ptr = propagator.get();
+    AbstractPropagator* ptr = propagator.get();
     currentOpenComponent->addPropagator(std::move(propagator));
     visuallyRegisterPropagator(ptr);
     return ptr;
@@ -118,12 +128,26 @@ void ProjectManager::visuallyRegisterPropagator(AbstractPropagator* _ptr) {
       globalProjectManager->gridManager.addToGrid(pin->gridPosition(), pin);
     }
 
+    auto* item = new ComponentGraphicsObject(*ptr);
+    ptr->setGraphicsObject(item);
+    workspace->scene()->addItem(item);
+    item->setZValue(1);
+    item->setVisible(true);
+    item->setOpacity(1.0);
+    item->setZValue(100);
+    qDebug() << "visible:" << item->isVisible();
+    qDebug() << "scene:" << item->scene();
+    qDebug() << "bounding rect:" << item->boundingRect();
+    item->setPos(ptr->getGridPosition().getGridScaledCopy().getQPointF());
+    item->refresh();
+
   } else {
     auto ptr = (Propagator*)_ptr;
     if (ptr->getKind() == Propagator::Kinds::PIN) {
         auto np = (Pin*)ptr;
         globalProjectManager->gridManager.addToGrid(np->getGridPosition(), np);
         auto* item = new PinGraphicsObject(*np);
+        np->setGraphicsObject(item);
         workspace->scene()->addItem(item);
         item->setZValue(1);
         item->setPos(np->getGridPosition().getGridScaledCopy().getQPointF());
@@ -136,6 +160,7 @@ void ProjectManager::visuallyRegisterPropagator(AbstractPropagator* _ptr) {
         np->mergeCollidingWires(tempDeathReg, excludeSet, &touchingElements);
         
         np->graphicsObject = new SegmentGraphicsObject(*np);
+        np->setGraphicsObject(np->graphicsObject);
         workspace->scene()->addItem(np->graphicsObject);
         np->graphicsObject->setZValue(1);
 

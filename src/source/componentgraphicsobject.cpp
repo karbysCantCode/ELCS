@@ -120,7 +120,7 @@ void ComponentGraphicsObject::paintPins(
 ) const
 {
     painter->setPen(Qt::NoPen);
-    painter->setBrush(Qt::white);
+    painter->setBrush(Qt::black);
 
     for (const auto& propagator : component.getPropagators())
     {
@@ -154,6 +154,70 @@ void ComponentGraphicsObject::paint(
 {
     painter->setRenderHint(QPainter::Antialiasing, true);
 
+    const QRectF br = boundingRect();
+
+    // Draw the bounding box.
+    QPen debugBoundingPen(Qt::red);
+    debugBoundingPen.setWidthF(1.0);
+    debugBoundingPen.setStyle(Qt::DashLine);
+
+    painter->setPen(debugBoundingPen);
+    painter->setBrush(Qt::NoBrush);
+
+    painter->drawRect(br);
+
+
+    // Draw the item's local origin.
+    QPen debugOriginPen(Qt::blue);
+    debugOriginPen.setWidthF(1.5);
+
+    painter->setPen(debugOriginPen);
+
+    painter->drawLine(
+        QPointF(-20, 0),
+        QPointF(20, 0)
+    );
+
+    painter->drawLine(
+        QPointF(0, -20),
+        QPointF(0, 20)
+    );
+
+
+    // Draw the component grid position.
+    painter->setPen(Qt::black);
+
+    painter->drawText(
+        QPointF(10, -10),
+        QString(
+            "grid=(%1,%2)"
+        )
+        .arg(component.getGridPosition().x)
+        .arg(component.getGridPosition().y)
+    );
+
+    // DEBUG: draw bounding box
+    QPen debugPen(Qt::red);
+    debugPen.setWidthF(1.0);
+    debugPen.setStyle(Qt::DashLine);
+
+    painter->setPen(debugPen);
+    painter->setBrush(Qt::NoBrush);
+
+    painter->drawRect(boundingRect());
+
+
+    // Draw a visible point at the component grid position
+    // in LOCAL coordinates.
+    painter->setBrush(Qt::green);
+    painter->setPen(Qt::NoPen);
+
+    painter->drawEllipse(
+        component.getGridPosition().getQPointF(),
+        5,
+        5
+    );
+
     for (const auto& line : component.getAppearance().lines)
     {
         paintLine(painter, line);
@@ -168,6 +232,8 @@ void ComponentGraphicsObject::paint(
     {
         paintLabel(painter, label);
     }
+
+    paintPins(painter);
 }
 
 QRectF ComponentGraphicsObject::calculateBoundingRect() const
@@ -191,21 +257,39 @@ QRectF ComponentGraphicsObject::calculateBoundingRect() const
 
     for (const auto& line : component.getAppearance().lines)
     {
-        addPoint(line.begin.getQPointF());
-        addPoint(line.end.getQPointF());
+        addPoint(line.begin.getGridScaledCopy().getQPointF());
+        addPoint(line.end.getGridScaledCopy().getQPointF());
     }
 
     for (const auto& curve : component.getAppearance().curves)
     {
-        addPoint(curve.begin.getQPointF());
-        addPoint(curve.control1.getQPointF());
-        addPoint(curve.control2.getQPointF());
-        addPoint(curve.end.getQPointF());
+        addPoint(curve.begin.getGridScaledCopy().getQPointF());
+        addPoint(curve.control1.getGridScaledCopy().getQPointF());
+        addPoint(curve.control2.getGridScaledCopy().getQPointF());
+        addPoint(curve.end.getGridScaledCopy().getQPointF());
     }
 
     for (const auto& label : component.getAppearance().labels)
     {
-        addPoint(label.position.getQPointF());
+        addPoint(label.position.getGridScaledCopy().getQPointF());
+    }
+
+    for (const auto& propagator : component.getPropagators())
+    {
+        if (propagator->isAbstract())
+            continue;
+
+        if (((Propagator*)propagator.get())->getKind() != Propagator::Kinds::PIN)
+            continue;
+
+        const Pin* pin =
+            static_cast<const Pin*>(propagator.get());
+
+        addPoint(
+            pin->getAppearancePosition()
+                .getGridScaledCopy()
+                .getQPointF()
+        );
     }
 
     if (first)
@@ -226,7 +310,9 @@ QPointF ComponentGraphicsObject::appearanceToPixel(
     const Position& position
 ) const
 {
-    const Position& componentPosition = component.getGridPosition();
+    // const Position& componentPosition = component.getGridPosition();
 
-    return (position + componentPosition).getQPointF();
+    // return (position + componentPosition).getGridScaledCopy().getQPointF();
+    return position.getGridScaledCopy().getQPointF();
+
 }

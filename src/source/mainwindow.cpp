@@ -4,6 +4,7 @@
 #include "projectmanager.h"
 #include "propertysection.h"
 #include "componenttoolbox.h"
+#include "circuitstyleworkspace.h"
 
 #include <QWidget>
 #include <QStyle>
@@ -36,6 +37,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
   ui->setupUi(this);
   __circuitworkspace = ui->SimulatorCircuitWorkspace;
+  __circuitStyleWorkspace = ui->StyleCircuitWorkspace;
+
+  //below is done in main.cpp
+  // globalProjectManager->workspace = __circuitworkspace;
+  // globalProjectManager->styleWorkspace= __circuitStyleWorkspace;
 
   auto* propertyHolderLayout = new QVBoxLayout(ui->propertyHolder);
   propertyHolderLayout->setContentsMargins(0,0,0,0);
@@ -45,7 +51,57 @@ MainWindow::MainWindow(QWidget *parent)
 
   simulatorCircuitToolbox = ui->SimulatorCircuitToolbox;
   simulatorCircuitToolbox->initScrollArea(ui->SimulatorCircuitToolboxScrollArea);
-  // styleCircuitToolbox = 
+  styleCircuitToolbox = ui->StyleCircuitToolbox;
+  styleCircuitToolbox->initScrollArea(ui->StyleCircuitToolboxScrollArea);
+
+  simulatorCircuitToolbox->registerConnection(
+    [](ToolboxElement* element)
+    {
+      QObject::connect(
+        element,
+        &ToolboxElement::componentEditRequested,
+        [](const SentinelComponent& component) {
+          globalProjectManager->onComponentEditRequested(component);
+        }
+      );
+    }
+  );
+  simulatorCircuitToolbox->registerConnection(
+    [](ToolboxElement* element)
+    {
+      QObject::connect(
+        element,
+        &ToolboxElement::componentEditRequested,
+        [](const SentinelComponent& component) {
+          globalProjectManager->onComponentEditRequested(component);
+        }
+      );
+    }
+  );
+  simulatorCircuitToolbox->registerConnection(
+    [](ToolboxElement* element)
+    {
+      QObject::connect(
+        element,
+        &ToolboxElement::componentSelected,
+        globalProjectManager->workspace,
+        &CircuitWorkspace::onComponentSelected
+      );
+    }
+  );
+
+  styleCircuitToolbox->registerConnection(
+    [](ToolboxElement* element)
+    {
+      QObject::connect(
+        element,
+        &ToolboxElement::componentSelected,
+        globalProjectManager->styleWorkspace,
+        &CircuitStyleWorkspace::setComponent
+      );
+    }
+  );
+
   // leave this past any ui creation
 
   repolishVariants(this);
@@ -102,5 +158,32 @@ void MainWindow::on_selectTool_clicked()
 void MainWindow::on_pokeTool_clicked()
 {
     globalProjectManager->workspace->setState(CircuitWorkspace::EditingStates::POKE);
+}
+
+
+void MainWindow::on_AddCurveButton_clicked()
+{
+    globalProjectManager->styleWorkspace->setToolAddCurve();
+    ui->AddCurveButton->setChecked(true);
+    ui->AddLineButton->setChecked(false);
+    ui->AddLabelButton->setChecked(false);
+}
+
+
+void MainWindow::on_AddLineButton_clicked()
+{
+  globalProjectManager->styleWorkspace->setToolAddLine();
+  ui->AddCurveButton->setChecked(false);
+  ui->AddLineButton->setChecked(true);
+  ui->AddLabelButton->setChecked(false);
+}
+
+
+void MainWindow::on_AddLabelButton_clicked()
+{
+  globalProjectManager->styleWorkspace->setToolAddLabel();
+  ui->AddCurveButton->setChecked(false);
+  ui->AddLineButton->setChecked(false);
+  ui->AddLabelButton->setChecked(true);
 }
 
