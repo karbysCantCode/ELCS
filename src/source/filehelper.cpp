@@ -10,14 +10,30 @@ std::vector<uint32_t> openFileToUint32Vector(const std::filesystem::path& path) 
     std::size_t bytes  = file.tellg();
     file.seekg(0);
 
-    if (bytes  % sizeof(uint32_t) != 0)
+    if (bytes  % sizeof(uint32_t) != 0) {
         std::cout << "File size isn't a multiple of uint32_t\n";
+        return {};
+    }
 
     std::vector<uint32_t> data(bytes  / sizeof(uint32_t));
 
-    file.read(reinterpret_cast<char*>(data.data()), bytes );
+    file.read(reinterpret_cast<char*>(data.data()), bytes);
 
     return data;
+}
+
+bool doesFileExist(const std::filesystem::path& path)
+{
+    return std::filesystem::exists(path) &&
+           std::filesystem::is_regular_file(path);
+}
+
+void createFile(const std::filesystem::path& path)
+{
+    if (std::filesystem::exists(path))
+        return;
+
+    std::ofstream file(path);
 }
 
 void writeUint32VectorToFile(const std::filesystem::path& path, const std::vector<uint32_t>& data) {
@@ -36,4 +52,19 @@ void writeUint32VectorToFile(const std::filesystem::path& path, const std::vecto
     if (!file) {
         std::cout << "Failed writing to file " << path.string() << '\n';
     }
+}
+
+std::vector<std::filesystem::path> getFilesInDirectory(
+    const std::filesystem::path& directory)
+{
+    std::vector<std::filesystem::path> files;
+
+    for (const auto& entry :
+         std::filesystem::directory_iterator(directory))
+    {
+        if (entry.is_regular_file())
+            files.push_back(entry.path());
+    }
+
+    return files;
 }

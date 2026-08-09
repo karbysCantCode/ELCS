@@ -13,7 +13,7 @@
 class ProjectManager
 {
 public:
-    std::unordered_map<std::string, SentinelComponent> components;
+    std::unordered_map<std::string, std::unique_ptr<SentinelComponent>> components;
     SentinelComponent* currentOpenComponent = nullptr;
     CircuitWorkspace* workspace = nullptr;
     ComponentHolder gridManager;
@@ -21,7 +21,7 @@ public:
 
     void dummyLoad();
     bool createNewComponent(const std::string& name);
-    bool loadNewComponent(const std::filesystem::path& path);
+    std::pair<SentinelComponent*, bool> loadNewComponent(const std::filesystem::path& path);
     void registerCallbackOnNewComponent(std::function<void()>* func);
     void removeCallbackOnNewComponent(std::function<void()>* func);
     void openComponent(const std::string& name);
@@ -30,10 +30,12 @@ public:
     AbstractPropagator* addNewPropagator(std::unique_ptr<AbstractPropagator> propagator);
     ProjectManager();
 
+    void onComponentEditRequested(const SentinelComponent& component);
+
 private:
   void removeExistingComponentFromWorkspace();
   void addCurrentComponentToWorkspace();
-  bool visuallyRegisterPropagator(AbstractPropagator* _ptr);
+  void visuallyRegisterPropagator(AbstractPropagator* _ptr);
   std::unordered_set<std::function<void()>*> newComponentCallbacks;
 
   PropertySection* simulatorPropertySection = nullptr;

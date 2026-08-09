@@ -7,6 +7,7 @@
 #include <QPen>
 #include <vector>
 #include <QRandomGenerator>
+#include "abstractgraphicsobject.h"
 
 // #include "component.h"
 
@@ -14,16 +15,16 @@ struct Segment;
 
 class Wire;
 
-class SegmentGraphicsItem : public QGraphicsItem
+class SegmentGraphicsObject : public AbstractGraphicsObject
 {
 public:
-    enum { Type = UserType + 1 };
-    
-    SegmentGraphicsItem(
+    // enum { Type = UserType + 2 };
+    GraphicsObjectTypes graphicsObjectType() const override {return GraphicsObjectTypes::SEGMENT;}
+    SegmentGraphicsObject(
         Wire& _wire,
-        QGraphicsItem* parent = nullptr
+        QGraphicsObject* parent = nullptr
     )
-        : QGraphicsItem(parent),
+        : AbstractGraphicsObject(&_wire, parent),
           wire(_wire)
     {
         setZValue(1);
@@ -36,6 +37,8 @@ public:
           rng->bounded(180, 256)  // Value (brightness)
         );
     }
+
+    virtual void updateWorkspacePosition() override;
 
     QRectF boundingRect() const override;
     QPainterPath shape() const override;
@@ -53,10 +56,10 @@ public:
 protected:
   void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
   void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
-  int type() const override
-  {
-    return SegmentGraphicsItem::Type;
-  }
+  // int type() const override
+  // {
+  //   return SegmentGraphicsObject::Type;
+  // }
 private:
     Wire& wire;
     QColor color = Qt::black;

@@ -1,23 +1,28 @@
 #ifndef COMPONENTGRAPHICSITEM_H
 #define COMPONENTGRAPHICSITEM_H
 
-#include <QGraphicsItem>
+#include <QGraphicsObject>
 #include <QPainter>
 #include <QStyleOptionGraphicsItem>
 
 #include "component.h"
+#include "abstractgraphicsobject.h"
 // #include "componentappearance.h"
 
-class ComponentGraphicsItem : public QGraphicsItem
+class ComponentGraphicsObject : public AbstractGraphicsObject
 {
     Q_OBJECT
 
 public:
-    enum { Type = UserType + 3 };
-    explicit ComponentGraphicsItem(
-        const Component& component,
-        QGraphicsItem* parent = nullptr
+    // enum { Type = UserType + 4 };
+    explicit ComponentGraphicsObject(
+        Component& component,
+        QGraphicsObject* parent = nullptr
     );
+
+    virtual void updateWorkspacePosition() override;
+
+    GraphicsObjectTypes graphicsObjectType() const override {return GraphicsObjectTypes::COMPONENT;}
 
     QRectF boundingRect() const override;
 
@@ -42,10 +47,10 @@ protected:
     // void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
 
     //handled by circuitworkspace
-    int type() const override
-    {
-      return ComponentGraphicsItem::Type;
-    }
+    // int type() const override
+    // {
+    //   return ComponentGraphicsObject::Type;
+    // }
 
 private:
     const Component& component;

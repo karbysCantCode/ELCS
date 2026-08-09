@@ -32,14 +32,14 @@ componentToolbox::componentToolbox(QWidget* parent)
 // }
 
 ToolboxElement::ToolboxElement(
-    const Component& component,
+    const SentinelComponent& component,
     QWidget* parent
 )
     : QFrame(parent),
       component(component)
 {
   nameLabel = new QLabel(
-    QString::fromStdString(component.name),
+    QString::fromStdString(component.getName()),
     this
   );
 
@@ -56,7 +56,7 @@ ToolboxElement::ToolboxElement(
   setCursor(Qt::PointingHandCursor);
 }
 
-const Component& ToolboxElement::getComponent() const
+const SentinelComponent& ToolboxElement::getComponent() const
 {
   return component;
 }
@@ -94,7 +94,7 @@ void componentToolbox::initScrollArea(QWidget* _scrollArea) {
 void componentToolbox::updateElements() {
   for (const auto& [name, component] : globalProjectManager->components) {
     if (toolboxElements.find(name) == toolboxElements.end()) {
-      auto* ptr = new ToolboxElement(component, scrollArea);
+      auto* ptr = new ToolboxElement(*component.get(), scrollArea);
       toolboxElements.emplace(name, ptr);
       layout->insertWidget(layout->count() - 1, ptr);
       connect(
@@ -108,6 +108,13 @@ void componentToolbox::updateElements() {
         &ToolboxElement::componentEditRequested,
         globalProjectManager->workspace,
         &CircuitWorkspace::onComponentEditRequested
+      );
+      connect(
+        ptr,
+        &ToolboxElement::componentEditRequested,
+        [](const SentinelComponent& component) {
+            globalProjectManager->onComponentEditRequested(component);
+        }
       );
     }
   }

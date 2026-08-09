@@ -1,4 +1,4 @@
-#include "segmentgraphicsitem.h"
+#include "segmentgraphicsobject.h"
 
 #include "component.h"
 #include "projectmanager.h"
@@ -7,7 +7,7 @@
 #include <QGraphicsScene>
 
 
-QRectF SegmentGraphicsItem::boundingRect() const
+QRectF SegmentGraphicsObject::boundingRect() const
 {
     QRectF rect;
 
@@ -23,7 +23,7 @@ QRectF SegmentGraphicsItem::boundingRect() const
 }
 
 
-QPainterPath SegmentGraphicsItem::shape() const
+QPainterPath SegmentGraphicsObject::shape() const
 {
     QPainterPath path;
 
@@ -40,7 +40,7 @@ QPainterPath SegmentGraphicsItem::shape() const
 }
 
 
-void SegmentGraphicsItem::paint(
+void SegmentGraphicsObject::paint(
     QPainter* painter,
     const QStyleOptionGraphicsItem*,
     QWidget*)
@@ -113,21 +113,25 @@ void SegmentGraphicsItem::paint(
 }
 
 
-void SegmentGraphicsItem::setColor(const QColor& c)
+void SegmentGraphicsObject::setColor(const QColor& c)
 {
     color = c;
     update();
 }
 
+void SegmentGraphicsObject::updateWorkspacePosition() {
+    // for (segment)
+}
 
-void SegmentGraphicsItem::beginGeometryChange()
+
+void SegmentGraphicsObject::beginGeometryChange()
 {
     prepareGeometryChange();
 }
 
-void SegmentGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent* event) {
+void SegmentGraphicsObject::mousePressEvent(QGraphicsSceneMouseEvent* event) {
   event->ignore();
 }
-void SegmentGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
+void SegmentGraphicsObject::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
   event->ignore();
 }

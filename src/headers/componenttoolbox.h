@@ -14,22 +14,22 @@ class ToolboxElement : public QFrame
 
 public:
     explicit ToolboxElement(
-        const Component& component,
+        const SentinelComponent& component,
         QWidget* parent = nullptr
     );
 
-    const Component& getComponent() const;
+    const SentinelComponent& getComponent() const;
 
 signals:
-    void componentSelected(const Component& component);
-    void componentEditRequested(const Component& component);
+    void componentSelected(const SentinelComponent& component);
+    void componentEditRequested(const SentinelComponent& component);
 
 protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseDoubleClickEvent(QMouseEvent* event) override;
 
 private:
-    const Component& component;
+    const SentinelComponent& component;
     QLabel* nameLabel = nullptr;
 };
 

@@ -19,6 +19,7 @@ public:
     constexpr QPoint getQPoint() const {return {x,y};}
 
     Position getGridScaledCopy(int offset = 5) const;
+    static Position setAsScaledFromGrid(const QPointF& point, int offset = 5);
 
     //bool doesPositionSitBetweenManhattenLines(bool targetLineHorizontal = false, const Position& positionA, const Position& positionB) const;
 

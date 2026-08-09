@@ -3,13 +3,14 @@
 #include "projectmanager.h"
 #include "notifications.h"
 
-#include "segmentgraphicsitem.h"
-#include "pingraphicsitem.h"
-#include "componentgraphicsitem.h"
+#include "segmentgraphicsobject.h"
+#include "pingraphicsobject.h"
+#include "componentgraphicsobject.h"
 
+#include <QCursor>
 #include <iostream>
 
-CircuitWorkspace::CircuitWorkspace(QFrame*& frame) {
+CircuitWorkspace::CircuitWorkspace(QWidget* parent) {
     std::cout << "INIT X:" << size().width() << std::endl;
     std::cout << "INIT Y:" << size().height() << std::endl;
 
@@ -34,6 +35,15 @@ void CircuitWorkspace::updateViewSize() {
 
     p_maxWidth = p_width * 1.5; // needs handling to like actually grab circ size from a save file
     p_maxHeight = p_height * 1.5;
+}
+
+void CircuitWorkspace::setInteractionState(InteractionState state) {
+  interactionState = state;
+  if (p_selectedItem && (state != InteractionState::SELECTED_ITEM && state != InteractionState::MOVING_ITEM)) {
+    p_selectedItem->setSelected(false);
+    p_selectedItem->update();
+    p_selectedItem = nullptr;
+  }
 }
 
 void CircuitWorkspace::drawBackground(QPainter *painter, const QRectF &rect) {
@@ -62,44 +72,93 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
 
   if (event->button() == Qt::LeftButton) {
     QGraphicsItem* item = itemAt(event->pos());
+
+    if (interactionState == InteractionState::PLACING_COMPONENT) {
+
+        if (!p_componentToPlace)
+            return;
+
+        Position position =
+            convertEventPosToPosition(event->pos());
+
+        // Actually create the component
+        globalProjectManager->addNewPropagator(std::move(p_componentToPlace->createDerivativeComponent(position)));
+
+        // Remove ghost
+        if (p_componentGhost) {
+            scene()->removeItem(p_componentGhost);
+            delete p_componentGhost;
+            p_componentGhost = nullptr;
+        }
+
+        p_componentToPlace = nullptr;
+        p_temporaryComponentToPlace = nullptr;
+
+        setInteractionState(InteractionState::NONE);
+
+        event->accept();
+        return;
+    }
     
 
-    if (item == nullptr || item == backgroundGridItem || item->type() == SegmentGraphicsItem::Type || item->type() == PinGraphicsItem::Type) {
+    if (item == nullptr || item == backgroundGridItem || item->type() == AbstractGraphicsObject::Type) {
       Position nPos = convertEventPosToPosition((event->pos()));
+      auto* abstractItem = dynamic_cast<AbstractGraphicsObject*>(item);
       if (state == EditingStates::POKE) {
 
       } else if (state == EditingStates::EDIT) {
-        if (globalProjectManager->gridManager.isOccupied(nPos)) {
-          //wire
-          globalNotificationManager->notify("Debug", "is occupied", 1000);
-          p_isWiring = true;
-          
-          if (tempWire.graphicsItem) {
-            scene()->removeItem(tempWire.graphicsItem);
-            delete tempWire.graphicsItem;
-            tempWire.graphicsItem = nullptr;
+        if ((item == nullptr || item == backgroundGridItem) && interactionState == InteractionState::SELECTED_ITEM) interactionState = InteractionState::NONE;
+        qDebug() << "EDITING START" << (int)interactionState;
+        switch (interactionState)
+        {
+        case InteractionState::NONE: {
+          if (globalProjectManager->gridManager.isOccupied(nPos)) {
+            globalNotificationManager->notify("Debug", "is occupied", 1000);
+            setInteractionState(InteractionState::WIRING);
+            if (tempWire.graphicsObject) {
+              scene()->removeItem(tempWire.graphicsObject);
+              delete tempWire.graphicsObject;
+              tempWire.graphicsObject = nullptr;
+            }
+
+            tempWire.reset();
+            tempWire.segments.push_back(Segment(nPos,nPos));
+            tempWire.segments.push_back(Segment(nPos,nPos));
+
+            tempWire.graphicsObject = new SegmentGraphicsObject(tempWire);
+            scene()->addItem(tempWire.graphicsObject);
+            tempWire.graphicsObject->update();
+          } else {
+            globalNotificationManager->notify("Debug", "NOT occupied", 1000);
           }
-
-          tempWire.reset();
-          tempWire.segments.push_back(Segment(nPos,nPos));
-          tempWire.segments.push_back(Segment(nPos,nPos));
-
-          tempWire.graphicsItem = new SegmentGraphicsItem(tempWire);
-          scene()->addItem(tempWire.graphicsItem);
-          tempWire.graphicsItem->update();
-        } else {
-          globalNotificationManager->notify("Debug", "NOT occupied", 1000);
-
-          if (item->type() == PinGraphicsItem::Type) {
-
-          } else if (item->type() == ComponentGraphicsItem::Type) {
-            
-          }
+          event->accept();
+          return;
+          break;
+        }
+        case InteractionState::WIRING: {
+          /* code */
+          event->accept();
+          return;
+          break;
+        }
+        case InteractionState::SELECTED_ITEM: {
+          p_itemDragStartMouse = event->pos();
+          p_itemDragStartPosition = p_selectedItem->pos();
+          //p_selectedItem = abstractItem;
+          setInteractionState(InteractionState::MOVING_ITEM);
+          qDebug() << "sefefe:";
+          event->accept();
+          return;
+          break;
+        }
+        
+        default:
+          break;
         }
       }
     }
   } else if (event->button() == Qt::RightButton) {
-    p_isMoving = true;
+    setInteractionState(InteractionState::MOVING_WORKSPACE);
 
     p_movementBegunQPoint = std::make_unique<QPoint>();
     p_movementBegunQPoint->setX(event->pos().x());
@@ -114,21 +173,18 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
 }
 
 void CircuitWorkspace::mouseMoveEvent(QMouseEvent *event)  {
-    if (p_isMoving) {
-        moveWorkspaceToCurrentMouse(event->pos());
-        update(); // signal redraw
-        std::cout << "X:" << p_xposition << " Y:" << p_yposition << " mouse moved with redraw" << std::endl;
-    }
-    if (p_isWiring) {
+  qDebug() << "MOVED" << (int)interactionState;
+  switch (interactionState) {
+    case InteractionState::WIRING: {
       constexpr double margin = 20;
-      tempWire.graphicsItem->beginGeometryChange();
+      tempWire.graphicsObject->beginGeometryChange();
       const auto eventPosTemp = convertEventPosToPosition(event->pos());
       const Position eventPosIntermediate = {tempWire.segments[0].begin.x, eventPosTemp.y};
       tempWire.segments[0].end = eventPosIntermediate;
       tempWire.segments[1].begin = eventPosIntermediate;
       tempWire.segments[1].end = eventPosTemp;
 
-      tempWire.graphicsItem->update();
+      tempWire.graphicsObject->update();
       // const QRectF bounds = scene()->sceneRect();
       // double leftRate =
       //     1.0 - std::clamp(std::min(p_wiringFinalPoint.x() - bounds.left(), margin) / margin, 0.0, 1.0);
@@ -147,24 +203,115 @@ void CircuitWorkspace::mouseMoveEvent(QMouseEvent *event)  {
       // p_yposition = std::clamp(int(p_yposition + speed * (bottomRate - topRate)), 0, getMaxYPosition());
 
       // updateWorkspacePosition();
+      event->accept();
+      return;
+      break;
     }
+    case InteractionState::MOVING_WORKSPACE: {
+      moveWorkspaceToCurrentMouse(event->pos());
+      update(); // signal redraw
+      std::cout << "X:" << p_xposition << " Y:" << p_yposition << " mouse moved with redraw" << std::endl;
+      event->accept();
+      return;
+      break;
+    }
+    case InteractionState::MOVING_ITEM: {
+      if (!p_selectedItem) break;
+      QPointF mouseScenePos =
+          mapToScene(event->pos());
 
-    QGraphicsView::mouseMoveEvent(event);
+      QPointF startMouseScenePos =
+          mapToScene(p_itemDragStartMouse);
+
+      QPointF delta =
+          mouseScenePos - startMouseScenePos;
+
+      p_selectedItem->parentPropagator->setGridPosition(
+          Position::setAsScaledFromGrid(p_itemDragStartPosition + delta)
+      );
+
+      p_selectedItem->updateWorkspacePosition();
+
+      p_selectedItem->update();
+      event->accept();
+      return;
+      break;
+    }
+    case InteractionState::PLACING_COMPONENT: {
+    if (!p_componentGhost)
+        break;
+
+    const Position position =
+        convertEventPosToPosition(event->pos());
+
+    p_temporaryComponentToPlace->setGridPosition(position);
+
+    p_componentGhost->update();
+
+    event->accept();
+    return;
+}
+    default: break;
+  }
+  
+  QGraphicsView::mouseMoveEvent(event);
 
 }
 
-void CircuitWorkspace::mouseDoubleClickEvent(QMouseEvent *event) {
+void CircuitWorkspace::mouseDoubleClickEvent(QMouseEvent* event)
+{
+  if (event->button() != Qt::LeftButton) {
+    QGraphicsView::mouseDoubleClickEvent(event);
+    return;
+  }
 
+  QGraphicsItem* item = itemAt(event->pos());
+
+  if (!item || item == backgroundGridItem) {
+    p_selectedItem = nullptr;
+    setInteractionState(InteractionState::NONE);
+    return;
+  }
+  auto* abstractItem = dynamic_cast<AbstractGraphicsObject*>(item);
+  if (!abstractItem) {
+    p_selectedItem = nullptr;
+    setInteractionState(InteractionState::NONE);
+    return;
+  }
+
+  switch (interactionState) {
+    case InteractionState::NONE: 
+    case InteractionState::SELECTED_ITEM: {
+      // Select it
+      p_selectedItem = abstractItem;
+      setInteractionState(InteractionState::SELECTED_ITEM);
+
+      // Optional Qt selection state
+      // p_selectedItem->setSelected(true);
+
+      qDebug() << "Selected graphics item:"
+              << p_selectedItem;
+
+      event->accept();
+      return;
+      break;
+    }
+    default: break;
+  }
+  QGraphicsView::mouseDoubleClickEvent(event);
 }
+
 void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
   std::cout << "mouse up" << std::endl;
   if (event->button() == Qt::LeftButton) {
-    if (p_isWiring) {
-      p_isWiring = false;
-      scene()->removeItem(tempWire.graphicsItem);
-      tempWire.graphicsItem = nullptr;
-      delete tempWire.graphicsItem;
-      tempWire.graphicsItem = nullptr;
+    switch (interactionState)
+    {
+    case InteractionState::WIRING: {
+      setInteractionState(InteractionState::NONE);
+      scene()->removeItem(tempWire.graphicsObject);
+      tempWire.graphicsObject = nullptr;
+      delete tempWire.graphicsObject;
+      tempWire.graphicsObject = nullptr;
 
       std::vector<Segment> newSegments;
       for (auto& segment : tempWire.segments) {
@@ -175,14 +322,33 @@ void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
 
       auto unique = std::make_unique<Wire>(tempWire);
       globalProjectManager->addNewPropagator(std::move(unique));
+      event->accept();
+      return;
+      break;
+    }
+    case InteractionState::MOVING_ITEM: {
+      setInteractionState(InteractionState::SELECTED_ITEM);
+      event->accept();
+      return;
+      break;
+    }
+
+    default:
+      break;
     }
   } else if (event->button() == Qt::RightButton) {
-    if (p_isMoving) {
-      p_isMoving = false;
-      moveWorkspaceToCurrentMouse(event->pos());
-      update(); // signal redraw
+    switch (interactionState) {
+      case InteractionState::MOVING_WORKSPACE: {
+        setInteractionState(InteractionState::NONE);
+        moveWorkspaceToCurrentMouse(event->pos());
+        update(); // signal redraw
 
-      p_movementBegunQPoint.reset();
+        p_movementBegunQPoint.reset();
+        event->accept();
+        return;
+        break;
+      }
+      default: break;
     }
   }
   QGraphicsView::mouseReleaseEvent(event);
@@ -217,14 +383,48 @@ void CircuitWorkspace::reset() {
 }
 
 void CircuitWorkspace::onComponentSelected(
-    const Component& component)
+    const SentinelComponent& component)
 {
-    qDebug() << "Selected:"
-             << QString::fromStdString(component.name);
+    // Cancel any existing interaction
+    if (p_componentGhost) {
+        scene()->removeItem(p_componentGhost);
+        delete p_componentGhost;
+        p_componentGhost = nullptr;
+    }
+
+    p_selectedItem = nullptr;
+
+    p_componentToPlace = &component;
+    p_temporaryComponentToPlace = std::make_unique<Component>(component);
+
+    setInteractionState(InteractionState::PLACING_COMPONENT);
+
+    // Create the visual ghost
+    p_componentGhost =
+        new ComponentGraphicsObject(*p_temporaryComponentToPlace.get());
+
+    p_componentGhost->setGhostMode(true);
+
+    scene()->addItem(p_componentGhost);
+
+    // Put it initially under the mouse
+    QPoint mousePos = mapFromGlobal(QCursor::pos());
+    Position position = convertEventPosToPosition(mousePos);
+
+    p_componentGhost->setPos(
+        position.getGridScaledCopy().getQPointF()
+    );
+
+    p_componentGhost->update();
+
+    qDebug() << "Placing:"
+             << QString::fromStdString(component.getName());
 }
+
 void CircuitWorkspace::onComponentEditRequested(
-    const Component& component)
+    const SentinelComponent& component)
 {
+  //please cancel any component placement!
     qDebug() << "edit reuqested"
-             << QString::fromStdString(component.name);
+             << QString::fromStdString(component.getName());
 }

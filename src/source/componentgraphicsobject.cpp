@@ -1,13 +1,13 @@
-#include "componentgraphicsitem.h"
+#include "componentgraphicsobject.h"
 
 #include <QGraphicsSceneMouseEvent>
 #include <QPainterPath>
 
-ComponentGraphicsItem::ComponentGraphicsItem(
-    const Component& component,
-    QGraphicsItem* parent
+ComponentGraphicsObject::ComponentGraphicsObject(
+    Component& component,
+    QGraphicsObject* parent
 )
-    : QGraphicsObject(parent),
+    : AbstractGraphicsObject(&component, parent),
       component(component)
 {
     // setFlag(QGraphicsItem::ItemIsMovable, false);
@@ -18,19 +18,23 @@ ComponentGraphicsItem::ComponentGraphicsItem(
     refresh();
 }
 
-const Component& ComponentGraphicsItem::getComponent() const
+void ComponentGraphicsObject::updateWorkspacePosition() {
+    setPos(component.getGridPosition().getGridScaledCopy().getQPointF());
+}
+
+const Component& ComponentGraphicsObject::getComponent() const
 {
     return component;
 }
 
-void ComponentGraphicsItem::refresh()
+void ComponentGraphicsObject::refresh()
 {
     prepareGeometryChange();
 
     update();
 }
 
-void ComponentGraphicsItem::setGhostMode(bool enabled)
+void ComponentGraphicsObject::setGhostMode(bool enabled)
 {
     if (ghost == enabled)
         return;
@@ -42,12 +46,12 @@ void ComponentGraphicsItem::setGhostMode(bool enabled)
     update();
 }
 
-bool ComponentGraphicsItem::ghostMode() const
+bool ComponentGraphicsObject::ghostMode() const
 {
     return ghost;
 }
 
-void ComponentGraphicsItem::paintLine(
+void ComponentGraphicsObject::paintLine(
     QPainter* painter,
     const ComponentLine& line
 ) const
@@ -66,7 +70,7 @@ void ComponentGraphicsItem::paintLine(
     );
 }
 
-void ComponentGraphicsItem::paintCurve(
+void ComponentGraphicsObject::paintCurve(
     QPainter* painter,
     const ComponentCurve& curve
 ) const
@@ -94,7 +98,7 @@ void ComponentGraphicsItem::paintCurve(
     painter->drawPath(path);
 }
 
-void ComponentGraphicsItem::paintLabel(
+void ComponentGraphicsObject::paintLabel(
     QPainter* painter,
     const ComponentLabel& label
 ) const
@@ -111,14 +115,14 @@ void ComponentGraphicsItem::paintLabel(
     );
 }
 
-void ComponentGraphicsItem::paintPins(
+void ComponentGraphicsObject::paintPins(
     QPainter* painter
 ) const
 {
     painter->setPen(Qt::NoPen);
     painter->setBrush(Qt::white);
 
-    for (const auto& propagator : component.propagators)
+    for (const auto& propagator : component.getPropagators())
     {
       if (propagator->isAbstract())
         continue;
@@ -142,7 +146,7 @@ void ComponentGraphicsItem::paintPins(
     }
 }
 
-void ComponentGraphicsItem::paint(
+void ComponentGraphicsObject::paint(
     QPainter* painter,
     const QStyleOptionGraphicsItem*,
     QWidget*
@@ -150,23 +154,23 @@ void ComponentGraphicsItem::paint(
 {
     painter->setRenderHint(QPainter::Antialiasing, true);
 
-    for (const auto& line : component.appearance.lines)
+    for (const auto& line : component.getAppearance().lines)
     {
         paintLine(painter, line);
     }
 
-    for (const auto& curve : component.appearance.curves)
+    for (const auto& curve : component.getAppearance().curves)
     {
         paintCurve(painter, curve);
     }
 
-    for (const auto& label : component.appearance.labels)
+    for (const auto& label : component.getAppearance().labels)
     {
         paintLabel(painter, label);
     }
 }
 
-QRectF ComponentGraphicsItem::calculateBoundingRect() const
+QRectF ComponentGraphicsObject::calculateBoundingRect() const
 {
     QRectF result;
 
@@ -185,13 +189,13 @@ QRectF ComponentGraphicsItem::calculateBoundingRect() const
         }
     };
 
-    for (const auto& line : component.appearance.lines)
+    for (const auto& line : component.getAppearance().lines)
     {
         addPoint(line.begin.getQPointF());
         addPoint(line.end.getQPointF());
     }
 
-    for (const auto& curve : component.appearance.curves)
+    for (const auto& curve : component.getAppearance().curves)
     {
         addPoint(curve.begin.getQPointF());
         addPoint(curve.control1.getQPointF());
@@ -199,7 +203,7 @@ QRectF ComponentGraphicsItem::calculateBoundingRect() const
         addPoint(curve.end.getQPointF());
     }
 
-    for (const auto& label : component.appearance.labels)
+    for (const auto& label : component.getAppearance().labels)
     {
         addPoint(label.position.getQPointF());
     }
@@ -213,16 +217,16 @@ QRectF ComponentGraphicsItem::calculateBoundingRect() const
     );
 }
 
-QRectF ComponentGraphicsItem::boundingRect() const
+QRectF ComponentGraphicsObject::boundingRect() const
 {
     return calculateBoundingRect();
 }
 
-QPointF ComponentGraphicsItem::appearanceToPixel(
+QPointF ComponentGraphicsObject::appearanceToPixel(
     const Position& position
 ) const
 {
-    const Position& componentPosition = component.position;
+    const Position& componentPosition = component.getGridPosition();
 
     return (position + componentPosition).getQPointF();
 }

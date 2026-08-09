@@ -1,17 +1,17 @@
-#include "pingraphicsitem.h" 
+#include "pingraphicsobject.h" 
 
 #include "projectmanager.h"
 
 #define PADDING 20
 
-QRectF PinGraphicsItem::boundingRect() const {
+QRectF PinGraphicsObject::boundingRect() const {
   QFontMetrics fm(QFont("Arial",12));
   int width = fm.horizontalAdvance(name) + PADDING;
 
   return QRectF(30,-20,width,40);
 }
 
-void PinGraphicsItem::paint(
+void PinGraphicsObject::paint(
   QPainter *painter, 
   const QStyleOptionGraphicsItem *, 
   QWidget *) 
@@ -40,8 +40,30 @@ void PinGraphicsItem::paint(
     painter->drawText( textRect, Qt::AlignCenter, name );
   } 
 } 
+
+void PinGraphicsObject::updateWorkspacePosition() {
+    // setPos(pin.getGridPosition().getGridScaledCopy().getQPointF());
+    const Position gridPos = pin.getGridPosition();
+    const Position scaledPos = gridPos.getGridScaledCopy();
+    const QPointF scenePos = scaledPos.getQPointF();
+
+    qDebug() << "grid:"
+             << gridPos.x
+             << gridPos.y;
+
+    qDebug() << "scene:"
+             << scenePos;
+
+    qDebug() << "before:"
+             << pos();
+
+    setPos(scenePos);
+
+    qDebug() << "after:"
+             << pos();
+}
   
-// void PinGraphicsItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) 
+// void PinGraphicsObject::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) 
 // { 
 //   if (event->button() == Qt::LeftButton && !currentEdit) { 
 //     qDebug("double");
@@ -105,7 +127,7 @@ void PinGraphicsItem::paint(
 //   QGraphicsItem::mouseDoubleClickEvent(event);
 // }
 
-// void PinGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
+// void PinGraphicsObject::mousePressEvent(QGraphicsSceneMouseEvent* event)
 // {
 //   if (currentEdit) {
 //     QGraphicsItem::mousePressEvent(event);
@@ -130,7 +152,7 @@ void PinGraphicsItem::paint(
 //   QGraphicsItem::mousePressEvent(event);
 // }
 
-// void PinGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
+// void PinGraphicsObject::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 // {
 //   if(pressed)
 //   {
@@ -160,7 +182,7 @@ void PinGraphicsItem::paint(
 //   }
 // }
 
-// void PinGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
+// void PinGraphicsObject::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 // {
 //   if (event->button() == Qt::LeftButton) {
 //     pressed = false;

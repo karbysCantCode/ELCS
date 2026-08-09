@@ -51,6 +51,7 @@ target_include_directories(elcs PRIVATE
 target_compile_definitions(elcs PRIVATE COMPONENT_SAVE_VERSION_MAJOR=0)
 target_compile_definitions(elcs PRIVATE COMPONENT_SAVE_VERSION_MINOR=1)
 target_compile_definitions(elcs PRIVATE RESOURCES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/res")
+target_compile_definitions(elcs PRIVATE SAVE_FILE_EXTENSION=".csf")
 
 set_target_properties(elcs PROPERTIES
     AUTOUIC_SEARCH_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/src/ui"

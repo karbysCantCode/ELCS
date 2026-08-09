@@ -1,8 +1,11 @@
 #include "projectmanager.h"
 #include "notifications.h"
-#include "pingraphicsitem.h"
+#include "pingraphicsobject.h"
+#include "segmentgraphicsobject.h"
+#include "componentgraphicsobject.h"
 #include "component.h"
 #include "componenttoolbox.h"
+#include "filehelper.h"
 
 #include <format>
 
@@ -13,33 +16,45 @@ ProjectManager::ProjectManager() {
   
 }
 
+void ProjectManager::onComponentEditRequested(const SentinelComponent& component) {
+  currentOpenComponent->saveToFile(currentOpenComponent->getFilePath());
+  openComponent(component.getName());
+}
+
 void ProjectManager::dummyLoad() {
-  qDebug("0");
-  loadNewComponent(std::filesystem::path(RESOURCES_PATH)/"and.csf");
-  qDebug("A");
-  openComponent("AND");
-  qDebug("B");
-  // components["AND"].debugPrintPropagators();
-  components["AND"].saveToFile(std::filesystem::path(RESOURCES_PATH)/"savedand.csf");
-  qDebug("c");
+  auto files = getFilesInDirectory(std::filesystem::path(RESOURCES_PATH));
+  for (const auto& file : files) {
+    if (file.extension() != SAVE_FILE_EXTENSION) continue;
+    auto [component, success] = loadNewComponent(file);
+    if (success) {
+      openComponent(component->getName());
+    }
+  }
   simulatorCircuitToolbox->updateElements();
-  qDebug("D");
+  components["AND"]->saveToFile(std::filesystem::path(RESOURCES_PATH)/"savedand.csf");
+
 }
 
 bool ProjectManager::createNewComponent(const std::string& name) {
-  auto [element,success] = components.try_emplace(name);
+  auto [element, success] =
+    components.try_emplace(name,std::make_unique<SentinelComponent>(name));
+  simulatorCircuitToolbox->updateElements();
+  qDebug("ee");
+  auto path = std::filesystem::path(RESOURCES_PATH)/(name+SAVE_FILE_EXTENSION);
+  if (!doesFileExist(path)) {
+    qDebug("ee2");
+    createFile(path);
+    element->second->setFilePath(path);
+    element->second->saveToFile(element->second->getFilePath());
+  }
   return success;
 }
-bool ProjectManager::loadNewComponent(const std::filesystem::path& path) {
-  SentinelComponent component;
-  qDebug("1A");
-  component.loadFromFile(path);
-  qDebug("1B");
-  auto [element,success] = components.emplace(component.name, std::move(component));
-  qDebug("1C");
+std::pair<SentinelComponent*, bool> ProjectManager::loadNewComponent(const std::filesystem::path& path) {
+  auto component = std::make_unique<SentinelComponent>();
+  component->loadFromFile(path);
+  auto [element,success] = components.emplace(component->getName(), std::move(component));
   simulatorCircuitToolbox->updateElements();
-  qDebug("1D");
-  return success;
+  return {element->second.get(), success};
 }
 
 void ProjectManager::registerCallbackOnNewComponent(std::function<void()>* func) {
@@ -56,7 +71,7 @@ void ProjectManager::openComponent(const std::string& name) {
     globalNotificationManager->notify("Error Opening Circuit", std::format("Couldn't find circuit \"{}\" in the current project.", name));
     return;
   }
-  currentOpenComponent = &it->second;
+  currentOpenComponent = it->second.get();
   // other processes to update...
   removeExistingComponentFromWorkspace();
   addCurrentComponentToWorkspace();
@@ -70,7 +85,7 @@ void ProjectManager::removeExistingComponentFromWorkspace() {
 void ProjectManager::addCurrentComponentToWorkspace() {
    std::vector<AbstractPropagator*> rawVec;
 
-   for (const auto& ptr : currentOpenComponent->propagators)
+   for (const auto& ptr : currentOpenComponent->getPropagators())
    {
     	rawVec.push_back(ptr.get());
    }
@@ -81,7 +96,7 @@ void ProjectManager::addCurrentComponentToWorkspace() {
 
 void ProjectManager::saveCurrentComponent() {
   if (currentOpenComponent) {
-    currentOpenComponent->saveToFile(currentOpenComponent->filePath);
+    currentOpenComponent->saveToFile(currentOpenComponent->getFilePath());
   } else {
     globalNotificationManager->notify("Couldn't Save Circuit.", "Couldn't find a currently opened component to save.");
   }
@@ -89,54 +104,29 @@ void ProjectManager::saveCurrentComponent() {
 
 AbstractPropagator* ProjectManager::addNewPropagator(std::unique_ptr<AbstractPropagator> propagator) {
     auto ptr = propagator.get();
-    currentOpenComponent->propagators.push_back(std::move(propagator));
-
-    if (visuallyRegisterPropagator(ptr)) {
-        // FIX: visuallyRegisterPropagator() can recurse back into
-        // addNewPropagator() (e.g. Wire::trimForCollidingWires splitting a
-        // wire into fragments and registering each one). Those recursive
-        // calls push additional entries onto `propagators` *after* ours,
-        // so by the time we get here `ptr` is no longer guaranteed to be
-        // at the back — pop_back() would silently delete the wrong
-        // (possibly perfectly valid) propagator instead of this one.
-        //
-        // Find and erase the specific entry that owns `ptr` instead.
-        auto& propagators = currentOpenComponent->propagators;
-        auto it = std::find_if(
-            propagators.begin(),
-            propagators.end(),
-            [ptr](const std::unique_ptr<AbstractPropagator>& p) { return p.get() == ptr; }
-        );
-
-        if (it != propagators.end()) {
-            propagators.erase(it);
-        }
-
-        // NOTE: `ptr` is dangling after this point, same as it already was
-        // in the original code's pop_back() path. Callers that discard the
-        // return value (as trimForCollidingWires and the wiring code do)
-        // are fine; anything that uses the return value when registration
-        // fails needs to check for that case first.
-        return nullptr;
-    }
-
+    currentOpenComponent->addPropagator(std::move(propagator));
+    visuallyRegisterPropagator(ptr);
     return ptr;
 }
 
 //returns true if it needs to be destroyed
-bool ProjectManager::visuallyRegisterPropagator(AbstractPropagator* _ptr) {
+void ProjectManager::visuallyRegisterPropagator(AbstractPropagator* _ptr) {
   if (_ptr->isAbstract()) {
     auto ptr = (Component*)_ptr;
-    // globalProjectManager->gridManager.addToGrid(np->relPosition, np);
+    auto pins = ptr->getPins();
+    for (auto* pin : pins) {
+      globalProjectManager->gridManager.addToGrid(pin->gridPosition(), pin);
+    }
+
   } else {
     auto ptr = (Propagator*)_ptr;
     if (ptr->getKind() == Propagator::Kinds::PIN) {
         auto np = (Pin*)ptr;
-        globalProjectManager->gridManager.addToGrid(np->relPosition, np);
-        auto* item = new PinGraphicsItem(*np);
+        globalProjectManager->gridManager.addToGrid(np->getGridPosition(), np);
+        auto* item = new PinGraphicsObject(*np);
         workspace->scene()->addItem(item);
         item->setZValue(1);
-        item->setPos(np->relPosition.getGridScaledCopy().getQPointF());
+        item->setPos(np->getGridPosition().getGridScaledCopy().getQPointF());
     } else if (ptr->getKind() == Propagator::Kinds::WIRE) {
         auto np = (Wire*)ptr;
         auto touchingElements = globalProjectManager->gridManager.addToGrid(np->segments, np);
@@ -145,9 +135,9 @@ bool ProjectManager::visuallyRegisterPropagator(AbstractPropagator* _ptr) {
 				std::unordered_set<Propagator *> excludeSet;
         np->mergeCollidingWires(tempDeathReg, excludeSet, &touchingElements);
         
-        np->graphicsItem = new SegmentGraphicsItem(*np);
-        workspace->scene()->addItem(np->graphicsItem);
-        np->graphicsItem->setZValue(1);
+        np->graphicsObject = new SegmentGraphicsObject(*np);
+        workspace->scene()->addItem(np->graphicsObject);
+        np->graphicsObject->setZValue(1);
 
 				// int i = 0;
 				// for (const auto& propagator : currentOpenComponent->propagators) {
@@ -155,7 +145,6 @@ bool ProjectManager::visuallyRegisterPropagator(AbstractPropagator* _ptr) {
 				// }
 				// qDebug() << "wire count =" << i;
     }
-    return false;
   }
 }
 

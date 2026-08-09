@@ -16,16 +16,22 @@
 #include <QObject>
 #include <QLineEdit>
 #include "component.h"
+#include "abstractgraphicsobject.h"
 
-class PinGraphicsItem : public QGraphicsItem
+class PinGraphicsObject : public AbstractGraphicsObject
 {
+  Q_OBJECT
 public:
-  enum { Type = UserType + 2 };
-  PinGraphicsItem(Pin& _pin, QGraphicsItem *parent = nullptr)
-      : QGraphicsItem(parent), name(QString::fromStdString(_pin.name)), pin(_pin)
+  // enum { Type = UserType + 3 };
+  PinGraphicsObject(Pin& _pin, QGraphicsObject *parent = nullptr)
+      : AbstractGraphicsObject(&_pin, parent), name(QString::fromStdString(_pin.getName())), pin(_pin)
   {
     setZValue(1);
   }
+
+  virtual void updateWorkspacePosition() override;
+
+  GraphicsObjectTypes graphicsObjectType() const override {return GraphicsObjectTypes::PIN;}
 
   QRectF boundingRect() const override;
 
@@ -35,10 +41,10 @@ protected:
   // void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
   // void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
   // void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
-  int type() const override
-  {
-      return PinGraphicsItem::Type;
-  }
+  // int type() const override
+  // {
+  //     return PinGraphicsObject::Type;
+  // }
 private:
   QString name;
   Pin& pin;

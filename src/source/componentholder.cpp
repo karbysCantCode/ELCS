@@ -9,6 +9,9 @@ ComponentHolder::ComponentHolder() {}
 std::unordered_set<Propagator*> ComponentHolder::addToGrid(const Position& position, Propagator* propagator) {
     auto& cell = gridMap[{position.x, position.y}];
     auto returnCell = cell;
+    for (auto* ptr : returnCell) {
+        ptr->addRelatedPropagator(propagator);
+    }
     cell.emplace(propagator);
     return returnCell;
 }
@@ -17,6 +20,9 @@ void ComponentHolder::removeFromGrid(const Position& position, Propagator* propa
     auto it = gridMap.find({position.x, position.y});
     if (it != gridMap.end()) {
         it->second.erase(propagator);
+        for (auto* ptr : it->second) {
+            ptr->forgetPropagator(propagator);
+        }
         if (it->second.empty()) {
             gridMap.erase(it);
         }

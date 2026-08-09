@@ -9,7 +9,12 @@
 #include "projectmanager.h"
 #include "componentholder.h"
 
+#include "segmentgraphicsobject.h"
+#include "pingraphicsobject.h"
+#include "componentgraphicsobject.h"
+
 Component::Component() {}
+Component::Component(const std::string& _name) : name(_name) {}
 
 struct SegmentHash
 {
@@ -27,11 +32,11 @@ struct SegmentHash
 
 //if attending to destroy, ensure destroy is correct in mergeCollidingWires.
 Wire::~Wire() {
-  qDebug(std::format("destroyingguhhhh 0x{:x}",(unsigned long long)graphicsItem).c_str());
-  if (graphicsItem) {
+  qDebug(std::format("destroyingguhhhh 0x{:x}",(unsigned long long)graphicsObject).c_str());
+  if (graphicsObject) {
     qDebug("graphicsItem");
-    globalProjectManager->workspace->scene()->removeItem(graphicsItem);
-    delete graphicsItem;
+    globalProjectManager->workspace->scene()->removeItem(graphicsObject);
+    delete graphicsObject;
   }
 }
 // bool Position::doesPositionSitBetweenManhattenLines(bool targetLineHorizontal, const Position& positionA, const Position& positionB) const {
@@ -274,11 +279,11 @@ void Wire::mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::u
     deathRegistry.emplace(merger);
     globalProjectManager->gridManager.removeFromGrid(merger->segments, merger);
 
-    for (int i = 0; i < globalProjectManager->currentOpenComponent->propagators.size(); i++) {
-      auto& propagator = globalProjectManager->currentOpenComponent->propagators[i];
+    for (int i = 0; i < globalProjectManager->currentOpenComponent->getPropagators().size(); i++) {
+      auto& propagator = globalProjectManager->currentOpenComponent->getPropagators()[i];
       if (propagator.get() == merger) {
-        globalProjectManager->currentOpenComponent->propagators[i].release();
-        globalProjectManager->currentOpenComponent->propagators.erase(globalProjectManager->currentOpenComponent->propagators.begin() + i);
+        globalProjectManager->currentOpenComponent->getPropagators()[i].release();
+        globalProjectManager->currentOpenComponent->getPropagators().erase(globalProjectManager->currentOpenComponent->getPropagators().begin() + i);
         delete merger;
         break;
       }
@@ -289,20 +294,33 @@ void Wire::mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::u
     delete collidingSet;
 }
 
-Position Position::getGridScaledCopy(int offset) const {
-    return {x*10+offset,y*10+offset};
-}
-
 void Wire::reset() {
     segments.clear();
 }
 
+void Propagator::addRelatedPropagator(AbstractPropagator* abstract) {
+  if (abstract->isAbstract()) {
+    qDebug("Not sure what to do or how it would happen but um,,,, component?");
+  } else {
+    addEffector((Propagator*)abstract);
+    addAffector((Propagator*)abstract);
+  }
+}
+
+void Propagator::forgetPropagator(AbstractPropagator* abstract) {
+  if (abstract->isAbstract()) {
+    qDebug("Not sure what to do or how it would happen but um,,,, component?");
+  } else {
+    forget((Propagator*)abstract);
+  }
+}
+
 void Propagator::evaluateEffectingState() {
     auto it = affectors.begin();
-    States currentState = affectors.end() != it ? (*it)->effectingState : States::FLOATING;
+    States currentState = affectors.end() != it ? (*it)->getEffectingState() : States::FLOATING;
     it++;
     while (it != affectors.end()) {
-        currentState = evaluateTwoStates(currentState, (*it)->effectingState);
+        currentState = evaluateTwoStates(currentState, (*it)->getEffectingState());
     }
     effectingState = currentState;
 }
@@ -316,11 +334,6 @@ void Propagator::propagate(Propagator* excludedPropagator) {
     globalScheduler->registerCallback(effectors, excludedPropagator);
 }
 
-void Propagator::forget(Propagator* propagator) {
-    effectors.erase(propagator);
-    affectors.erase(propagator);
-}
-
 void Pin::evaluateEffectingState() {
     switch (effectorOperation) {
         case Operations::OR:
@@ -329,13 +342,13 @@ void Pin::evaluateEffectingState() {
                 effectingState = States::FLOATING;
                 break;
             case 1:
-                effectingState = (*(*affectors.begin())).effectingState;
+                effectingState = (*(*affectors.begin())).getEffectingState();
                 break;
             default:
                 effectingState = States::FLOATING;
                 for (const auto* affector : affectors) {
-                    const States state = (States)(affector->effectingState | effectingState);
-                    effectingState = state > 1 ? std::max(effectingState, affector->effectingState) : state;
+                    const States state = (States)(affector->getEffectingState() | effectingState);
+                    effectingState = state > 1 ? std::max(effectingState, affector->getEffectingState()) : state;
                 }
                 break;
             }
@@ -346,12 +359,12 @@ void Pin::evaluateEffectingState() {
                 effectingState = States::FLOATING;
                 break;
             case 1:
-                effectingState = (*(*affectors.begin())).effectingState;
+                effectingState = (*(*affectors.begin())).getEffectingState();
                 break;
             default:
                 effectingState = States::FLOATING;
                 for (const auto* affector : affectors) {
-                    effectingState = (affector->effectingState | effectingState) > 1 ? std::max(effectingState, affector->effectingState) : (States)(affector->effectingState & effectingState);
+                    effectingState = (affector->getEffectingState() | effectingState) > 1 ? std::max(effectingState, affector->getEffectingState()) : (States)(affector->getEffectingState() & effectingState);
                 }
                 break;
             }
@@ -362,12 +375,12 @@ void Pin::evaluateEffectingState() {
                 effectingState = States::FLOATING;
                 break;
             case 1:
-                effectingState = (*(*affectors.begin())).effectingState;
+                effectingState = (*(*affectors.begin())).getEffectingState();
                 break;
             default:
                 effectingState = States::FLOATING;
                 for (const auto* affector : affectors) {
-                    effectingState = (affector->effectingState | effectingState) > 1 ? std::max(effectingState, affector->effectingState) : (States)(affector->effectingState ^ effectingState);
+                    effectingState = (affector->getEffectingState() | effectingState) > 1 ? std::max(effectingState, affector->getEffectingState()) : (States)(affector->getEffectingState() ^ effectingState);
                 }
                 break;
             }
@@ -378,12 +391,12 @@ void Pin::evaluateEffectingState() {
                 effectingState = States::FLOATING;
                 break;
             case 1:
-                effectingState = (*(*affectors.begin())).effectingState;
+                effectingState = (*(*affectors.begin())).getEffectingState();
                 break;
             default:
                 effectingState = States::FLOATING;
                 for (const auto* affector : affectors) {
-                    effectingState = (affector->effectingState != effectingState) ? States::CONFLICT : effectingState == States::FLOATING ? States::FLOATING : (States)(!affector->effectingState);
+                    effectingState = (affector->getEffectingState() != effectingState) ? States::CONFLICT : effectingState == States::FLOATING ? States::FLOATING : (States)(!affector->getEffectingState());
                 }
                 break;
             }
@@ -394,13 +407,13 @@ void Pin::evaluateEffectingState() {
                 effectingState = States::FLOATING;
                 break;
             case 1:
-                effectingState = (*(*affectors.begin())).effectingState;
+                effectingState = (*(*affectors.begin())).getEffectingState();
                 break;
             default:
                 effectingState = States::FLOATING;
                 for (const auto* affector : affectors) {
-                    const States state = (States)(affector->effectingState | effectingState);
-                    effectingState = state > 1 ? std::max(effectingState, affector->effectingState) : (States)((~state)&1);
+                    const States state = (States)(affector->getEffectingState() | effectingState);
+                    effectingState = state > 1 ? std::max(effectingState, affector->getEffectingState()) : (States)((~state)&1);
                 }
                 break;
             }
@@ -411,12 +424,12 @@ void Pin::evaluateEffectingState() {
                 effectingState = States::FLOATING;
                 break;
             case 1:
-                effectingState = (*(*affectors.begin())).effectingState;
+                effectingState = (*(*affectors.begin())).getEffectingState();
                 break;
             default:
                 effectingState = States::FLOATING;
                 for (const auto* affector : affectors) {
-                    effectingState = (affector->effectingState | effectingState) > 1 ? std::max(effectingState, affector->effectingState) : (States)((~(affector->effectingState & effectingState))&1);
+                    effectingState = (affector->getEffectingState() | effectingState) > 1 ? std::max(effectingState, affector->getEffectingState()) : (States)((~(affector->getEffectingState() & effectingState))&1);
                 }
                 break;
             }
@@ -427,12 +440,12 @@ void Pin::evaluateEffectingState() {
                 effectingState = States::FLOATING;
                 break;
             case 1:
-                effectingState = (*(*affectors.begin())).effectingState;
+                effectingState = (*(*affectors.begin())).getEffectingState();
                 break;
             default:
                 effectingState = States::FLOATING;
                 for (const auto* affector : affectors) {
-                    effectingState = (affector->effectingState | effectingState) > 1 ? std::max(effectingState, affector->effectingState) : (States)(~(affector->effectingState ^ effectingState)&1);
+                    effectingState = (affector->getEffectingState() | effectingState) > 1 ? std::max(effectingState, affector->getEffectingState()) : (States)(~(affector->getEffectingState() ^ effectingState)&1);
                 }
                 break;
             }
@@ -440,10 +453,10 @@ void Pin::evaluateEffectingState() {
         case Operations::BUFFER:
         {
             auto it = affectors.begin();
-            States currentState = affectors.end() != it ? (*it)->effectingState : States::FLOATING;
+            States currentState = affectors.end() != it ? (*it)->getEffectingState() : States::FLOATING;
             it++;
             while (it != affectors.end()) {
-                currentState = evaluateTwoStates(currentState, (*it)->effectingState);
+                currentState = evaluateTwoStates(currentState, (*it)->getEffectingState());
             }
             effectingState = currentState;
             break;
@@ -516,8 +529,8 @@ void SentinelComponent::saveToFile(const std::filesystem::path& path) {
     0x....: first pin of pins (pins...?)
         pin layout:
         0x0000: effector Operation (4b)
-        0x0004: relPosition x (4b)
-        0x0008: relPosition y (4b)
+        0x0004: getRelPosition() x (4b)
+        0x0008: getRelPosition() y (4b)
         0x....: nameLength 4b
         name...
     0x....: first component of components:
@@ -595,38 +608,13 @@ void SentinelComponent::saveToFile(const std::filesystem::path& path) {
       propagatorIndex += pin->getUint32sToSave();
     }
 
-    uint32_t* dataPtr = buffer.data() + propagatorIndex;
     for (const auto* component : components) {
-      *dataPtr++ = component->name.length();
-      uint32_t _namei = 0;
-      uint32_t _nameBuffer = 0;
-      for (unsigned char c : component->name) {
-        uint32_t nc = c << _namei*8;
-        _nameBuffer |= nc;
-        if (_namei == 3) {
-          *dataPtr++ = _nameBuffer;
-          _nameBuffer = 0;
-          _namei = 0;
-        } else {
-          _namei++;
-        }
-      }
-      if (_namei != 0 && component->name.length() > 0) {
-        *dataPtr++ = _nameBuffer;
-        _nameBuffer = 0;
-        _namei = 0;
-      }
-      // dataPtr += component->name.length()/4+(component->name.length()%4)!=0;
-      *dataPtr++ = component->position.x;
-      *dataPtr++ = component->position.y;
+      component->saveToAddress(buffer.data() + propagatorIndex);
+      propagatorIndex += component->getUint32sToSave();
     }
 
     writeUint32VectorToFile(path, buffer);
-    qDebug("donezo");
-    qDebug() << "OISOT" << (dataPtr > (uint32_t*)(buffer.data() + buffer.size()));
-    qDebug() << "OISOTAAA" << dataPtr;
-    qDebug() << "OISOTAAA" << buffer.data() + buffer.size();
-    
+
 }
 
 void SentinelComponent::loadFromFile(const std::filesystem::path& path) {
@@ -691,27 +679,27 @@ void SentinelComponent::loadFromFile(const std::filesystem::path& path) {
         //     kvpair->second.affectorIds.emplace(readU32());
         // }
 
-        this->propagators.push_back(std::move(wire));
+        propagators.push_back(std::move(wire));
     }
 
     for (uint32_t i = 0; i < totalPins; i++) {
 
         auto pin = std::make_unique<Pin>(*this);
 
-        pin->effectorOperation =(Pin::Operations)readU32();
-        pin->relPosition.x = readU32();
-        pin->relPosition.y = readU32();
+        pin->setEffectorOperation((Pin::Operations)readU32());
+        pin->setGridPosition({(int)readU32(),(int)readU32()});
 
         const uint32_t pNameLength = readU32();
+        std::string pNameBuffer;
         for (uint32_t i = 0; i < pNameLength; i++) {
           const unsigned char c = (readU32(false) >> ((i % 4)*8)) & 0xff;
-          pin->name.push_back(c);
+          pNameBuffer.push_back(c);
           if (i % 4 == 3) {
             readU32();
           }
         }
         if (pNameLength % 4 != 0) readU32();
-
+        pin->setName(pNameBuffer);
         // uint32_t effectorCount = readU32();
         // uint32_t affectorCount = readU32();
 
@@ -745,8 +733,8 @@ void SentinelComponent::loadFromFile(const std::filesystem::path& path) {
 
         auto it = globalProjectManager->components.find(compName);
         if (it != globalProjectManager->components.end()) {
-          auto cptr = new Component((Component)it->second);
-          cptr->position = compPos;
+          auto cptr = new Component((Component)*it->second);
+          cptr->setGridPosition(compPos);
           std::unique_ptr<Component> uptr(cptr);
           this->propagators.push_back(std::move(uptr));
         } else {
@@ -817,23 +805,23 @@ uint32_t Propagator::findIdOfPropagatorPointer(Propagator* propagator, const std
     return it->second;
 }
 
-void Propagator::saveEffectorsAndAffectorsToAddres(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const {
-    *data = effectors.size();
-    *(data+1) = affectors.size();
+// void Propagator::saveEffectorsAndAffectorsToAddres(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const {
+//     *data = effectors.size();
+//     *(data+1) = affectors.size();
 
-    uint32_t dataOffset = 2;
-    for (auto* effector : effectors) {
-        *(data+dataOffset++) = findIdOfPropagatorPointer(effector, map);
-    }
-    for (auto* affector : affectors) {
-        *(data+dataOffset++) = findIdOfPropagatorPointer(affector, map);
-    }
-}
+//     uint32_t dataOffset = 2;
+//     for (auto* effector : effectors) {
+//         *(data+dataOffset++) = findIdOfPropagatorPointer(effector, map);
+//     }
+//     for (auto* affector : affectors) {
+//         *(data+dataOffset++) = findIdOfPropagatorPointer(affector, map);
+//     }
+// }
 
 void Pin::saveToAddress(uint32_t* data) const {
     *data++ = effectorOperation;
-    *(data++) = relPosition.x;
-    *(data++) = relPosition.y;
+    *(data++) = getGridPosition().x;
+    *(data++) = getGridPosition().y;
     *data++ = name.length();
     uint32_t namei = 0;
     uint32_t nameBuffer = 0;
@@ -856,7 +844,7 @@ void Pin::saveToAddress(uint32_t* data) const {
     // saveEffectorsAndAffectorsToAddres(data, map);
 }
 
-uint32_t Pin::getUint32sToSave() const {
+size_t Pin::getUint32sToSave() const {
     uint32_t count = 3;
     count++; //name
     count += ceil(((float)name.length())/4);
@@ -864,13 +852,13 @@ uint32_t Pin::getUint32sToSave() const {
     return count;
 }
 
-uint32_t Propagator::getUint32sToSaveEffectorsAndAffectors() const {
-    uint32_t count = 2; //effector affector count
-    count += effectors.size() + affectors.size();
-    return count;
-}
+// uint32_t Propagator::getUint32sToSaveEffectorsAndAffectors() const {
+//     uint32_t count = 2; //effector affector count
+//     count += effectors.size() + affectors.size();
+//     return count;
+// }
 
-uint32_t Wire::getUint32sToSave() const {
+size_t Wire::getUint32sToSave() const {
     uint32_t count = 1;
     count += segments.size()*4;
     // count += getUint32sToSaveEffectorsAndAffectors();
@@ -920,7 +908,7 @@ Component::Component(const Component& componentToCopy)
       } else {
         auto component = (Component*)__propagator.get();
         auto cptr = new Component(*component);
-        cptr->position = component->position;
+        cptr->setGridPosition(component->getGridPosition());
         std::unique_ptr<Component> uptr(cptr);
         propagators.push_back(std::move(uptr));
         size_t i = 0;
@@ -990,7 +978,7 @@ uint32_t Component::getUint32Size(uint32_t& propagatorId, std::unordered_map<Pro
 Pin::Pin(const Pin& pinToCopy, Component& _parent)
     : parent(_parent),
     effectorOperation(pinToCopy.effectorOperation),
-    relPosition(pinToCopy.relPosition),
+    // gridPosition(pinToCopy.getgrid()),
     name(pinToCopy.name),
     Propagator(pinToCopy)
     {
@@ -999,15 +987,16 @@ Pin::Pin(const Pin& pinToCopy, Component& _parent)
 
     Propagator::Propagator(const Propagator& propagator)
     : tickPropagationDelay(propagator.tickPropagationDelay),
-    effectingState(propagator.effectingState)
+    effectingState(propagator.getEffectingState()),
+    AbstractPropagator(propagator)
     {}
 
 Position Pin::gridPosition() const {
-  return {relPosition.x * 10 + 5, relPosition.y * 10 + 5};
+  return {getGridPosition().x * 10 + 5, getGridPosition().y * 10 + 5};
 }
 
 QPointF Pin::qGridPosition() const {
-  return {(qreal)(relPosition.x * 10 + 5), (qreal)(relPosition.y * 10 + 5)};
+  return {(qreal)(getGridPosition().x * 10 + 5), (qreal)(getGridPosition().y * 10 + 5)};
 }
 
 QPointF Pin::gridAlignPoint(const QPointF& point) {
@@ -1044,7 +1033,7 @@ QPointF Pin::gridAlignPoint(const QPointF& point) {
 
 //         // Common properties
 //         qDebug() << "Tick propagation delay:" << p->tickPropagationDelay;
-//         qDebug() << "Effecting state:" << static_cast<int>(p->effectingState);
+//         qDebug() << "Effecting state:" << static_cast<int>(p->getEffectingState());
 //         qDebug() << "Effectors:" << p->effectors.size();
 //         qDebug() << "Affectors:" << p->affectors.size();
 
@@ -1086,9 +1075,9 @@ QPointF Pin::gridAlignPoint(const QPointF& point) {
 //             qDebug() << "Operation:" << static_cast<int>(pin->effectorOperation);
 //             qDebug() << "Relative position:"
 //                      << "("
-//                      << pin->relPosition.x
+//                      << pin->getRelPosition().x
 //                      << ","
-//                      << pin->relPosition.y
+//                      << pin->getRelPosition().y
 //                      << ")";
 
 //             // Position gp = pin->gridPosition();
@@ -1123,11 +1112,47 @@ bool SentinelComponent::informAddedComponentToSeeIfFullyResolved(const std::stri
   return evaluateResolved();
 }
 
+size_t Component::getUint32sToSave() const {
+  size_t i = 1;
+  i += name.length()/4 + 0!=(name.length()%4);
+  return i;
+}
+void Component::saveToAddress(uint32_t* dataPtr) const {
+  *dataPtr++ = name.length();
+  uint32_t _namei = 0;
+  uint32_t _nameBuffer = 0;
+  for (unsigned char c : name) {
+    uint32_t nc = c << _namei*8;
+    _nameBuffer |= nc;
+    if (_namei == 3) {
+      *dataPtr++ = _nameBuffer;
+      _nameBuffer = 0;
+      _namei = 0;
+    } else {
+      _namei++;
+    }
+  }
+  if (_namei != 0 && name.length() > 0) {
+    *dataPtr++ = _nameBuffer;
+    _nameBuffer = 0;
+    _namei = 0;
+  }
+  // dataPtr += component->name.length()/4+(component->name.length()%4)!=0;
+  *dataPtr++ = gridPosition.x;
+  *dataPtr++ = gridPosition.y;
+}
+
 void SentinelComponent::createComponent(const Position& _position, const Component& _component) {
   auto cptr = new Component(_component);
-  cptr->position = _position;
+  cptr->setGridPosition(_position);
   std::unique_ptr<Component> uptr(cptr);
   this->propagators.push_back(std::move(uptr));
+}
+
+std::unique_ptr<AbstractPropagator> SentinelComponent::createDerivativeComponent(const Position& _position) const {
+  auto cptr = new Component((Component)*this);
+  cptr->setGridPosition(_position);
+  return std::unique_ptr<Component>(cptr);
 }
 
 void SentinelComponent::simulateConnections() {
@@ -1138,20 +1163,20 @@ void SentinelComponent::simulateConnections() {
       auto __propagator = (Propagator*)_propagator.get();
       if (__propagator->getKind() == Propagator::Kinds::PIN) {
         auto propagator = (Pin*)__propagator;
-        holderEvaluator.addToGrid(propagator->relPosition, propagator);
+        holderEvaluator.addToGrid(propagator->getGridPosition(), propagator);
       } else if (__propagator->getKind() == Propagator::Kinds::WIRE) {
         auto propagator = (Wire*)__propagator;
         holderEvaluator.addToGrid(propagator->segments, propagator);
       }
     } else {
       auto propagator = (Component*)_propagator.get();
-      const auto& anchor = propagator->appearance.anchor;
+      const auto& anchor = propagator->getAppearance().anchor;
 
-      for (const auto& _pin : propagator->propagators) {
+      for (const auto& _pin : propagator->getPropagators()) {
         if (_pin->isAbstract() && ((Propagator*)_pin.get())->getKind() == Propagator::Kinds::PIN) {
           auto* pin = (Pin*)_pin.get();
 
-          holderEvaluator.addToGrid(anchor + pin->relPosition, pin);
+          holderEvaluator.addToGrid(anchor + pin->getGridPosition(), pin);
         }
       }
 
@@ -1163,23 +1188,22 @@ void SentinelComponent::simulateConnections() {
       auto __propagator = (Propagator*)_propagator.get();
       if (__propagator->getKind() == Propagator::Kinds::PIN) {
         auto propagator = (Pin*)__propagator;
-        holderEvaluator.getOccupied(propagator->relPosition, {propagator});
+        holderEvaluator.getOccupied(propagator->getGridPosition(), {propagator});
       } else if (__propagator->getKind() == Propagator::Kinds::WIRE) {
         auto propagator = (Wire*)__propagator;
         holderEvaluator.getOccupied(propagator->segments, {propagator});
       }
     } else {
       auto propagator = (Component*)_propagator.get();
-      const auto& anchor = propagator->appearance.anchor;
+      const auto& anchor = propagator->getAppearance().anchor;
 
-      for (const auto& _pin : propagator->propagators) {
+      for (const auto& _pin : propagator->getPropagators()) {
         if (_pin->isAbstract() && ((Propagator*)_pin.get())->getKind() == Propagator::Kinds::PIN) {
           auto* pin = (Pin*)_pin.get();
 
-          auto set = holderEvaluator.getOccupied(anchor + pin->relPosition, {pin});
-          auto set2 = set;
-          pin->affectors.merge(set);
-          pin->effectors.merge(set);
+          auto set = holderEvaluator.getOccupied(anchor + pin->getGridPosition(), {pin});
+          pin->addEffectors(set);
+          pin->addAffectors(set);
         }
       }
     }

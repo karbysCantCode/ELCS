@@ -10,13 +10,18 @@
 
 #include "component.h"
 
-#include "wiregraphicsitem.h"
+// #include "wiregraphicsobject.h"
+
+class AbstractGraphicsObject;
+class ComponentGraphicsObject;
+class SentinelComponent;
 
 class CircuitWorkspace : public QGraphicsView
 {
     Q_OBJECT
 public:
-    CircuitWorkspace(QFrame*&);
+    explicit CircuitWorkspace(QWidget* parent = nullptr);
+    ~CircuitWorkspace() = default;
 
     void reset();
     
@@ -28,8 +33,8 @@ public:
     void setState(EditingStates _state) {state = _state;}
     inline EditingStates getState() const {return state;}
 public slots:
-    void onComponentSelected(const Component& component);
-    void onComponentEditRequested(const Component& component);
+    void onComponentSelected(const SentinelComponent& component);
+    void onComponentEditRequested(const SentinelComponent& component);
 protected:
     void resizeEvent ( QResizeEvent * event ) override;
     void wheelEvent(QWheelEvent *event) override;
@@ -56,8 +61,24 @@ private:
     int p_preMoveYPosition = 0;
     float p_magnification = 1;
 
-    bool p_isMoving = false;
-    bool p_isWiring = false;
+    enum class InteractionState {
+        NONE,
+        MOVING_WORKSPACE,
+        WIRING,
+        SELECTED_ITEM,
+        MOVING_ITEM,
+        PLACING_COMPONENT
+    };
+
+    void setInteractionState(InteractionState state);
+
+    std::unique_ptr<Component> p_temporaryComponentToPlace;
+    const SentinelComponent* p_componentToPlace;
+    ComponentGraphicsObject* p_componentGhost = nullptr;
+    InteractionState interactionState = InteractionState::NONE;
+    AbstractGraphicsObject* p_selectedItem = nullptr;
+    QPoint p_itemDragStartMouse;
+    QPointF p_itemDragStartPosition;
     // WireGraphicsItem* tempWireItem = nullptr;
 
     /*
