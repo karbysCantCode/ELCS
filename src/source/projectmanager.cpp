@@ -18,7 +18,14 @@ ProjectManager::ProjectManager() {
 }
 
 void ProjectManager::onComponentEditRequested(const SentinelComponent& component) {
-  currentOpenComponent->saveToFile(currentOpenComponent->getFilePath());
+  if (currentOpenComponent &&
+      !currentOpenComponent->saveToFile(currentOpenComponent->getFilePath())) {
+    globalNotificationManager->notify(
+      "Couldn't Save Circuit.",
+      std::format("Failed to save circuit \"{}\" before switching to \"{}\".",
+                   currentOpenComponent->getName(), component.getName())
+    );
+  }
   openComponent(component.getName());
 }
 
@@ -32,21 +39,27 @@ void ProjectManager::dummyLoad() {
     }
   }
   updateToolboxes();
-  components["AND"]->saveToFile(std::filesystem::path(RESOURCES_PATH)/"savedand.csf");
 
+  auto it = components.find("AND");
+  if (it != components.end() && !it->second->saveToFile(std::filesystem::path(RESOURCES_PATH)/"savedand.csf")) {
+    globalNotificationManager->notify("Couldn't Save Circuit.", "Failed to save \"AND\" during dummy load.");
+  }
 }
 
 bool ProjectManager::createNewComponent(const std::string& name) {
   auto [element, success] =
     components.try_emplace(name,std::make_unique<SentinelComponent>(name));
   updateToolboxes();
-  qDebug("ee");
   auto path = std::filesystem::path(RESOURCES_PATH)/(name+SAVE_FILE_EXTENSION);
   if (!doesFileExist(path)) {
-    qDebug("ee2");
     createFile(path);
     element->second->setFilePath(path);
-    element->second->saveToFile(element->second->getFilePath());
+    if (!element->second->saveToFile(element->second->getFilePath())) {
+      globalNotificationManager->notify(
+        "Couldn't Save Circuit.",
+        std::format("Failed to save newly created circuit \"{}\".", name)
+      );
+    }
   }
   return success;
 }
@@ -64,6 +77,13 @@ std::pair<SentinelComponent*, bool> ProjectManager::loadNewComponent(const std::
   }
   auto [element,success] = components.emplace(component->getName(), std::move(component));
   updateToolboxes();
+
+  // Any sentinel that had an unresolved reference to this one (by
+  // name) by can now be backfilled with a real instance.
+  for (auto* sentinel : unresolvedSentinelComponents) {
+    sentinel->informAddedComponentToSeeIfFullyResolved(element->second->getName(), *element->second);
+  }
+
   return {element->second.get(), success};
 }
 
@@ -106,7 +126,12 @@ void ProjectManager::addCurrentComponentToWorkspace() {
 
 void ProjectManager::saveCurrentComponent() {
   if (currentOpenComponent) {
-    currentOpenComponent->saveToFile(currentOpenComponent->getFilePath());
+    if (!currentOpenComponent->saveToFile(currentOpenComponent->getFilePath())) {
+      globalNotificationManager->notify(
+        "Couldn't Save Circuit.",
+        std::format("Failed to save circuit \"{}\".", currentOpenComponent->getName())
+      );
+    }
   } else {
     globalNotificationManager->notify("Couldn't Save Circuit.", "Couldn't find a currently opened component to save.");
   }
@@ -125,7 +150,7 @@ void ProjectManager::visuallyRegisterPropagator(AbstractPropagator* _ptr) {
     auto ptr = (Component*)_ptr;
     auto pins = ptr->getPins();
     for (auto* pin : pins) {
-      globalProjectManager->gridManager.addToGrid(pin->gridPosition(), pin);
+      globalProjectManager->gridManager.addToGrid(ptr->getGridPosition() + pin->getAppearancePosition(), pin);
     }
 
     auto* item = new ComponentGraphicsObject(*ptr);
@@ -135,9 +160,6 @@ void ProjectManager::visuallyRegisterPropagator(AbstractPropagator* _ptr) {
     item->setVisible(true);
     item->setOpacity(1.0);
     item->setZValue(100);
-    qDebug() << "visible:" << item->isVisible();
-    qDebug() << "scene:" << item->scene();
-    qDebug() << "bounding rect:" << item->boundingRect();
     item->setPos(ptr->getGridPosition().getGridScaledCopy().getQPointF());
     item->refresh();
 
@@ -163,12 +185,6 @@ void ProjectManager::visuallyRegisterPropagator(AbstractPropagator* _ptr) {
         np->setGraphicsObject(np->graphicsObject);
         workspace->scene()->addItem(np->graphicsObject);
         np->graphicsObject->setZValue(1);
-
-				// int i = 0;
-				// for (const auto& propagator : currentOpenComponent->propagators) {
-				// 	if (propagator->getKind() == Propagator::Kinds::WIRE) i++;
-				// }
-				// qDebug() << "wire count =" << i;
     }
   }
 }

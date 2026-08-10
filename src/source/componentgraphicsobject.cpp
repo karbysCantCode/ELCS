@@ -257,21 +257,21 @@ QRectF ComponentGraphicsObject::calculateBoundingRect() const
 
     for (const auto& line : component.getAppearance().lines)
     {
-        addPoint(line.begin.getGridScaledCopy().getQPointF());
-        addPoint(line.end.getGridScaledCopy().getQPointF());
+        addPoint(line.begin.getGridScaledCopy(0).getQPointF());
+        addPoint(line.end.getGridScaledCopy(0).getQPointF());
     }
 
     for (const auto& curve : component.getAppearance().curves)
     {
-        addPoint(curve.begin.getGridScaledCopy().getQPointF());
-        addPoint(curve.control1.getGridScaledCopy().getQPointF());
-        addPoint(curve.control2.getGridScaledCopy().getQPointF());
-        addPoint(curve.end.getGridScaledCopy().getQPointF());
+        addPoint(curve.begin.getGridScaledCopy(0).getQPointF());
+        addPoint(curve.control1.getGridScaledCopy(0).getQPointF());
+        addPoint(curve.control2.getGridScaledCopy(0).getQPointF());
+        addPoint(curve.end.getGridScaledCopy(0).getQPointF());
     }
 
     for (const auto& label : component.getAppearance().labels)
     {
-        addPoint(label.position.getGridScaledCopy().getQPointF());
+        addPoint(label.position.getGridScaledCopy(0).getQPointF());
     }
 
     for (const auto& propagator : component.getPropagators())
@@ -287,7 +287,7 @@ QRectF ComponentGraphicsObject::calculateBoundingRect() const
 
         addPoint(
             pin->getAppearancePosition()
-                .getGridScaledCopy()
+                .getGridScaledCopy(0)
                 .getQPointF()
         );
     }
@@ -312,7 +312,7 @@ QPointF ComponentGraphicsObject::appearanceToPixel(
 {
     // const Position& componentPosition = component.getGridPosition();
 
-    // return (position + componentPosition).getGridScaledCopy().getQPointF();
-    return position.getGridScaledCopy().getQPointF();
+    // return (position + componentPosition).getGridScaledCopy(0).getQPointF();
+    return position.getGridScaledCopy(0).getQPointF();
 
 }

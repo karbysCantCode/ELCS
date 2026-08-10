@@ -1,4 +1,4 @@
-#include "PropertySection.h"
+#include "propertysection.h"
 #include "styles.h"
 
 #include <QToolButton>

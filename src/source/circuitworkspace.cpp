@@ -62,6 +62,37 @@ void CircuitWorkspace::wheelEvent(QWheelEvent *event)  {
   
 }
 
+void CircuitWorkspace::keyPressEvent(
+    QKeyEvent* event
+)
+{
+    if (event->key() == Qt::Key_Delete ||
+        event->key() == Qt::Key_Backspace)
+    {
+        if (interactionState == InteractionState::SELECTED_ITEM) {
+          p_selectedItem
+        }
+
+        event->accept();
+
+        return;
+    }
+
+
+    if (event->key() == Qt::Key_Escape)
+    {
+        cancelCurrentOperation();
+
+        event->accept();
+
+        return;
+    }
+
+
+    QGraphicsView::keyPressEvent(event);
+}
+
+
 Position CircuitWorkspace::convertEventPosToPosition(const QPoint& point) const {
   const auto np = mapToScene(point);
   return {int(std::floor((np.x()+2.5)/10.0)),

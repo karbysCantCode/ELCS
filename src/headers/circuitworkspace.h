@@ -36,6 +36,7 @@ public slots:
     void onComponentSelected(const SentinelComponent& component);
     void onComponentEditRequested(const SentinelComponent& component);
 protected:
+    void keyPressEvent(QKeyEvent* event) override;
     void resizeEvent ( QResizeEvent * event ) override;
     void wheelEvent(QWheelEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;

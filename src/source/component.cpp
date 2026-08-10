@@ -4,6 +4,8 @@
 #include "filehelper.h"
 #include <iostream>
 #include <cstdint>
+#include <cstring>
+#include <functional>
 
 #include "notifications.h"
 #include "projectmanager.h"
@@ -12,6 +14,132 @@
 #include "segmentgraphicsobject.h"
 #include "pingraphicsobject.h"
 #include "componentgraphicsobject.h"
+
+namespace
+{
+    // Marks the start of the (newer, optional) appearance section
+    // appended to the end of a saved component file. Older files
+    // saved before appearance persistence was added simply won't
+    // have this, and loading tolerates that.
+    constexpr uint32_t COMPONENT_APPEARANCE_SECTION_MAGIC = 0x41505052; // 'APPR'
+
+    // Any count read from a save file above this is treated as
+    // corruption rather than a legitimately huge component -- avoids
+    // trying to allocate/loop on garbage data.
+    constexpr uint32_t MAX_SANE_COUNT = 1'000'000;
+
+    void checkSaneCount(uint32_t value, const char* what)
+    {
+        if (value > MAX_SANE_COUNT)
+        {
+            throw std::runtime_error(
+                std::string("Corrupt save file: unreasonable count for ") + what
+            );
+        }
+    }
+
+    /*
+        Shared packed-string helpers.
+
+        Format: [length (uint32)] followed by ceil(length/4) uint32s,
+        each holding up to 4 little-endian-packed bytes. Used for
+        every string this file persists (component names, pin names,
+        nested-component references, and -- via
+        ComponentAppearance::loadFromReader/saveToAddress -- label
+        text).
+    */
+
+    size_t packedStringUint32s(const std::string& text)
+    {
+        return 1 + (text.length() + 3) / 4;
+    }
+
+    void writePackedString(std::vector<uint32_t>& buffer, const std::string& text)
+    {
+        buffer.push_back(static_cast<uint32_t>(text.length()));
+
+        uint32_t word = 0;
+        uint32_t shift = 0;
+
+        for (unsigned char c : text)
+        {
+            word |= (static_cast<uint32_t>(c) << (shift * 8));
+
+            if (shift == 3)
+            {
+                buffer.push_back(word);
+                word = 0;
+                shift = 0;
+            }
+            else
+            {
+                ++shift;
+            }
+        }
+
+        if (shift != 0)
+            buffer.push_back(word);
+    }
+
+    // Same layout, written directly into a pre-sized address instead
+    // of appended to a vector. Returns the number of uint32s written
+    // (always equal to packedStringUint32s(text)).
+    size_t writePackedStringToAddress(uint32_t* address, const std::string& text)
+    {
+        uint32_t* start = address;
+
+        *address++ = static_cast<uint32_t>(text.length());
+
+        uint32_t word = 0;
+        uint32_t shift = 0;
+
+        for (unsigned char c : text)
+        {
+            word |= (static_cast<uint32_t>(c) << (shift * 8));
+
+            if (shift == 3)
+            {
+                *address++ = word;
+                word = 0;
+                shift = 0;
+            }
+            else
+            {
+                ++shift;
+            }
+        }
+
+        if (shift != 0)
+            *address++ = word;
+
+        return static_cast<size_t>(address - start);
+    }
+
+    std::string readPackedString(const std::function<uint32_t(bool)>& readU32)
+    {
+        const uint32_t length = readU32(true);
+        checkSaneCount(length, "string length");
+
+        std::string result;
+        result.reserve(length);
+
+        for (uint32_t i = 0; i < length; ++i)
+        {
+            const unsigned char c =
+                (readU32(false) >> ((i % 4) * 8)) & 0xff;
+
+            result.push_back(static_cast<char>(c));
+
+            if (i % 4 == 3)
+                readU32(true);
+        }
+
+        if (length % 4 != 0)
+            readU32(true);
+
+        return result;
+    }
+}
 
 Component::Component() {}
 Component::Component(const std::string& _name) : name(_name) {}
@@ -39,15 +167,6 @@ Wire::~Wire() {
     delete graphicsObject;
   }
 }
-// bool Position::doesPositionSitBetweenManhattenLines(bool targetLineHorizontal, const Position& positionA, const Position& positionB) const {
-// 	if (targetLineHorizontal) {
-// 		if (y != positionA.y) return false;
-// 		return x <= std::max(positionA.x,positionB.x) && x >= std::min(positionA.x,positionB.x);
-// 	} else {
-// 		if (x != positionA.x) return false;
-// 		return y <= std::max(positionA.y,positionB.y) && y >= std::min(positionA.y,positionB.y);
-// 	}
-// }
 
 std::vector<Position> Wire::junctionPoints() const {
     std::unordered_map<Position, int, PositionHash> degree;
@@ -127,10 +246,6 @@ std::pair<bool,bool> Segment::doesSegmentEndsSitAlongSegment(
 
     return {beginHit, endHit};
 }
-// struct CollidingSegmentData {
-// 	Wire* merger;
-//   CollidingSegmentData(Wire* _merger) : merger(_merger) {}
-// };
 
 //return true if its destruction is expected
 std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAgainstWire(Wire* other) {
@@ -236,7 +351,7 @@ std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAga
     offset++;
   }
 	if (merges) {
-		for (auto& seggy : other->segments) { //seggy meant 2 be segment but i thought it was already used but it isnt..
+		for (auto& seggy : other->segments) {
 			segments.push_back(seggy);
       globalProjectManager->gridManager.addToGrid(seggy, this);
 		}
@@ -254,19 +369,11 @@ void Wire::mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::u
     wasNewList = true;
     collidingSet = new std::unordered_set<Propagator*>(globalProjectManager->gridManager.getOccupied(segments, excludeSet));
   }
-	qDebug() << "colliding count =" << collidingSet->size();
-	qDebug() << "this" << this;
-	for (auto *p : *collidingSet)
-			qDebug() << p;
-	qDebug() << "excluding count =" << excludeSet.size();
-	for (auto *p : excludeSet)
-			qDebug() << p;
 	for (const auto& propagator : *collidingSet) {
 		if (propagator->getKind() != Propagator::Kinds::WIRE) continue;
 		Wire* other = (Wire*)propagator;
 
     auto [colliding, excludedSegments] = trimCollidingAgainstWire(other);
-    qDebug() << "checkjming";
 		if (colliding) {
 			markJunctionsDirty();
       mergingWires.emplace(other,excludedSegments);
@@ -324,10 +431,6 @@ void Propagator::evaluateEffectingState() {
     }
     effectingState = currentState;
 }
-
-// void Propagator::evaluateEffectors() {
-
-// }
 
 void Propagator::propagate(Propagator* excludedPropagator) {
     evaluateEffectingState();
@@ -504,117 +607,75 @@ States Propagator::evaluateTwoStates(const States& stateA, const States& stateB)
     }
 }
 
-void SentinelComponent::saveToFile(const std::filesystem::path& path) {
-    //saving to file...
+/*
+    ================= Save / load =================
+*/
 
-    //file layout:
-    /*
-    0x0000 component save version major
-    0x0004 component save version minor
-    0x.... name length (4b)
-    0x.... name string
-    0x0008: propagator count (.size) (4b)
-    0x000c: number of wires (4b)
-    0x000c: number of pins (4b)
-    0x000c: number of components (4b)
-    0x0010: first wire of wires:
-        wire layout:
-        0x0000: number of seg (4b)
-        0x0004: first seg pos of segs
-            seg layout:
-            0x0000: int ax (4b)
-            0x0004: int ay (4b)
-            0x0000: int bx (4b)
-            0x0004: int by (4b)
-    0x....: first pin of pins (pins...?)
-        pin layout:
-        0x0000: effector Operation (4b)
-        0x0004: getRelPosition() x (4b)
-        0x0008: getRelPosition() y (4b)
-        0x....: nameLength 4b
-        name...
-    0x....: first component of components:
-        namelength
-        name
-        position x
-        position y
+bool SentinelComponent::saveToFile(const std::filesystem::path& path) const
+{
+    try
+    {
+        std::vector<uint32_t> buffer;
 
-    */
+        buffer.push_back(COMPONENT_SAVE_VERSION_MAJOR);
+        buffer.push_back(COMPONENT_SAVE_VERSION_MINOR);
 
-    std::vector<uint32_t> buffer;
-    buffer.push_back(COMPONENT_SAVE_VERSION_MAJOR);
-    buffer.push_back(COMPONENT_SAVE_VERSION_MINOR);
-    buffer.push_back(name.length());
-    uint32_t namei = 0;
-    uint32_t nameBuffer = 0;
-    for (unsigned char c : name) {
-      uint32_t nc = c << namei*8;
-      nameBuffer |= nc;
-      if (namei == 3) {
-        buffer.push_back(nameBuffer);
-        nameBuffer = 0;
-        namei = 0;
-      } else {
-        namei++;
-      }
+        writePackedString(buffer, name);
+
+        buffer.push_back(static_cast<uint32_t>(propagators.size()));
+
+        uint32_t propagatorId = 0;
+        std::unordered_map<Propagator*, uint32_t> wiresById;
+        std::unordered_map<Propagator*, uint32_t> pinsById;
+        std::vector<Component*> components;
+
+        const uint32_t uint32Size = getUint32Size(propagatorId, wiresById, pinsById, components, true);
+
+        buffer.push_back(static_cast<uint32_t>(wiresById.size()));
+        buffer.push_back(static_cast<uint32_t>(pinsById.size()));
+        buffer.push_back(static_cast<uint32_t>(components.size()));
+
+        const size_t propagatorSectionOffset = buffer.size();
+        buffer.resize(buffer.size() + uint32Size);
+
+        size_t propagatorIndex = propagatorSectionOffset;
+
+        for (const auto& [wire, id] : wiresById) {
+            wire->saveToAddress(buffer.data() + propagatorIndex);
+            propagatorIndex += wire->getUint32sToSave();
+        }
+        for (const auto& [pin, id] : pinsById) {
+            pin->saveToAddress(buffer.data() + propagatorIndex);
+            propagatorIndex += pin->getUint32sToSave();
+        }
+        for (const auto* component : components) {
+            component->saveToAddress(buffer.data() + propagatorIndex);
+            propagatorIndex += component->getUint32sToSave();
+        }
+
+        /*
+            Appearance -- only meaningful on a definition (this
+            sentinel's own shape); placed instances derive theirs
+            live from Component::getAppearance(), so there's nothing
+            extra to persist for the nested-component references
+            saved above.
+        */
+        buffer.push_back(COMPONENT_APPEARANCE_SECTION_MAGIC);
+
+        const size_t appearanceUint32s = appearance.getUint32sToSave();
+        const size_t appearanceOffset = buffer.size();
+        buffer.resize(buffer.size() + appearanceUint32s);
+        appearance.saveToAddress(buffer.data() + appearanceOffset);
+
+        writeUint32VectorToFile(path, buffer);
+
+        return true;
     }
-    if (namei != 0 && name.length() > 0) {
-      buffer.push_back(nameBuffer);
-      nameBuffer = 0;
-      namei = 0;
+    catch (const std::exception& e)
+    {
+        std::cerr << "Failed to save component \"" << name << "\": " << e.what() << '\n';
+        return false;
     }
-    buffer.push_back(propagators.size());
-    uint32_t propagatorId = 0;
-    std::unordered_map<Propagator*, uint32_t> wiresById;
-    // uint32_t wiresUint32Size = 0;
-    std::unordered_map<Propagator*, uint32_t> pinsById;
-    std::vector<Component*> components;
-    // std::unordered_map<Propagator*, uint32_t> fakePinsById;
-    uint32_t pinsUint32Size = 0;
-
-    uint32_t uint32Size = getUint32Size(propagatorId, wiresById, pinsById, components, true);
-
-    // for (auto& _propagator : propagators) {
-    //   if (!_propagator->isAbstract()) {
-    //     auto* propagator = (Propagator*)_propagator.get();
-    //     if (propagator->getKind() == Propagator::Kinds::PIN) {
-    //       // pinsById.emplace(propagator, propagatorId++);
-    //       pinsUint32Size += propagator->getUint32sToSave();
-    //     } else if (propagator->getKind() == Propagator::Kinds::WIRE) {
-    //       // wiresById.emplace(propagator, propagatorId++);
-    //       wiresUint32Size += propagator->getUint32sToSave();
-    //     } else {
-    //       std::cout << "unknown propagator type component.cpp" << std::endl;
-    //     }
-    //   } else {
-    //     auto* propagator = (Component*)_propagator.get();
-
-    //   }
-        
-    // }
-
-    buffer.push_back(wiresById.size());
-    buffer.push_back(pinsById.size());
-    buffer.push_back(components.size());
-    auto propagatorIndex = buffer.size();
-    buffer.resize(buffer.size() + uint32Size);
-
-    for (const auto& [wire, id] : wiresById) {
-      wire->saveToAddress(buffer.data() + propagatorIndex);
-      propagatorIndex += wire->getUint32sToSave();
-    }
-    for (const auto& [pin, id] : pinsById) {
-      pin->saveToAddress(buffer.data() + propagatorIndex);
-      propagatorIndex += pin->getUint32sToSave();
-    }
-
-    for (const auto* component : components) {
-      component->saveToAddress(buffer.data() + propagatorIndex);
-      propagatorIndex += component->getUint32sToSave();
-    }
-
-    writeUint32VectorToFile(path, buffer);
-
 }
 
 bool SentinelComponent::loadFromFile(const std::filesystem::path& path) {
@@ -622,16 +683,15 @@ bool SentinelComponent::loadFromFile(const std::filesystem::path& path) {
   {
     filePath = path;
     std::vector<uint32_t> buffer = openFileToUint32Vector(path);
-    
-    uint32_t pos = 2;
 
+    size_t pos = 0;
+    
     auto readU32 = [&](bool inc = true) -> uint32_t {
         if (pos >= buffer.size()) {
             qDebug() << "READ PAST END OF BUFFER!";
             qDebug() << "pos =" << pos;
             qDebug() << "size =" << buffer.size();
-            // return false;
-            throw std::runtime_error("Unexpected EOF");
+            throw std::runtime_error("Unexpected EOF while loading component");
         }
         if (inc)
           return buffer[pos++];
@@ -639,157 +699,115 @@ bool SentinelComponent::loadFromFile(const std::filesystem::path& path) {
           return buffer[pos];
     };
 
-    const uint32_t nameLength = readU32();
-    for (uint32_t i = 0; i < nameLength; i++) {
-      const unsigned char c = (readU32(false) >> ((i % 4)*8)) & 0xff;
-      name.push_back(c);
-      if (i % 4 == 3) {
-        readU32();
-      }
+    const uint32_t majorVersion = readU32();
+    const uint32_t minorVersion = readU32();
+    (void)minorVersion;
+
+    if (majorVersion != COMPONENT_SAVE_VERSION_MAJOR) {
+      qDebug() << "Component save file has an unexpected major version ("
+                << majorVersion << "vs expected" << COMPONENT_SAVE_VERSION_MAJOR
+                << ") -- attempting to load anyway.";
     }
-    if (nameLength % 4 != 0) readU32();
+
+    name = readPackedString(readU32);
 
     const uint32_t totalPropagators = readU32();
+    checkSaneCount(totalPropagators, "propagator count");
+    (void)totalPropagators; // layout placeholder, not otherwise used
+
     const uint32_t totalWires = readU32();
     const uint32_t totalPins = readU32();
     const uint32_t totalComponents = readU32();
 
-    // std::unordered_map<uint32_t, PropagatorIdentity> propagators;
-
+    checkSaneCount(totalWires, "wire count");
+    checkSaneCount(totalPins, "pin count");
+    checkSaneCount(totalComponents, "nested component count");
 
     for (uint32_t i = 0; i < totalWires; i++) {
 
         auto wire = std::make_unique<Wire>();
 
-        uint32_t anchorCount = readU32();
-        for (uint32_t j = 0; j < anchorCount; j++) {
-            wire->segments.emplace_back();
-            wire->segments.back().begin.x = readU32();
-            wire->segments.back().begin.y = readU32();
-            wire->segments.back().end.x = readU32();
-            wire->segments.back().end.y = readU32();
+        const uint32_t segmentCount = readU32();
+        checkSaneCount(segmentCount, "wire segment count");
+
+        wire->segments.reserve(segmentCount);
+
+        for (uint32_t j = 0; j < segmentCount; j++) {
+            Segment segment;
+            segment.begin.x = static_cast<int>(readU32());
+            segment.begin.y = static_cast<int>(readU32());
+            segment.end.x = static_cast<int>(readU32());
+            segment.end.y = static_cast<int>(readU32());
+            wire->segments.push_back(segment);
         }
-        // uint32_t effectorCount = readU32();
-        // uint32_t affectorCount = readU32();
 
-        // auto [kvpair, success] = propagators.emplace(propagators.size(), wire.get());
-        // for (uint32_t j = 0; j < effectorCount; j++) {
-        //     kvpair->second.effectorIds.emplace(readU32());
-        // }
-        // for (uint32_t j = 0; j < affectorCount; j++) {
-        //     kvpair->second.affectorIds.emplace(readU32());
-        // }
-
-        propagators.push_back(std::move(wire));
+        addPropagator(std::move(wire));
     }
 
     for (uint32_t i = 0; i < totalPins; i++) {
 
         auto pin = std::make_unique<Pin>(*this);
 
-        pin->setEffectorOperation((Pin::Operations)readU32());
-        pin->setGridPosition({(int)readU32(),(int)readU32()});
+        pin->setEffectorOperation(static_cast<Pin::Operations>(readU32()));
+        pin->setGridPosition({static_cast<int>(readU32()), static_cast<int>(readU32())});
+        pin->setAppearancePosition({static_cast<int>(readU32()), static_cast<int>(readU32())});
+        pin->setName(readPackedString(readU32));
 
-        const uint32_t pNameLength = readU32();
-        std::string pNameBuffer;
-        for (uint32_t i = 0; i < pNameLength; i++) {
-          const unsigned char c = (readU32(false) >> ((i % 4)*8)) & 0xff;
-          pNameBuffer.push_back(c);
-          if (i % 4 == 3) {
-            readU32();
-          }
-        }
-        if (pNameLength % 4 != 0) readU32();
-        pin->setName(pNameBuffer);
-        // uint32_t effectorCount = readU32();
-        // uint32_t affectorCount = readU32();
-
-        // auto [kvpair, success] = propagators.emplace(propagators.size(), pin.get());
-        // for (uint32_t j = 0; j < effectorCount; j++) {
-        //     kvpair->second.effectorIds.emplace(readU32());
-        // }
-        // for (uint32_t j = 0; j < affectorCount; j++) {
-        //     kvpair->second.affectorIds.emplace(readU32());
-        // }
-
-        this->propagators.push_back(std::move(pin));
+        addPropagator(std::move(pin));
     }
 
     for (uint32_t i = 0; i < totalComponents; i++) {
-        //load name 
-        std::string compName;
-        const uint32_t nameLength = readU32();
-        for (uint32_t i = 0; i < nameLength; i++) {
-          const unsigned char c = (readU32(false) >> ((i % 4)*8)) & 0xff;
-          compName.push_back(c);
-          if (i % 4 == 3) {
-            readU32();
-          }
-        }
-        if (nameLength % 4 != 0) readU32();
+
+        const std::string compName = readPackedString(readU32);
 
         Position compPos;
-        compPos.x = readU32();
-        compPos.y = readU32();
+        compPos.x = static_cast<int>(readU32());
+        compPos.y = static_cast<int>(readU32());
 
         auto it = globalProjectManager->components.find(compName);
         if (it != globalProjectManager->components.end()) {
-          auto cptr = new Component((Component)*it->second);
-          cptr->setGridPosition(compPos);
-          std::unique_ptr<Component> uptr(cptr);
-          this->propagators.push_back(std::move(uptr));
+          createComponent(compPos, *it->second);
         } else {
           globalProjectManager->unresolvedSentinelComponents.emplace(this);
-          // auto [it, success] = unresolvedComponentPositions.emplace(compName, compPos);
-          // it->second.push_back(compPos);
           unresolvedComponentPositions[compName].push_back(compPos);
         }
-
-        
-        
-        // uint32_t effectorCount = readU32();
-        // uint32_t affectorCount = readU32();
-
-        // auto [kvpair, success] = propagators.emplace(propagators.size(), wire.get());
-        // for (uint32_t j = 0; j < effectorCount; j++) {
-        //     kvpair->second.effectorIds.emplace(readU32());
-        // }
-        // for (uint32_t j = 0; j < affectorCount; j++) {
-        //     kvpair->second.affectorIds.emplace(readU32());
-        // }
     }
 
-    if (isResolved()) {
-      //idk
+    isResolved(); // refresh `resolved` cache; unresolved refs get
+                   // backfilled later via informAddedComponentToSeeIfFullyResolved()
+
+    /*
+        Appearance is a newer addition to the format -- tolerate
+        older files that don't have it instead of failing to load.
+    */
+    if (pos < buffer.size() && buffer[pos] == COMPONENT_APPEARANCE_SECTION_MAGIC) {
+      pos++;
+      appearance.loadFromReader(readU32);
+    } else {
+      qDebug() << "No appearance section found for"
+               << QString::fromStdString(name)
+               << "-- using default appearance (older save file?).";
     }
 
-    // for (const auto& [id, identity] : propagators) {
-    //     for (const auto pid : identity.effectorIds) {
-    //         Propagator* ptr = findPropagatorPointerOfId(pid, propagators);
-    //         if (!ptr) continue;
-    //         identity.propagator->effectors.emplace(ptr);
-    //     }
-    //     for (const auto pid : identity.affectorIds) {
-    //         Propagator* ptr = findPropagatorPointerOfId(pid, propagators);
-    //         if (!ptr) continue;
-    //         identity.propagator->affectors.emplace(ptr);
-    //     }
-    // }
     qDebug() << "propagators size =" << propagators.size();
-
-    for (const auto& p : propagators) {
-        qDebug() << "propagator =" << p.get();
-    }
-    qDebug("doneyo");
   }
   catch(const std::exception& e)
   {
-    std::cerr << e.what() << '\n';
+    std::cerr << "Failed to load component from \"" << path.string() << "\": " << e.what() << '\n';
     return false;
   }
 
   return true;
 }
+
+// void Wire::findAndGridRemoveSegment(const Position& position) {
+//   std::vector<int> indexesToRemove;
+//   for (auto& segment : segments) {
+//     if (position sits along segment)
+//   }
+
+
+// }
 
 Propagator* Component::findPropagatorPointerOfId(uint32_t id, const std::unordered_map<uint32_t, PropagatorIdentity>& map) {
     auto it = map.find(id);
@@ -809,63 +827,23 @@ uint32_t Propagator::findIdOfPropagatorPointer(Propagator* propagator, const std
     return it->second;
 }
 
-// void Propagator::saveEffectorsAndAffectorsToAddres(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const {
-//     *data = effectors.size();
-//     *(data+1) = affectors.size();
-
-//     uint32_t dataOffset = 2;
-//     for (auto* effector : effectors) {
-//         *(data+dataOffset++) = findIdOfPropagatorPointer(effector, map);
-//     }
-//     for (auto* affector : affectors) {
-//         *(data+dataOffset++) = findIdOfPropagatorPointer(affector, map);
-//     }
-// }
-
 void Pin::saveToAddress(uint32_t* data) const {
     *data++ = effectorOperation;
-    *(data++) = getGridPosition().x;
-    *(data++) = getGridPosition().y;
-    *data++ = name.length();
-    uint32_t namei = 0;
-    uint32_t nameBuffer = 0;
-    for (unsigned char c : name) {
-      uint32_t nc = c << namei*8;
-      nameBuffer |= nc;
-      if (namei == 3) {
-        *data++ = nameBuffer;
-        nameBuffer = 0;
-        namei = 0;
-      } else {
-        namei++;
-      }
-    }
-    if (namei != 0 && name.length() > 0) {
-      *data++ = nameBuffer;
-      nameBuffer = 0;
-      namei = 0;
-    }
-    // saveEffectorsAndAffectorsToAddres(data, map);
+    *data++ = static_cast<uint32_t>(getGridPosition().x);
+    *data++ = static_cast<uint32_t>(getGridPosition().y);
+    *data++ = static_cast<uint32_t>(appearancePosition.x);
+    *data++ = static_cast<uint32_t>(appearancePosition.y);
+    writePackedStringToAddress(data, name);
 }
 
 size_t Pin::getUint32sToSave() const {
-    uint32_t count = 3;
-    count++; //name
-    count += ceil(((float)name.length())/4);
-    // count += getUint32sToSaveEffectorsAndAffectors();
-    return count;
+    // operation + gridPosition.x/.y + appearancePosition.x/.y
+    return 5 + packedStringUint32s(name);
 }
-
-// uint32_t Propagator::getUint32sToSaveEffectorsAndAffectors() const {
-//     uint32_t count = 2; //effector affector count
-//     count += effectors.size() + affectors.size();
-//     return count;
-// }
 
 size_t Wire::getUint32sToSave() const {
     uint32_t count = 1;
     count += segments.size()*4;
-    // count += getUint32sToSaveEffectorsAndAffectors();
     return count;
 }
 
@@ -877,10 +855,40 @@ void Wire::saveToAddress(uint32_t* data) const {
         *data++ = segments[i].end.x;
         *data++ = segments[i].end.y;
     }
-    // saveEffectorsAndAffectorsToAddres(data, map);
 }
 
 Wire::Wire(const Wire& wireToCopy) : segments(wireToCopy.segments), Propagator(wireToCopy) {
+}
+
+/*
+    ================= Component lifetime =================
+*/
+
+Component::~Component()
+{
+    if (sourceSentinel) {
+        sourceSentinel->unregisterInstance(this);
+    }
+
+    if (graphicsObject &&
+        globalProjectManager &&
+        globalProjectManager->workspace &&
+        globalProjectManager->workspace->scene())
+    {
+        globalProjectManager->workspace->scene()->removeItem(graphicsObject);
+        delete graphicsObject;
+        graphicsObject = nullptr;
+    }
+}
+
+SentinelComponent::~SentinelComponent()
+{
+    // Don't leave any still-alive instance pointing at a dead
+    // sentinel -- Component::getAppearance()/~Component() would
+    // otherwise dereference/unregister-from a dangling pointer.
+    for (Component* instance : instances) {
+        instance->clearSourceSentinel();
+    }
 }
 
 Component::Component(const Component& componentToCopy) 
@@ -899,14 +907,14 @@ Component::Component(const Component& componentToCopy)
               auto ptr = std::make_unique<Pin>(*(Pin*)propagator, *this);
               auto [element, success] = pins.emplace(ptr.get(), propagator);
               oldNewPropagatorPointerMap.emplace(element->second, element->first);
-              propagators.push_back(std::move(ptr));
+              addPropagator(std::move(ptr));
               break;
           }
           case Propagator::Kinds::WIRE:{
               auto ptr = std::make_unique<Wire>(*(Wire*)propagator);
               auto [element, success] = wires.emplace(ptr.get(), propagator);
               oldNewPropagatorPointerMap.emplace(element->second, element->first);
-              propagators.push_back(std::move(ptr));
+              addPropagator(std::move(ptr));
               break;
           }
         }
@@ -915,7 +923,7 @@ Component::Component(const Component& componentToCopy)
         auto cptr = new Component(*component);
         cptr->setGridPosition(component->getGridPosition());
         std::unique_ptr<Component> uptr(cptr);
-        propagators.push_back(std::move(uptr));
+        addPropagator(std::move(uptr));
         size_t i = 0;
         for (const auto& _propagator : cptr->propagators) {
           if (!_propagator->isAbstract() && ((Propagator*)_propagator.get())->getKind() == Propagator::Kinds::PIN) {
@@ -935,7 +943,121 @@ Component::Component(const Component& componentToCopy)
         wire->copyEffectorsAndEffectors(*propagator, oldNewPropagatorPointerMap);
     }
 
-    
+    // A copy of an instance is itself considered an instance of the
+    // same sentinel (e.g. duplicating a placed component within a
+    // circuit), so it keeps receiving future structural updates too.
+    sourceSentinel = componentToCopy.sourceSentinel;
+    if (sourceSentinel) {
+        sourceSentinel->registerInstance(this);
+    }
+}
+
+bool Component::removePropagator(AbstractPropagator* propagator)
+{
+    for (size_t i = 0; i < propagators.size(); ++i) {
+        if (propagators[i].get() == propagator) {
+            propagators.erase(propagators.begin() + i);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+ComponentAppearance& Component::getAppearance()
+{
+    if (sourceSentinel) {
+        return sourceSentinel->getAppearance();
+    }
+
+    return appearance;
+}
+
+const ComponentAppearance& Component::getAppearance() const
+{
+    if (sourceSentinel) {
+        return sourceSentinel->getAppearance();
+    }
+
+    return appearance;
+}
+
+void Component::setAppearance(const ComponentAppearance& value)
+{
+    if (sourceSentinel) {
+        qDebug() << "Component::setAppearance() ignored -- this is a placed"
+                    " instance; edit its source sentinel's appearance instead.";
+        return;
+    }
+
+    appearance = value;
+}
+
+void Component::resyncFromSentinel()
+{
+    if (!sourceSentinel)
+        return;
+
+    const auto templatePins = sourceSentinel->getPins();
+
+    std::unordered_map<std::string, Pin*> existingByName;
+    for (Pin* pin : getPins()) {
+        existingByName.emplace(pin->getName(), pin);
+    }
+
+    std::unordered_set<std::string> templateNames;
+    templateNames.reserve(templatePins.size());
+
+    for (const Pin* templatePin : templatePins) {
+        templateNames.insert(templatePin->getName());
+
+        auto it = existingByName.find(templatePin->getName());
+
+        if (it != existingByName.end()) {
+            // Already have a matching pin -- keep its wiring/state,
+            // just mirror the template-driven fields.
+            it->second->setEffectorOperation(templatePin->getEffectorOperation());
+            it->second->setAppearancePosition(templatePin->getAppearancePosition());
+            it->second->setGridPosition(templatePin->getGridPosition());
+        } else {
+            // New pin on the template this instance doesn't have yet.
+            auto newPin = std::make_unique<Pin>(*this);
+            newPin->setName(templatePin->getName());
+            newPin->setEffectorOperation(templatePin->getEffectorOperation());
+            newPin->setAppearancePosition(templatePin->getAppearancePosition());
+            newPin->setGridPosition(templatePin->getGridPosition());
+            addPropagator(std::move(newPin));
+        }
+    }
+
+    // Drop instance pins that no longer exist on the template.
+    for (size_t i = 0; i < propagators.size(); ) {
+        auto* propagator = propagators[i].get();
+
+        if (!propagator->isAbstract() &&
+            static_cast<Propagator*>(propagator)->getKind() == Propagator::Kinds::PIN &&
+            templateNames.find(static_cast<Pin*>(propagator)->getName()) == templateNames.end())
+        {
+            propagators.erase(propagators.begin() + i);
+        } else {
+            ++i;
+        }
+    }
+
+    if (graphicsObject) {
+        graphicsObject->refresh();
+    }
+
+    notifyChildStructureChanged();
+}
+
+void Component::notifyChildStructureChanged()
+{
+    reevaluateConnections();
+
+    if (parentComponent) {
+        parentComponent->notifyChildStructureChanged();
+    }
 }
 
 void Propagator::copyEffectorsAndEffectors(const Propagator& propagator, std::unordered_map<Propagator*, Propagator*>& oldNewPropagatorPointerMap) {
@@ -965,14 +1087,11 @@ uint32_t Component::getUint32Size(uint32_t& propagatorId, std::unordered_map<Pro
       } else if (propagator->getKind() == Propagator::Kinds::WIRE && canRecurse) {
         wiresById.emplace(propagator, propagatorId++);
         uint32Size += propagator->getUint32sToSave();
-      } else {
-        // std::cout << "unknown propagator type component.cpp" << std::endl;
       }
     } else if (canRecurse) {
       auto* component = (Component*)_propagator.get();
       components.push_back(component);
-      uint32Size += 1+(component->name.length()/4)+(component->name.length()%4!=0)+2;
-      // uint32Size += component->getUint32Size(propagatorId, wiresById,pinsById, components, false);
+      uint32Size += component->getUint32sToSave();
     }
       
   }
@@ -983,7 +1102,7 @@ uint32_t Component::getUint32Size(uint32_t& propagatorId, std::unordered_map<Pro
 Pin::Pin(const Pin& pinToCopy, Component& _parent)
     : parent(_parent),
     effectorOperation(pinToCopy.effectorOperation),
-    // gridPosition(pinToCopy.getgrid()),
+    appearancePosition(pinToCopy.appearancePosition),
     name(pinToCopy.name),
     Propagator(pinToCopy)
     {
@@ -1008,105 +1127,7 @@ QPointF Pin::gridAlignPoint(const QPointF& point) {
   return {(qreal)(int(point.x() / 10) + 5), (qreal)(int(point.y() / 10) + 5)};
 }
 
-#include <QDebug>
-
-// void Component::debugPrintPropagators() const
-// {
-//     qDebug() << "========== Component Debug ==========";
-//     qDebug() << "Name:" << QString::fromStdString(name);
-//     qDebug() << "Propagator count:" << propagators.size();
-
-//     for (size_t i = 0; i < propagators.size(); ++i)
-//     {
-//         const Propagator* p = propagators[i].get();
-
-//         qDebug() << "";
-//         qDebug() << "Propagator" << i;
-//         qDebug() << "--------------------------------";
-//         qDebug() << "Address:" << p;
-
-//         // Type
-//         switch (p->getKind())
-//         {
-//         case Propagator::WIRE:
-//             qDebug() << "Kind: Wire";
-//             break;
-//         case Propagator::PIN:
-//             qDebug() << "Kind: Pin";
-//             break;
-//         }
-
-//         // Common properties
-//         qDebug() << "Tick propagation delay:" << p->tickPropagationDelay;
-//         qDebug() << "Effecting state:" << static_cast<int>(p->getEffectingState());
-//         qDebug() << "Effectors:" << p->effectors.size();
-//         qDebug() << "Affectors:" << p->affectors.size();
-
-//         qDebug() << "Effector pointers:";
-//         for (Propagator* effector : p->effectors)
-//             qDebug() << "   " << effector;
-
-//         qDebug() << "Affector pointers:";
-//         for (Propagator* affector : p->affectors)
-//             qDebug() << "   " << affector;
-
-//         // Type-specific data
-//         if (p->getKind() == Propagator::WIRE)
-//         {
-//             const Wire* wire = static_cast<const Wire*>(p);
-
-//             qDebug() << "Segment count:" << wire->segments.size();
-
-//             for (size_t j = 0; j < wire->segments.size(); ++j)
-//             {
-//                 qDebug() << "   Anchor" << j
-//                          << "("
-//                          << wire->segments[j].begin.x
-//                          << ","
-//                          << wire->segments[j].begin.y
-//                          << ")"
-// 												 << ":"
-// 												 << "("
-//                          << wire->segments[j].end.x
-//                          << ","
-//                          << wire->segments[j].end.y
-//                          << ")";
-//             }
-//         }
-//         else if (p->getKind() == Propagator::PIN)
-//         {
-//             const Pin* pin = static_cast<const Pin*>(p);
-
-//             qDebug() << "Operation:" << static_cast<int>(pin->effectorOperation);
-//             qDebug() << "Relative position:"
-//                      << "("
-//                      << pin->getRelPosition().x
-//                      << ","
-//                      << pin->getRelPosition().y
-//                      << ")";
-
-//             // Position gp = pin->gridPosition();
-
-//             // qDebug() << "Grid position:"
-//             //          << "("
-//             //          << gp.x
-//             //          << ","
-//             //          << gp.y
-//             //          << ")";
-
-//             qDebug() << "State pointer:" << pin->state;
-//             if (pin->state)
-//                 qDebug() << "State value:" << static_cast<int>(*pin->state);
-
-//             qDebug() << "Parent component:"
-//                      << QString::fromStdString(pin->parent.name);
-//         }
-//     }
-
-//     qDebug() << "=====================================";
-// }
-
-bool SentinelComponent::informAddedComponentToSeeIfFullyResolved(const std::string& name, const Component& _component) {
+bool SentinelComponent::informAddedComponentToSeeIfFullyResolved(const std::string& name, const SentinelComponent& _component) {
   auto it = unresolvedComponentPositions.find(name);
   if (it != unresolvedComponentPositions.end()) {
     for (const auto& _position : it->second) {
@@ -1118,46 +1139,56 @@ bool SentinelComponent::informAddedComponentToSeeIfFullyResolved(const std::stri
 }
 
 size_t Component::getUint32sToSave() const {
-  size_t i = 3;
-  i += name.length()/4 + 0!=(name.length()%4);
-  return i;
-}
-void Component::saveToAddress(uint32_t* dataPtr) const {
-  *dataPtr++ = name.length();
-  uint32_t _namei = 0;
-  uint32_t _nameBuffer = 0;
-  for (unsigned char c : name) {
-    uint32_t nc = c << _namei*8;
-    _nameBuffer |= nc;
-    if (_namei == 3) {
-      *dataPtr++ = _nameBuffer;
-      _nameBuffer = 0;
-      _namei = 0;
-    } else {
-      _namei++;
-    }
-  }
-  if (_namei != 0 && name.length() > 0) {
-    *dataPtr++ = _nameBuffer;
-    _nameBuffer = 0;
-    _namei = 0;
-  }
-  // dataPtr += component->name.length()/4+(component->name.length()%4)!=0;
-  *dataPtr++ = gridPosition.x;
-  *dataPtr++ = gridPosition.y;
+  return packedStringUint32s(name) + 2; // + gridPosition.x/.y
 }
 
-void SentinelComponent::createComponent(const Position& _position, const Component& _component) {
+void Component::saveToAddress(uint32_t* dataPtr) const {
+  dataPtr += writePackedStringToAddress(dataPtr, name);
+  *dataPtr++ = static_cast<uint32_t>(gridPosition.x);
+  *dataPtr++ = static_cast<uint32_t>(gridPosition.y);
+}
+
+void SentinelComponent::createComponent(const Position& _position, const SentinelComponent& _component) {
   auto cptr = new Component(_component);
   cptr->setGridPosition(_position);
+  cptr->sourceSentinel = const_cast<SentinelComponent*>(&_component);
+  _component.registerInstance(cptr);
+
   std::unique_ptr<Component> uptr(cptr);
-  this->propagators.push_back(std::move(uptr));
+  addPropagator(std::move(uptr));
 }
 
 std::unique_ptr<AbstractPropagator> SentinelComponent::createDerivativeComponent(const Position& _position) const {
   auto cptr = new Component((Component)*this);
   cptr->setGridPosition(_position);
+  cptr->sourceSentinel = const_cast<SentinelComponent*>(this);
+  registerInstance(cptr);
   return std::unique_ptr<Component>(cptr);
+}
+
+Component SentinelComponent::getDuplicate() const {
+  return Component(*this);
+}
+
+void SentinelComponent::notifyInstancesOfStructureChange()
+{
+    // Copy first -- resyncFromSentinel() can, in principle, cause an
+    // instance's own downstream notifications to touch this set, so
+    // don't iterate the live one while it might be mutated.
+    const auto instancesSnapshot = instances;
+
+    for (Component* instance : instancesSnapshot) {
+        instance->resyncFromSentinel();
+    }
+}
+
+void SentinelComponent::refreshInstanceGraphics()
+{
+    for (Component* instance : instances) {
+        if (auto* item = instance->getGraphicsObject()) {
+            item->refresh();
+        }
+    }
 }
 
 void SentinelComponent::simulateConnections() {

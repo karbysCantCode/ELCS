@@ -2,6 +2,7 @@
 #define COMPONENT_H
 
 #include <QObject>
+#include <QDebug>
 #include <QPointF>
 #include <QGraphicsItem>
 #include <unordered_set>
@@ -26,6 +27,7 @@ enum States
 };
 
 class Component;
+class SentinelComponent;
 class ComponentAppearance;
 
 class AbstractPropagator {
@@ -93,13 +95,6 @@ public:
 
     virtual Kinds getKind() const = 0;
 
-    // virtual uint32_t getUint32sToSave() const = 0;
-    // virtual uint32_t getUint32sToSaveEffectorsAndAffectors() const;
-    //begins at data.
-    // virtual void saveToAddress(uint32_t* data) const = 0;
-    //begins at data.
-    // virtual void saveEffectorsAndAffectorsToAddres(uint32_t* data, const std::unordered_map<Propagator*, uint32_t>& map) const;
-
     void copyEffectorsAndEffectors(const Propagator& propagator, std::unordered_map<Propagator*, Propagator*>& oldNewPropagatorPointerMap);
 
     Propagator() {};
@@ -140,6 +135,8 @@ public:
     std::pair<bool, std::unordered_set<Segment, SegmentHash>> trimCollidingAgainstWire(Wire* other);
     void reset();
 
+    // void findAndGridRemoveSegment(const Position& position);
+
     void setGraphicsObject(SegmentGraphicsObject* object)  {graphicsObject=object;}
 
     // does not sync effectors and affectors.
@@ -176,10 +173,6 @@ public:
     Operations getEffectorOperation() const { return effectorOperation; }
     void setEffectorOperation(Operations value) { effectorOperation = value; }
     
-    // Position& getRelPosition() { return relPosition; }
-    // const Position& getRelPosition() const { return relPosition; }
-    // void setRelPosition(const Position& value) { relPosition = value; }
-    
     Position getAppearancePosition() const {return appearancePosition;}
     void setAppearancePosition(const Position& _appearancePosition) {appearancePosition = _appearancePosition;}
     
@@ -206,7 +199,6 @@ public:
     Pin(const Pin& pinToCopy, Component& _parent);
 private:
     Operations effectorOperation = Operations::BUFFER;
-    // Position relPosition;
     Position appearancePosition;
     std::string name;
     Component& parent;
@@ -264,20 +256,99 @@ public:
 
         return pins;
     }
-    
 
+
+    /*
+        Adds a propagator into this component. If it's itself a
+        nested Component (isAbstract() == true), its parentComponent
+        is pointed back at *this* -- the single place that linkage
+        gets established, so every insertion path (load, copy
+        construction, interactive placement) gets it for free instead
+        of every call site having to remember to set it.
+    */
     void addPropagator(std::unique_ptr<AbstractPropagator> propagator) {
+        if (propagator->isAbstract()) {
+            static_cast<Component*>(propagator.get())->parentComponent = this;
+        }
         propagators.push_back(std::move(propagator));
     }
 
-    // appearance
-    ComponentAppearance& getAppearance() { return appearance; }
-    const ComponentAppearance& getAppearance() const { return appearance; }
-    void setAppearance(const ComponentAppearance& value) { appearance = value; }
+    // Removes (and destroys) a single propagator directly owned by
+    // this component, if present. Returns true if something was
+    // removed.
+    bool removePropagator(AbstractPropagator* propagator);
+
+    /*
+        Appearance.
+
+        For a definition (a SentinelComponent, or any Component with
+        no source sentinel) this is the component's own shape data.
+
+        For a placed *instance* of a sentinel (sourceSentinel !=
+        nullptr) this transparently forwards to the source sentinel's
+        appearance, so edits made in the style editor show up on
+        every placed copy immediately -- no explicit push/notify step
+        needed for appearance changes.
+
+        Pin *positions* are deliberately NOT part of this -- each
+        instance keeps its own Pin objects (Pin::appearancePosition),
+        kept in sync with the sentinel's template pins via
+        resyncFromSentinel() whenever the sentinel's pin layout
+        changes, so that per-instance wiring/state (effecting color)
+        always reflects *this* instance rather than the template.
+    */
+    ComponentAppearance& getAppearance();
+    const ComponentAppearance& getAppearance() const;
+
+    // No-op (with a debug warning) on a placed instance -- an
+    // instance's appearance isn't independently settable, it mirrors
+    // its source sentinel. Only meaningful on a definition.
+    void setAppearance(const ComponentAppearance& value);
 
     // graphicsItem
     ComponentGraphicsObject* getGraphicsObject() const { return graphicsObject; }
     void setGraphicsObject(ComponentGraphicsObject* value) { graphicsObject = value; }
+
+    // The component this one is nested inside of (whichever
+    // component's propagators list owns this one), or nullptr if
+    // this component isn't currently placed inside anything. Set
+    // automatically by addPropagator().
+    Component* getParentComponent() const { return parentComponent; }
+
+    // The sentinel this component was instantiated from, if any.
+    // Null for a SentinelComponent itself (definitions aren't
+    // instances of anything) and for any standalone Component that
+    // wasn't created via SentinelComponent::createDerivativeComponent()
+    // / createComponent().
+    SentinelComponent* getSourceSentinel() const { return sourceSentinel; }
+
+    // Called by a SentinelComponent's destructor on any instance
+    // still pointing at it, so a dangling instance never dereferences
+    // a dead sentinel afterwards.
+    void clearSourceSentinel() { sourceSentinel = nullptr; }
+
+    // Re-syncs this instance's pins against its source sentinel's
+    // current template pins: adds pins the template has gained,
+    // removes ones it's lost, and mirrors operation/appearance
+    // position/grid position for ones that still match by name --
+    // while preserving that pin's own wiring/effecting state. No-op
+    // if this component has no source sentinel. Bubbles a
+    // structure-changed notification up through parentComponent
+    // afterwards so whatever circuit this instance lives in can
+    // re-derive its connections.
+    void resyncFromSentinel();
+
+    // Bubbles a "my structure changed" notification up the
+    // parentComponent chain, calling reevaluateConnections() at every
+    // level on the way up.
+    void notifyChildStructureChanged();
+
+    // Overridden by SentinelComponent to actually re-derive
+    // connectivity (via simulateConnections()). No-op by default,
+    // since a plain nested Component doesn't own an independent
+    // simulation pass -- only the sentinel at the root of a
+    // parentComponent chain does.
+    virtual void reevaluateConnections() {}
 
     virtual size_t getUint32sToSave() const override;
     virtual void saveToAddress(uint32_t* data) const override;
@@ -285,49 +356,94 @@ public:
     virtual void addRelatedPropagator(AbstractPropagator* abstract) override {};
     virtual void forgetPropagator(AbstractPropagator* abstract) override {};
 
-
-    // void loadFromFile(const std::filesystem::path& path);
-    // void saveToFile(const std::filesystem::path& path);
-
     static Propagator* findPropagatorPointerOfId(uint32_t id, const std::unordered_map<uint32_t, PropagatorIdentity>& map);
 
-    // void debugPrintPropagators() const;
     uint32_t getUint32Size(uint32_t& propagatorId, std::unordered_map<Propagator*, uint32_t>& wiresById,std::unordered_map<Propagator*, uint32_t>& pinsById, std::vector<Component*>& components, bool canRecurse) const ;
 
     Component();
     Component(const std::string& _name);
     Component(const Component& componentToCopy);
+    virtual ~Component();
+
 protected:
     std::string name;
     std::filesystem::path filePath;
     std::vector<std::unique_ptr<AbstractPropagator>> propagators;
     ComponentAppearance appearance;
     ComponentGraphicsObject* graphicsObject = nullptr;
-    // Position position;
 
+    Component* parentComponent = nullptr;
+    SentinelComponent* sourceSentinel = nullptr;
+
+    // SentinelComponent needs to reach into arbitrary Component
+    // instances' protected sourceSentinel/parentComponent fields
+    // (not just its own base subobject) when wiring up newly-created
+    // instances -- plain protected access doesn't allow that across
+    // sibling objects, hence the friendship.
+    friend class SentinelComponent;
 };
 
 class SentinelComponent : public Component {
-    private:
+private:
     bool resolved = false;
     std::unordered_map<std::string, std::vector<Position>> unresolvedComponentPositions;
     bool evaluateResolved() {resolved = unresolvedComponentPositions.empty(); return resolved;}
+
+    /*
+        Every currently-live Component placed elsewhere that was
+        derived from this sentinel (non-owning -- lifetime is owned
+        by whatever circuit each instance is placed in). Used to push
+        structural updates (pins added/removed/renamed) out to every
+        placed copy, and to poke every placed copy's graphics item to
+        repaint after an appearance edit.
+
+        Mutable so registration can happen through a const
+        SentinelComponent& (creating an instance doesn't logically
+        change the sentinel's own definition, just this bookkeeping).
+    */
+    mutable std::unordered_set<Component*> instances;
+
 public:
     SentinelComponent() {}
     SentinelComponent(const std::string& _name) : Component(_name) {}
+    ~SentinelComponent() override;
+
     bool isResolved() {evaluateResolved(); return resolved;}
     void setResolved(bool _resolved) {resolved = _resolved;}
-    
-    bool informAddedComponentToSeeIfFullyResolved(const std::string& name, const Component& _component);
 
-  bool loadFromFile(const std::filesystem::path& path);
-  void saveToFile(const std::filesystem::path& path);
+    bool informAddedComponentToSeeIfFullyResolved(const std::string& name, const SentinelComponent& _component);
 
-  void createComponent(const Position& _position, const Component& _component);
-  std::unique_ptr<AbstractPropagator> createDerivativeComponent(const Position& _position) const;
-  void simulateConnections();
+    bool loadFromFile(const std::filesystem::path& path);
+    bool saveToFile(const std::filesystem::path& path) const;
 
-  Component getDuplicate() const;
+    void createComponent(const Position& _position, const SentinelComponent& _component);
+    std::unique_ptr<AbstractPropagator> createDerivativeComponent(const Position& _position) const;
+    void simulateConnections();
+
+    void reevaluateConnections() override { simulateConnections(); }
+
+    Component getDuplicate() const;
+
+
+    // Instance bookkeeping -- called automatically by
+    // createDerivativeComponent()/createComponent(), and by
+    // Component's destructor on teardown. Exposed publicly in case
+    // other code paths end up creating/destroying instances directly.
+    void registerInstance(Component* instance) const { instances.emplace(instance); }
+    void unregisterInstance(Component* instance) const { instances.erase(instance); }
+
+    // Pushes a pin-layout resync out to every placed instance. Call
+    // this after changing this sentinel's own pins (add/remove/
+    // rename/move/re-operation) so every existing copy picks it up.
+    // Not needed for pure appearance edits (lines/curves/labels/
+    // anchor) -- those are read live via Component::getAppearance().
+    void notifyInstancesOfStructureChange();
+
+    // Cheap visual poke for every placed instance's graphics item.
+    // Call this after an appearance edit (e.g. from
+    // CircuitStyleWorkspace) so on-screen copies repaint immediately
+    // instead of waiting for their next unrelated refresh.
+    void refreshInstanceGraphics();
 };
 
 #endif // COMPONENT_H
