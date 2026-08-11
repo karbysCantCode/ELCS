@@ -2,6 +2,8 @@
 #define ABSTRACTGRAPHICSOBJECT_H
 
 #include <QGraphicsObject>
+#include <QPainter>
+#include <QPen>
 #include "component.h"
 
 class AbstractGraphicsObject : public QGraphicsObject
@@ -20,6 +22,30 @@ public:
     AbstractPropagator* parentPropagator;
 protected:
 
+    /*
+        Shared "this is selected" visual: a dashed rectangle drawn
+        just outside the item's own bounding rect. Every concrete
+        graphics object (pin/segment/component) calls this from its
+        own paint() when isSelected() is true, so all three get a
+        consistent selection indicator without duplicating the
+        drawing code.
+    */
+    void paintSelectionHighlight(QPainter* painter, const QRectF& rect) const
+    {
+        painter->save();
+
+        QPen pen(QColor(0, 170, 255));
+        pen.setWidthF(1.5);
+        pen.setStyle(Qt::DashLine);
+        pen.setCosmetic(true);
+
+        painter->setPen(pen);
+        painter->setBrush(Qt::NoBrush);
+
+        painter->drawRect(rect.adjusted(-4, -4, 4, 4));
+
+        painter->restore();
+    }
 
     int type() const override
     {

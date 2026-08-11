@@ -5,6 +5,7 @@
 #include <QGraphicsView>
 #include <QWheelEvent>
 #include <QMouseEvent>
+#include <QKeyEvent>
 #include <QGraphicsPixmapItem>
 #include <QResizeEvent>
 
@@ -14,6 +15,7 @@
 
 class AbstractGraphicsObject;
 class ComponentGraphicsObject;
+class PinGraphicsObject;
 class SentinelComponent;
 
 class CircuitWorkspace : public QGraphicsView
@@ -35,14 +37,17 @@ public:
 public slots:
     void onComponentSelected(const SentinelComponent& component);
     void onComponentEditRequested(const SentinelComponent& component);
+
+    void startPlacingPin();
+
 protected:
-    void keyPressEvent(QKeyEvent* event) override;
     void resizeEvent ( QResizeEvent * event ) override;
     void wheelEvent(QWheelEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
     void drawBackground(QPainter *painter, const QRectF &rect) override;
 private:
     EditingStates state = EditingStates::EDIT;
@@ -68,7 +73,8 @@ private:
         WIRING,
         SELECTED_ITEM,
         MOVING_ITEM,
-        PLACING_COMPONENT
+        PLACING_COMPONENT,
+        PLACING_PIN
     };
 
     void setInteractionState(InteractionState state);
@@ -76,8 +82,15 @@ private:
     std::unique_ptr<Component> p_temporaryComponentToPlace;
     const SentinelComponent* p_componentToPlace = nullptr;
     ComponentGraphicsObject* p_componentGhost = nullptr;
+
+    std::unique_ptr<Pin> p_temporaryPinToPlace;
+    PinGraphicsObject* p_pinGhost = nullptr;
+
     InteractionState interactionState = InteractionState::NONE;
     AbstractGraphicsObject* p_selectedItem = nullptr;
+
+    Position p_selectionGridPosition;
+
     QPoint p_itemDragStartMouse;
     QPointF p_itemDragStartPosition;
     // WireGraphicsItem* tempWireItem = nullptr;
@@ -103,6 +116,10 @@ private:
     void updateViewSize();
     int getMaxXPosition() const;
     int getMaxYPosition() const;
+
+    void deleteSelectedItem();
+
+    void cancelCurrentPlacement();
 };
 
 #endif // CIRCUITWORKSPACE_H

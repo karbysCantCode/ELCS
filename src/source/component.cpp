@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstring>
 #include <functional>
+#include <algorithm>
 
 #include "notifications.h"
 #include "projectmanager.h"
@@ -405,6 +406,55 @@ void Wire::reset() {
     segments.clear();
 }
 
+bool Wire::removeSegmentAt(size_t index) {
+    if (index >= segments.size())
+        return false;
+
+    segments.erase(segments.begin() + static_cast<long>(index));
+    markJunctionsDirty();
+    return true;
+}
+
+int Wire::nearestSegmentIndex(const Position& point) const {
+    if (segments.empty())
+        return -1;
+
+    int bestIndex = 0;
+    long long bestDistSq = -1;
+
+    for (size_t i = 0; i < segments.size(); ++i) {
+        const auto& segment = segments[i];
+
+        int clampedX;
+        int clampedY;
+
+        if (segment.begin.y == segment.end.y) {
+            // horizontal segment
+            const int minX = std::min(segment.begin.x, segment.end.x);
+            const int maxX = std::max(segment.begin.x, segment.end.x);
+            clampedX = std::clamp(point.x, minX, maxX);
+            clampedY = segment.begin.y;
+        } else {
+            // vertical segment
+            const int minY = std::min(segment.begin.y, segment.end.y);
+            const int maxY = std::max(segment.begin.y, segment.end.y);
+            clampedX = segment.begin.x;
+            clampedY = std::clamp(point.y, minY, maxY);
+        }
+
+        const long long dx = point.x - clampedX;
+        const long long dy = point.y - clampedY;
+        const long long distSq = dx * dx + dy * dy;
+
+        if (bestDistSq < 0 || distSq < bestDistSq) {
+            bestDistSq = distSq;
+            bestIndex = static_cast<int>(i);
+        }
+    }
+
+    return bestIndex;
+}
+
 void Propagator::addRelatedPropagator(AbstractPropagator* abstract) {
   if (abstract->isAbstract()) {
     qDebug("Not sure what to do or how it would happen but um,,,, component?");
@@ -412,6 +462,37 @@ void Propagator::addRelatedPropagator(AbstractPropagator* abstract) {
     addEffector((Propagator*)abstract);
     addAffector((Propagator*)abstract);
   }
+}
+
+Propagator::~Propagator() {
+    /*
+        Belt-and-suspenders cleanup.
+
+        Grid-based forget()/addRelatedPropagator() bookkeeping
+        (ComponentHolder::removeFromGrid/addToGrid) is what's
+        *supposed* to keep every propagator's effectors/affectors in
+        sync as things are added, removed, or moved -- but it relies
+        on propagators actually being found in the right grid cells
+        at the right time, and that's not always reliable: a
+        multi-segment wire can be registered across several cells
+        with legitimate overlaps at corners/junctions, and a nested
+        component's pins are registered under a different (scaled)
+        coordinate space than a wire's segments are. Either can leave
+        a stale entry that a later removeFromGrid() call never finds,
+        so its forgetPropagator() never fires.
+
+        Regardless of whether the grid-side cleanup was complete,
+        make sure nothing ends up holding a dangling pointer to this
+        propagator once it's actually gone: walk our own
+        effectors/affectors and remove ourselves from their reverse
+        sets directly.
+    */
+    for (Propagator* effector : effectors) {
+        effector->affectors.erase(this);
+    }
+    for (Propagator* affector : affectors) {
+        affector->effectors.erase(this);
+    }
 }
 
 void Propagator::forgetPropagator(AbstractPropagator* abstract) {
@@ -685,7 +766,7 @@ bool SentinelComponent::loadFromFile(const std::filesystem::path& path) {
     std::vector<uint32_t> buffer = openFileToUint32Vector(path);
 
     size_t pos = 0;
-    
+
     auto readU32 = [&](bool inc = true) -> uint32_t {
         if (pos >= buffer.size()) {
             qDebug() << "READ PAST END OF BUFFER!";
@@ -799,15 +880,6 @@ bool SentinelComponent::loadFromFile(const std::filesystem::path& path) {
 
   return true;
 }
-
-// void Wire::findAndGridRemoveSegment(const Position& position) {
-//   std::vector<int> indexesToRemove;
-//   for (auto& segment : segments) {
-//     if (position sits along segment)
-//   }
-
-
-// }
 
 Propagator* Component::findPropagatorPointerOfId(uint32_t id, const std::unordered_map<uint32_t, PropagatorIdentity>& map) {
     auto it = map.find(id);
@@ -1121,6 +1193,18 @@ Position Pin::gridPosition() const {
 
 QPointF Pin::qGridPosition() const {
   return {(qreal)(getGridPosition().x * 10 + 5), (qreal)(getGridPosition().y * 10 + 5)};
+}
+
+Pin::~Pin() {
+    if (graphicsObject &&
+        globalProjectManager &&
+        globalProjectManager->workspace &&
+        globalProjectManager->workspace->scene())
+    {
+        globalProjectManager->workspace->scene()->removeItem(graphicsObject);
+        delete graphicsObject;
+        graphicsObject = nullptr;
+    }
 }
 
 QPointF Pin::gridAlignPoint(const QPointF& point) {

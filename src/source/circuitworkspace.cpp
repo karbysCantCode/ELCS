@@ -8,6 +8,7 @@
 #include "componentgraphicsobject.h"
 
 #include <QCursor>
+#include <QKeyEvent>
 #include <iostream>
 
 CircuitWorkspace::CircuitWorkspace(QWidget* parent) {
@@ -21,6 +22,8 @@ CircuitWorkspace::CircuitWorkspace(QWidget* parent) {
     setScene(&workspaceScene);
 
     setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+
+    setFocusPolicy(Qt::StrongFocus);
 
 }
 
@@ -62,37 +65,6 @@ void CircuitWorkspace::wheelEvent(QWheelEvent *event)  {
   
 }
 
-void CircuitWorkspace::keyPressEvent(
-    QKeyEvent* event
-)
-{
-    if (event->key() == Qt::Key_Delete ||
-        event->key() == Qt::Key_Backspace)
-    {
-        if (interactionState == InteractionState::SELECTED_ITEM) {
-          p_selectedItem
-        }
-
-        event->accept();
-
-        return;
-    }
-
-
-    if (event->key() == Qt::Key_Escape)
-    {
-        cancelCurrentOperation();
-
-        event->accept();
-
-        return;
-    }
-
-
-    QGraphicsView::keyPressEvent(event);
-}
-
-
 Position CircuitWorkspace::convertEventPosToPosition(const QPoint& point) const {
   const auto np = mapToScene(point);
   return {int(std::floor((np.x()+2.5)/10.0)),
@@ -124,6 +96,44 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
 
         p_componentToPlace = nullptr;
         p_temporaryComponentToPlace = nullptr;
+
+        setInteractionState(InteractionState::NONE);
+
+        event->accept();
+        return;
+    }
+
+    if (interactionState == InteractionState::PLACING_PIN) {
+
+        if (!p_temporaryPinToPlace) {
+            event->accept();
+            return;
+        }
+
+        const Position position =
+            convertEventPosToPosition(event->pos());
+
+        p_temporaryPinToPlace->setGridPosition(position);
+
+        SentinelComponent* openComponent = globalProjectManager->currentOpenComponent;
+
+        // Hands ownership to the currently open component;
+        // addNewPropagator() registers it in the grid and creates
+        // its real (un-ghosted) PinGraphicsObject -- the ghost item
+        // itself is just discarded below.
+        globalProjectManager->addNewPropagator(std::move(p_temporaryPinToPlace));
+
+        if (p_pinGhost) {
+            scene()->removeItem(p_pinGhost);
+            delete p_pinGhost;
+            p_pinGhost = nullptr;
+        }
+
+        p_temporaryPinToPlace = nullptr;
+
+        if (openComponent) {
+            openComponent->notifyInstancesOfStructureChange();
+        }
 
         setInteractionState(InteractionState::NONE);
 
@@ -216,24 +226,6 @@ void CircuitWorkspace::mouseMoveEvent(QMouseEvent *event)  {
       tempWire.segments[1].end = eventPosTemp;
 
       tempWire.graphicsObject->update();
-      // const QRectF bounds = scene()->sceneRect();
-      // double leftRate =
-      //     1.0 - std::clamp(std::min(p_wiringFinalPoint.x() - bounds.left(), margin) / margin, 0.0, 1.0);
-
-      // double rightRate =
-      //     1.0 - std::clamp(std::min(bounds.right() - p_wiringFinalPoint.x(), margin) / margin, 0.0, 1.0);
-
-      // double topRate =
-      //     1.0 - std::clamp(std::min(p_wiringFinalPoint.y() - bounds.top(), margin) / margin, 0.0, 1.0);
-
-      // double bottomRate =
-      //     1.0 - std::clamp(std::min(bounds.bottom() - p_wiringFinalPoint.y(), margin) / margin, 0.0, 1.0);
-      // globalNotificationManager->notify("DEUBG", std::format("L{} R{} T{} B{}", leftRate,rightRate,topRate,bottomRate), 100);
-      // constexpr double speed = 3;
-      // p_xposition = std::clamp(int(p_xposition + speed * (rightRate - leftRate)), 0, getMaxXPosition());
-      // p_yposition = std::clamp(int(p_yposition + speed * (bottomRate - topRate)), 0, getMaxYPosition());
-
-      // updateWorkspacePosition();
       event->accept();
       return;
       break;
@@ -282,6 +274,20 @@ void CircuitWorkspace::mouseMoveEvent(QMouseEvent *event)  {
     event->accept();
     return;
 }
+    case InteractionState::PLACING_PIN: {
+        if (!p_pinGhost || !p_temporaryPinToPlace)
+            break;
+
+        const Position position =
+            convertEventPosToPosition(event->pos());
+
+        p_temporaryPinToPlace->setGridPosition(position);
+        p_pinGhost->updateWorkspacePosition();
+        p_pinGhost->update();
+
+        event->accept();
+        return;
+    }
     default: break;
   }
   
@@ -299,13 +305,11 @@ void CircuitWorkspace::mouseDoubleClickEvent(QMouseEvent* event)
   QGraphicsItem* item = itemAt(event->pos());
 
   if (!item || item == backgroundGridItem) {
-    p_selectedItem = nullptr;
     setInteractionState(InteractionState::NONE);
     return;
   }
   auto* abstractItem = dynamic_cast<AbstractGraphicsObject*>(item);
   if (!abstractItem) {
-    p_selectedItem = nullptr;
     setInteractionState(InteractionState::NONE);
     return;
   }
@@ -313,12 +317,19 @@ void CircuitWorkspace::mouseDoubleClickEvent(QMouseEvent* event)
   switch (interactionState) {
     case InteractionState::NONE: 
     case InteractionState::SELECTED_ITEM: {
+      if (p_selectedItem && p_selectedItem != abstractItem) {
+          p_selectedItem->setSelected(false);
+          p_selectedItem->update();
+      }
+
       // Select it
       p_selectedItem = abstractItem;
-      setInteractionState(InteractionState::SELECTED_ITEM);
+      p_selectionGridPosition = convertEventPosToPosition(event->pos());
 
-      // Optional Qt selection state
-      // p_selectedItem->setSelected(true);
+      p_selectedItem->setSelected(true);
+      p_selectedItem->update();
+
+      setInteractionState(InteractionState::SELECTED_ITEM);
 
       qDebug() << "Selected graphics item:"
               << p_selectedItem;
@@ -340,6 +351,7 @@ void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
     case InteractionState::WIRING: {
       setInteractionState(InteractionState::NONE);
       scene()->removeItem(tempWire.graphicsObject);
+      tempWire.graphicsObject = nullptr;
       delete tempWire.graphicsObject;
       tempWire.graphicsObject = nullptr;
 
@@ -384,6 +396,110 @@ void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
   QGraphicsView::mouseReleaseEvent(event);
 }
 
+void CircuitWorkspace::keyPressEvent(QKeyEvent* event)
+{
+    if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) {
+        deleteSelectedItem();
+        event->accept();
+        return;
+    }
+
+    if (event->key() == Qt::Key_Escape) {
+        cancelCurrentPlacement();
+        event->accept();
+        return;
+    }
+
+    QGraphicsView::keyPressEvent(event);
+}
+
+void CircuitWorkspace::deleteSelectedItem()
+{
+    if (!p_selectedItem || !globalProjectManager || !globalProjectManager->currentOpenComponent)
+        return;
+
+    AbstractGraphicsObject* item = p_selectedItem;
+
+    p_selectedItem = nullptr;
+    setInteractionState(InteractionState::NONE);
+
+    switch (item->graphicsObjectType())
+    {
+        case AbstractGraphicsObject::GraphicsObjectTypes::PIN:
+        {
+            auto* pin = static_cast<Pin*>(item->parentPropagator);
+
+            globalProjectManager->gridManager.removeFromGrid(pin->getGridPosition(), pin);
+            globalProjectManager->currentOpenComponent->removePropagator(pin);
+
+            globalProjectManager->currentOpenComponent->notifyInstancesOfStructureChange();
+            break;
+        }
+
+        case AbstractGraphicsObject::GraphicsObjectTypes::COMPONENT:
+        {
+            auto* component = static_cast<Component*>(item->parentPropagator);
+
+            for (Pin* pin : component->getPins()) {
+                globalProjectManager->gridManager.removeFromGrid(component->getGridPosition() + pin->getAppearancePosition(), pin);
+            }
+
+            globalProjectManager->currentOpenComponent->removePropagator(component);
+            break;
+        }
+
+        case AbstractGraphicsObject::GraphicsObjectTypes::SEGMENT:
+        {
+            auto* wire = static_cast<Wire*>(item->parentPropagator);
+            auto* wireGraphics = wire->graphicsObject;
+
+            const int index = wire->nearestSegmentIndex(p_selectionGridPosition);
+
+            globalProjectManager->gridManager.removeFromGrid(wire->segments, wire);
+
+            if (wireGraphics) {
+                wireGraphics->beginGeometryChange();
+            }
+
+            if (index >= 0) {
+                wire->removeSegmentAt(static_cast<size_t>(index));
+            }
+
+            if (wire->segments.empty()) {
+                globalProjectManager->currentOpenComponent->removePropagator(wire);
+            } else {
+                globalProjectManager->gridManager.addToGrid(wire->segments, wire);
+
+                if (wireGraphics) {
+                    wireGraphics->update();
+                }
+            }
+
+            break;
+        }
+    }
+}
+
+void CircuitWorkspace::cancelCurrentPlacement()
+{
+    if (p_componentGhost) {
+        scene()->removeItem(p_componentGhost);
+        delete p_componentGhost;
+        p_componentGhost = nullptr;
+    }
+    p_componentToPlace = nullptr;
+    p_temporaryComponentToPlace = nullptr;
+
+    if (p_pinGhost) {
+        scene()->removeItem(p_pinGhost);
+        delete p_pinGhost;
+        p_pinGhost = nullptr;
+    }
+    p_temporaryPinToPlace = nullptr;
+
+    setInteractionState(InteractionState::NONE);
+}
+
 void CircuitWorkspace::updateWorkspacePosition() {
     setSceneRect(p_xposition, p_yposition, p_width, p_height);
 }
@@ -409,27 +525,14 @@ int CircuitWorkspace::getMaxYPosition() const {
 
 void CircuitWorkspace::reset() {
   scene()->clear();
-  p_componentGhost = nullptr;
-  p_selectedItem = nullptr;
-  backgroundGridItem = nullptr;
-
-  p_componentToPlace = nullptr;
-  p_temporaryComponentToPlace.reset();
-
   updateWorkspacePosition();
 }
 
 void CircuitWorkspace::onComponentSelected(
     const SentinelComponent& component)
 {
-    // Cancel any existing interaction
-    if (p_componentGhost) {
-        p_componentGhost->scene()->removeItem(p_componentGhost);
-        delete p_componentGhost;
-        p_componentGhost = nullptr;
-    }
-
-    p_selectedItem = nullptr;
+    // Cancel any existing interaction (component OR pin placement).
+    cancelCurrentPlacement();
 
     p_componentToPlace = &component;
     p_temporaryComponentToPlace = std::make_unique<Component>(component);
@@ -462,11 +565,37 @@ void CircuitWorkspace::onComponentEditRequested(
     const SentinelComponent& component)
 {
   //please cancel any component placement!
-  setInteractionState(InteractionState::NONE);
-  p_temporaryComponentToPlace.reset();
-  p_componentToPlace = nullptr;
-  p_componentGhost->scene()->removeItem(p_componentGhost);
-  p_componentGhost = nullptr;
+  cancelCurrentPlacement();
+
     qDebug() << "edit reuqested"
              << QString::fromStdString(component.getName());
+}
+
+void CircuitWorkspace::startPlacingPin()
+{
+    if (!globalProjectManager || !globalProjectManager->currentOpenComponent)
+        return;
+
+    // Cancel any existing interaction (component OR pin placement).
+    cancelCurrentPlacement();
+
+    p_temporaryPinToPlace = std::make_unique<Pin>(*globalProjectManager->currentOpenComponent);
+    p_temporaryPinToPlace->setName("pin");
+
+    setInteractionState(InteractionState::PLACING_PIN);
+
+    p_pinGhost = new PinGraphicsObject(*p_temporaryPinToPlace);
+    p_pinGhost->setGhostMode(true);
+
+    scene()->addItem(p_pinGhost);
+
+    // Put it initially under the mouse
+    const QPoint mousePos = mapFromGlobal(QCursor::pos());
+    const Position position = convertEventPosToPosition(mousePos);
+
+    p_temporaryPinToPlace->setGridPosition(position);
+    p_pinGhost->updateWorkspacePosition();
+    p_pinGhost->update();
+
+    qDebug() << "Placing a new pin";
 }

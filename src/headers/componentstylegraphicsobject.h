@@ -129,6 +129,8 @@ public:
     // ComponentStyleGraphicsObject::HitType keep compiling.
     using HitType = StyleHitType;
 
+    SentinelComponent& getSentinelComponent() {return component;}
+
 
 private:
 

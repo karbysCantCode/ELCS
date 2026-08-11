@@ -7,6 +7,7 @@
 #include "componenttoolbox.h"
 #include "filehelper.h"
 #include "circuitstyleworkspace.h"
+#include "coregates.h"
 
 #include <format>
 
@@ -30,6 +31,24 @@ void ProjectManager::onComponentEditRequested(const SentinelComponent& component
 }
 
 void ProjectManager::dummyLoad() {
+  auto OR = std::make_unique<SentinelComponent>(CoreGates::makeOR());
+  auto AND = std::make_unique<SentinelComponent>(CoreGates::makeAND());
+  auto XOR = std::make_unique<SentinelComponent>(CoreGates::makeXOR());
+  auto NAND = std::make_unique<SentinelComponent>(CoreGates::makeNAND());
+  auto NOR = std::make_unique<SentinelComponent>(CoreGates::makeNOR());
+  auto XNOR = std::make_unique<SentinelComponent>(CoreGates::makeXNOR());
+  auto NOT = std::make_unique<SentinelComponent>(CoreGates::makeNOT());
+  auto BUFFER = std::make_unique<SentinelComponent>(CoreGates::makeBUFFER());
+
+  components.emplace(OR->getName(), std::move(OR));
+  components.emplace(AND->getName(), std::move(AND));
+  components.emplace(XOR->getName(), std::move(XOR));
+  components.emplace(NAND->getName(), std::move(NAND));
+  components.emplace(NOR->getName(), std::move(NOR));
+  components.emplace(XNOR->getName(), std::move(XNOR));
+  components.emplace(NOT->getName(), std::move(NOT));
+  components.emplace(BUFFER->getName(), std::move(BUFFER));
+
   auto files = getFilesInDirectory(std::filesystem::path(RESOURCES_PATH));
   for (const auto& file : files) {
     if (file.extension() != SAVE_FILE_EXTENSION) continue;

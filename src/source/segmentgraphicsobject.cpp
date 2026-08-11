@@ -109,6 +109,8 @@ void SegmentGraphicsObject::paint(
                 segment.end.getGridScaledCopy().getQPointF()
             );
         }
+
+        paintSelectionHighlight(painter, boundingRect());
     }
 }
 

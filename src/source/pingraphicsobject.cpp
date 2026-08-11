@@ -39,160 +39,34 @@ void PinGraphicsObject::paint(
     painter->setFont(font);
     painter->drawText( textRect, Qt::AlignCenter, name );
   } 
+
+  if (isSelected())
+  {
+      paintSelectionHighlight(painter, boundingRect());
+  }
 } 
 
 void PinGraphicsObject::updateWorkspacePosition() {
-    // setPos(pin.getGridPosition().getGridScaledCopy().getQPointF());
     const Position gridPos = pin.getGridPosition();
     const Position scaledPos = gridPos.getGridScaledCopy();
     const QPointF scenePos = scaledPos.getQPointF();
 
-    qDebug() << "grid:"
-             << gridPos.x
-             << gridPos.y;
-
-    qDebug() << "scene:"
-             << scenePos;
-
-    qDebug() << "before:"
-             << pos();
-
     setPos(scenePos);
-
-    qDebug() << "after:"
-             << pos();
 }
-  
-// void PinGraphicsObject::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) 
-// { 
-//   if (event->button() == Qt::LeftButton && !currentEdit) { 
-//     qDebug("double");
-//     moving = false;
-//     pressed = false;
-//     ungrabMouse(); 
 
-//     showText = false;
-//     currentEdit = new QLineEdit;
-//     currentEdit->setText(name);
-//     QFont font("Arial", 12); 
-//     currentEdit->setFont(font);
+void PinGraphicsObject::setGhostMode(bool enabled)
+{
+    if (ghost == enabled)
+        return;
 
-//     QGraphicsProxyWidget* proxy = scene()->addWidget(currentEdit);
-//     proxy->setParentItem(this);
-//     proxy->setPos(30, -12);
-//     proxy->resize(10, 24);
+    ghost = enabled;
 
-//     currentEdit->setStyleSheet(
-//       "QLineEdit {"
-//       "    background-color: #333333;"
-//       "    color: white;"
-//       "    border: 2px solid black;"
-//       "    border-radius: 4px;"
-//       "    padding-left: 4px;"
-//       "}"
-//     );
+    setOpacity(ghost ? 0.45 : 1.0);
 
-//     auto resizeEdit = [this, proxy]() { 
-//       QFontMetrics fm(this->currentEdit->font());
-//       name = this->currentEdit->text();
-//       int width = fm.horizontalAdvance(this->currentEdit->text()) + PADDING;
-//       this->prepareGeometryChange();
-//       this->update();
-//       proxy->resize(width, 24);
-//     };
-    
-//     resizeEdit();
+    update();
+}
 
-//     QObject::connect(currentEdit, &QLineEdit::textChanged, [resizeEdit]() { 
-//       resizeEdit();
-//     });
-//     QObject::connect(currentEdit, &QLineEdit::editingFinished, 
-//       [this, proxy]() { 
-//         name = this->currentEdit->text();
-//         showText = true;
-
-//         currentEdit->clearFocus();
-//         proxy->deleteLater();
-
-//         currentEdit = nullptr;
-
-//         update();
-//       }
-//     );
-
-//     currentEdit->setFocus(Qt::OtherFocusReason);
-//     event->accept();
-//     return;
-//   } 
-//   QGraphicsItem::mouseDoubleClickEvent(event);
-// }
-
-// void PinGraphicsObject::mousePressEvent(QGraphicsSceneMouseEvent* event)
-// {
-//   if (currentEdit) {
-//     QGraphicsItem::mousePressEvent(event);
-//     return;
-//   }
-
-//   if(event->button() == Qt::LeftButton)
-//   {
-//     qDebug("A");
-//     pressed = true;
-//     moving = false;
-
-//     scene()->clearFocus();
-
-//     pressPosition = event->scenePos();
-//     dragOffset = event->pos();
-
-//     event->accept();
-//     return;
-//   }
-
-//   QGraphicsItem::mousePressEvent(event);
-// }
-
-// void PinGraphicsObject::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
-// {
-//   if(pressed)
-//   {
-//     if(!moving &&
-//       (event->scenePos()-pressPosition).manhattanLength() > 5)
-//     {
-//       moving = true;
-//       globalProjectManager->gridManager.removeFromGrid(pin.relPosition, &pin);
-//     }
-
-//     if(moving) {
-//       auto pos = event->scenePos()-dragOffset;
-//       Position nPos = {int(std::floor((pos.x()-5)/10.0)),
-//                        int(std::floor((pos.y()-5)/10.0))};
-//       qDebug(std::format("{}x {}y :old {}x {}y", nPos.x,nPos.y, pin.relPosition.x, pin.relPosition.y).c_str());
-//       if (nPos != pin.relPosition) {
-//         // globalProjectManager->gridManager.removeFromGrid(pin.relPosition, &pin);
-//         // globalProjectManager->gridManager.addToGrid(nPos, &pin);
-//         pin.relPosition = nPos;
-//         setPos(pin.qGridPosition());
-//         prepareGeometryChange();
-//         update();
-//       }
-//     }
-
-//     event->accept();
-//   }
-// }
-
-// void PinGraphicsObject::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
-// {
-//   if (event->button() == Qt::LeftButton) {
-//     pressed = false;
-//     if (moving) {
-//       moving = false;
-//       globalProjectManager->gridManager.addToGrid(pin.relPosition, &pin);
-//     }
-//     event->accept();
-//     return;
-//   }
-
-//   QGraphicsItem::mouseReleaseEvent(event);
-// }
+bool PinGraphicsObject::ghostMode() const
+{
+    return ghost;
+}

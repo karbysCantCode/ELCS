@@ -10,11 +10,6 @@ ComponentGraphicsObject::ComponentGraphicsObject(
     : AbstractGraphicsObject(&component, parent),
       component(component)
 {
-    // setFlag(QGraphicsItem::ItemIsMovable, false);
-    // setFlag(QGraphicsItem::ItemIsSelectable, true);
-
-    // setAcceptHoverEvents(true);
-
     refresh();
 }
 
@@ -234,6 +229,11 @@ void ComponentGraphicsObject::paint(
     }
 
     paintPins(painter);
+
+    if (isSelected())
+    {
+        paintSelectionHighlight(painter, boundingRect());
+    }
 }
 
 QRectF ComponentGraphicsObject::calculateBoundingRect() const
@@ -310,9 +310,5 @@ QPointF ComponentGraphicsObject::appearanceToPixel(
     const Position& position
 ) const
 {
-    // const Position& componentPosition = component.getGridPosition();
-
-    // return (position + componentPosition).getGridScaledCopy(0).getQPointF();
     return position.getGridScaledCopy(0).getQPointF();
-
 }

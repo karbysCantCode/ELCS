@@ -36,11 +36,14 @@ public:
   QRectF boundingRect() const override;
 
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) override;
+
+  // Ghosted while being placed (startPlacingPin()'s follow-the-cursor
+  // preview) -- reduced opacity so it reads as "not committed yet",
+  // same idiom as ComponentGraphicsObject's ghost mode.
+  void setGhostMode(bool enabled);
+  bool ghostMode() const;
+
 protected:
-  // void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override;
-  // void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
-  // void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
-  // void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
   // int type() const override
   // {
   //     return PinGraphicsObject::Type;
@@ -54,7 +57,8 @@ private:
   QPointF dragOffset;
   bool pressed = false;
   QPointF pressPosition;
+
+  bool ghost = false;
 };
 
 #endif // PINGRAPHICSITEM_H
-

@@ -1260,6 +1260,67 @@ void CircuitStyleWorkspace::emitAppearanceChanged()
     if (p_graphicsObject)
         p_graphicsObject->refresh();
 
+    const auto& appearance = p_graphicsObject->getSentinelComponent().getAppearance();
+
+    qDebug() << "========== COMPONENT APPEARANCE ==========";
+
+    qDebug() << "Anchor:"
+             << "(" << appearance.anchor.x
+             << "," << appearance.anchor.y << ")";
+
+    qDebug() << "Lines:" << appearance.lines.size();
+
+    for (size_t i = 0; i < appearance.lines.size(); ++i)
+    {
+        const auto& line = appearance.lines[i];
+
+        qDebug() << "  Line" << i
+                 << ":"
+                 << "(" << line.begin.x << "," << line.begin.y << ")"
+                 << "->"
+                 << "(" << line.end.x << "," << line.end.y << ")"
+                 << "color =" << line.color
+                 << "width =" << line.width;
+    }
+
+    qDebug() << "Curves:" << appearance.curves.size();
+
+    for (size_t i = 0; i < appearance.curves.size(); ++i)
+    {
+        const auto& curve = appearance.curves[i];
+
+        qDebug() << "  Curve" << i
+                 << ":"
+                 << "begin ="
+                 << "(" << curve.begin.x << "," << curve.begin.y << ")"
+                 << "control1 ="
+                 << "(" << curve.control1.x << "," << curve.control1.y << ")"
+                 << "control2 ="
+                 << "(" << curve.control2.x << "," << curve.control2.y << ")"
+                 << "end ="
+                 << "(" << curve.end.x << "," << curve.end.y << ")"
+                 << "color =" << curve.color
+                 << "width =" << curve.width;
+    }
+
+    qDebug() << "Labels:" << appearance.labels.size();
+
+    for (size_t i = 0; i < appearance.labels.size(); ++i)
+    {
+        const auto& label = appearance.labels[i];
+
+        qDebug() << "  Label" << i
+                 << ":"
+                 << "text =" << label.text
+                 << "position ="
+                 << "(" << label.position.x
+                 << "," << label.position.y << ")"
+                 << "color =" << label.color
+                 << "fontSize =" << label.fontSize;
+    }
+
+    qDebug() << "===========================================";
+
     emit componentAppearanceChanged();
 }
 

@@ -99,7 +99,7 @@ public:
 
     Propagator() {};
     Propagator(const Propagator& propagator);
-    virtual ~Propagator() = default;
+    virtual ~Propagator();
 };
 
 struct Segment {
@@ -135,9 +135,21 @@ public:
     std::pair<bool, std::unordered_set<Segment, SegmentHash>> trimCollidingAgainstWire(Wire* other);
     void reset();
 
-    // void findAndGridRemoveSegment(const Position& position);
-
     void setGraphicsObject(SegmentGraphicsObject* object)  {graphicsObject=object;}
+
+    // Removes the segment at `index`. Returns true if a segment was
+    // removed (false if index was out of range). Caller is
+    // responsible for unregistering the removed segment from the
+    // grid first (mirrors how the rest of this class leaves grid
+    // bookkeeping to the caller, e.g. mergeCollidingWires()).
+    bool removeSegmentAt(size_t index);
+
+    // Index of whichever segment sits closest to `point` (grid
+    // space), or -1 if this wire has no segments. Used to figure out
+    // which segment a user meant when deleting part of a
+    // multi-segment wire (segments are axis-aligned, so this is a
+    // simple clamped-point distance check).
+    int nearestSegmentIndex(const Position& point) const;
 
     // does not sync effectors and affectors.
     Wire(const Wire& wireToCopy);
@@ -197,6 +209,11 @@ public:
     Pin(Component& _parent, States* _state = nullptr) : parent(_parent), state(_state) {}
     // does not sync effectors and affectors.
     Pin(const Pin& pinToCopy, Component& _parent);
+
+    // Cleans up this pin's graphics item, mirroring Wire::~Wire() --
+    // needed now that pins can be deleted interactively rather than
+    // only ever existing for the lifetime of the whole program.
+    ~Pin();
 private:
     Operations effectorOperation = Operations::BUFFER;
     Position appearancePosition;
