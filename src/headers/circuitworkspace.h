@@ -38,7 +38,43 @@ public slots:
     void onComponentSelected(const SentinelComponent& component);
     void onComponentEditRequested(const SentinelComponent& component);
 
+    /*
+        Begins placing a new pin on whichever component is currently
+        open for editing. A ghosted PinGraphicsObject follows the
+        cursor (same idiom as onComponentSelected()'s ghost) until
+        the next left click, which finalizes it into a real pin via
+        ProjectManager::addNewPropagator() and un-ghosts by simply
+        handing off to the normal (non-ghost) registration path.
+        Escape cancels. Wire placement is untouched -- it keeps its
+        existing click-drag-release flow.
+    */
     void startPlacingPin();
+
+signals:
+    /*
+        Tutorial / scripting hooks. The workspace has no idea
+        tutorials exist -- these just report "something changed" so
+        anything (a TutorialManager, logging, whatever) can react.
+
+        Pointers are valid only for the duration of the signal
+        emission. itemDeleted()/wireModified() in particular are
+        emitted *before* the underlying change actually happens
+        (deletion/segment removal), specifically so a listener can
+        still safely read or pointer-compare it. Don't store the
+        pointer past the connected slot call.
+    */
+    void componentPlaced(Component* component);
+    void pinPlaced(Pin* pin);
+    void wirePlaced(Wire* wire);
+
+    // A wire lost a segment but is still alive (had more than one
+    // segment left). Full removal of a wire goes through
+    // itemDeleted() instead.
+    void wireModified(Wire* wire);
+
+    void itemDeleted(AbstractPropagator* propagator);
+    void itemSelected(AbstractPropagator* propagator);
+    void selectionCleared();
 
 protected:
     void resizeEvent ( QResizeEvent * event ) override;
@@ -83,6 +119,7 @@ private:
     const SentinelComponent* p_componentToPlace = nullptr;
     ComponentGraphicsObject* p_componentGhost = nullptr;
 
+    // Pin placement -- mirrors the component-ghost members above.
     std::unique_ptr<Pin> p_temporaryPinToPlace;
     PinGraphicsObject* p_pinGhost = nullptr;
 

@@ -18,15 +18,8 @@
 
 namespace
 {
-    // Marks the start of the (newer, optional) appearance section
-    // appended to the end of a saved component file. Older files
-    // saved before appearance persistence was added simply won't
-    // have this, and loading tolerates that.
     constexpr uint32_t COMPONENT_APPEARANCE_SECTION_MAGIC = 0x41505052; // 'APPR'
 
-    // Any count read from a save file above this is treated as
-    // corruption rather than a legitimately huge component -- avoids
-    // trying to allocate/loop on garbage data.
     constexpr uint32_t MAX_SANE_COUNT = 1'000'000;
 
     void checkSaneCount(uint32_t value, const char* what)
@@ -39,16 +32,6 @@ namespace
         }
     }
 
-    /*
-        Shared packed-string helpers.
-
-        Format: [length (uint32)] followed by ceil(length/4) uint32s,
-        each holding up to 4 little-endian-packed bytes. Used for
-        every string this file persists (component names, pin names,
-        nested-component references, and -- via
-        ComponentAppearance::loadFromReader/saveToAddress -- label
-        text).
-    */
 
     size_t packedStringUint32s(const std::string& text)
     {
@@ -82,9 +65,6 @@ namespace
             buffer.push_back(word);
     }
 
-    // Same layout, written directly into a pre-sized address instead
-    // of appended to a vector. Returns the number of uint32s written
-    // (always equal to packedStringUint32s(text)).
     size_t writePackedStringToAddress(uint32_t* address, const std::string& text)
     {
         uint32_t* start = address;
@@ -159,7 +139,6 @@ struct SegmentHash
     }
 };
 
-//if attending to destroy, ensure destroy is correct in mergeCollidingWires.
 Wire::~Wire() {
   qDebug(std::format("destroyingguhhhh 0x{:x}",(unsigned long long)graphicsObject).c_str());
   if (graphicsObject) {
@@ -465,28 +444,7 @@ void Propagator::addRelatedPropagator(AbstractPropagator* abstract) {
 }
 
 Propagator::~Propagator() {
-    /*
-        Belt-and-suspenders cleanup.
 
-        Grid-based forget()/addRelatedPropagator() bookkeeping
-        (ComponentHolder::removeFromGrid/addToGrid) is what's
-        *supposed* to keep every propagator's effectors/affectors in
-        sync as things are added, removed, or moved -- but it relies
-        on propagators actually being found in the right grid cells
-        at the right time, and that's not always reliable: a
-        multi-segment wire can be registered across several cells
-        with legitimate overlaps at corners/junctions, and a nested
-        component's pins are registered under a different (scaled)
-        coordinate space than a wire's segments are. Either can leave
-        a stale entry that a later removeFromGrid() call never finds,
-        so its forgetPropagator() never fires.
-
-        Regardless of whether the grid-side cleanup was complete,
-        make sure nothing ends up holding a dangling pointer to this
-        propagator once it's actually gone: walk our own
-        effectors/affectors and remove ourselves from their reverse
-        sets directly.
-    */
     for (Propagator* effector : effectors) {
         effector->affectors.erase(this);
     }
@@ -688,9 +646,7 @@ States Propagator::evaluateTwoStates(const States& stateA, const States& stateB)
     }
 }
 
-/*
-    ================= Save / load =================
-*/
+
 
 bool SentinelComponent::saveToFile(const std::filesystem::path& path) const
 {
@@ -734,13 +690,6 @@ bool SentinelComponent::saveToFile(const std::filesystem::path& path) const
             propagatorIndex += component->getUint32sToSave();
         }
 
-        /*
-            Appearance -- only meaningful on a definition (this
-            sentinel's own shape); placed instances derive theirs
-            live from Component::getAppearance(), so there's nothing
-            extra to persist for the nested-component references
-            saved above.
-        */
         buffer.push_back(COMPONENT_APPEARANCE_SECTION_MAGIC);
 
         const size_t appearanceUint32s = appearance.getUint32sToSave();
@@ -854,13 +803,9 @@ bool SentinelComponent::loadFromFile(const std::filesystem::path& path) {
         }
     }
 
-    isResolved(); // refresh `resolved` cache; unresolved refs get
-                   // backfilled later via informAddedComponentToSeeIfFullyResolved()
+    isResolved(); 
 
-    /*
-        Appearance is a newer addition to the format -- tolerate
-        older files that don't have it instead of failing to load.
-    */
+
     if (pos < buffer.size() && buffer[pos] == COMPONENT_APPEARANCE_SECTION_MAGIC) {
       pos++;
       appearance.loadFromReader(readU32);
@@ -932,9 +877,6 @@ void Wire::saveToAddress(uint32_t* data) const {
 Wire::Wire(const Wire& wireToCopy) : segments(wireToCopy.segments), Propagator(wireToCopy) {
 }
 
-/*
-    ================= Component lifetime =================
-*/
 
 Component::~Component()
 {
@@ -955,9 +897,6 @@ Component::~Component()
 
 SentinelComponent::~SentinelComponent()
 {
-    // Don't leave any still-alive instance pointing at a dead
-    // sentinel -- Component::getAppearance()/~Component() would
-    // otherwise dereference/unregister-from a dangling pointer.
     for (Component* instance : instances) {
         instance->clearSourceSentinel();
     }
@@ -1015,9 +954,6 @@ Component::Component(const Component& componentToCopy)
         wire->copyEffectorsAndEffectors(*propagator, oldNewPropagatorPointerMap);
     }
 
-    // A copy of an instance is itself considered an instance of the
-    // same sentinel (e.g. duplicating a placed component within a
-    // circuit), so it keeps receiving future structural updates too.
     sourceSentinel = componentToCopy.sourceSentinel;
     if (sourceSentinel) {
         sourceSentinel->registerInstance(this);
@@ -1086,13 +1022,10 @@ void Component::resyncFromSentinel()
         auto it = existingByName.find(templatePin->getName());
 
         if (it != existingByName.end()) {
-            // Already have a matching pin -- keep its wiring/state,
-            // just mirror the template-driven fields.
             it->second->setEffectorOperation(templatePin->getEffectorOperation());
             it->second->setAppearancePosition(templatePin->getAppearancePosition());
             it->second->setGridPosition(templatePin->getGridPosition());
         } else {
-            // New pin on the template this instance doesn't have yet.
             auto newPin = std::make_unique<Pin>(*this);
             newPin->setName(templatePin->getName());
             newPin->setEffectorOperation(templatePin->getEffectorOperation());
@@ -1102,7 +1035,6 @@ void Component::resyncFromSentinel()
         }
     }
 
-    // Drop instance pins that no longer exist on the template.
     for (size_t i = 0; i < propagators.size(); ) {
         auto* propagator = propagators[i].get();
 
@@ -1256,9 +1188,6 @@ Component SentinelComponent::getDuplicate() const {
 
 void SentinelComponent::notifyInstancesOfStructureChange()
 {
-    // Copy first -- resyncFromSentinel() can, in principle, cause an
-    // instance's own downstream notifications to touch this set, so
-    // don't iterate the live one while it might be mutated.
     const auto instancesSnapshot = instances;
 
     for (Component* instance : instancesSnapshot) {

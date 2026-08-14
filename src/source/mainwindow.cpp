@@ -5,6 +5,8 @@
 #include "propertysection.h"
 #include "componenttoolbox.h"
 #include "circuitstyleworkspace.h"
+#include "tutorialoverlay.h"
+#include "tutorialtoolbox.h"
 
 #include <QWidget>
 #include <QStyle>
@@ -101,6 +103,11 @@ MainWindow::MainWindow(QWidget *parent)
       );
     }
   );
+
+  auto overlay = new TutorialOverlay(ui->centralwidget);
+  __tutorialOverlay = overlay;
+  __tutorialToobox = new TutorialToolbox(*__circuitworkspace,ui->toolbar);
+  ui->toolbar->layout()->addWidget(__tutorialToobox);
 
   // leave this past any ui creation
 

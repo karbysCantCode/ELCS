@@ -10,13 +10,6 @@
 #include "component.h"
 
 
-/*
-    What kind of style element a given handle item represents.
-    Lives outside both classes below so it can be shared between
-    them without ordering headaches (enum classes can't easily be
-    forward declared with a nested-class definition split across
-    two class bodies).
-*/
 enum class StyleHitType
 {
     NONE,
@@ -39,20 +32,6 @@ enum class StyleHitType
 };
 
 
-/*
-    Invisible child item that exists purely so Qt's own item-picking
-    system (QGraphicsView::itemAt() / QGraphicsScene::items()) can
-    find individual style elements -- line endpoints, curve handles,
-    labels, the anchor, pins, etc -- the same way CircuitWorkspace
-    relies on itemAt() against real graphics items on the main
-    canvas.
-
-    It paints nothing itself; the actual visuals are still drawn by
-    the owning ComponentStyleGraphicsObject::paint(). This item only
-    gives each selectable element a real QGraphicsItem with its own
-    shape() so mouse events resolve to it via normal Qt hit testing
-    instead of manual distance checks.
-*/
 class ComponentStyleHandleItem : public QGraphicsItem
 {
 public:
@@ -125,8 +104,6 @@ public:
     void refresh();
 
 
-    // Kept as an alias so existing call sites that spelled this
-    // ComponentStyleGraphicsObject::HitType keep compiling.
     using HitType = StyleHitType;
 
     SentinelComponent& getSentinelComponent() {return component;}
@@ -189,11 +166,7 @@ private:
     ) const;
 
 
-    /*
-        Rebuilds the invisible hit-test child items to match the
-        current appearance state. Called from refresh(), since the
-        number of lines/curves/labels can change (add/delete).
-    */
+    
     void rebuildHandles();
 
     ComponentStyleHandleItem* addPointHandle(

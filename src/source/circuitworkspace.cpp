@@ -23,6 +23,8 @@ CircuitWorkspace::CircuitWorkspace(QWidget* parent) {
 
     setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
 
+    // Needed for keyPressEvent (Delete/Backspace/Escape) to actually
+    // reach this widget.
     setFocusPolicy(Qt::StrongFocus);
 
 }
@@ -85,7 +87,10 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
             convertEventPosToPosition(event->pos());
 
         // Actually create the component
-        globalProjectManager->addNewPropagator(std::move(p_componentToPlace->createDerivativeComponent(position)));
+        AbstractPropagator* placed =
+            globalProjectManager->addNewPropagator(std::move(p_componentToPlace->createDerivativeComponent(position)));
+
+        emit componentPlaced(static_cast<Component*>(placed));
 
         // Remove ghost
         if (p_componentGhost) {
@@ -115,13 +120,24 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
 
         p_temporaryPinToPlace->setGridPosition(position);
 
+        // appearancePosition is what actually gets drawn once this
+        // pin is nested inside a placed component elsewhere (see
+        // ComponentGraphicsObject::paintPins()) -- without setting it
+        // too, it stays at its default (0,0) and every pin would
+        // render stacked at the component's own origin no matter
+        // where it was actually placed here.
+        p_temporaryPinToPlace->setAppearancePosition(position);
+
         SentinelComponent* openComponent = globalProjectManager->currentOpenComponent;
 
         // Hands ownership to the currently open component;
         // addNewPropagator() registers it in the grid and creates
         // its real (un-ghosted) PinGraphicsObject -- the ghost item
         // itself is just discarded below.
-        globalProjectManager->addNewPropagator(std::move(p_temporaryPinToPlace));
+        AbstractPropagator* placed =
+            globalProjectManager->addNewPropagator(std::move(p_temporaryPinToPlace));
+
+        emit pinPlaced(static_cast<Pin*>(placed));
 
         if (p_pinGhost) {
             scene()->removeItem(p_pinGhost);
@@ -177,7 +193,6 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
           break;
         }
         case InteractionState::WIRING: {
-          /* code */
           event->accept();
           return;
           break;
@@ -269,6 +284,11 @@ void CircuitWorkspace::mouseMoveEvent(QMouseEvent *event)  {
 
     p_temporaryComponentToPlace->setGridPosition(position);
 
+    // This was the ghost-doesn't-track-the-cursor bug: updating the
+    // underlying Component's gridPosition data does nothing to the
+    // ghost QGraphicsItem's actual on-screen pos() -- update() only
+    // repaints it in place. Need to actually move it.
+    p_componentGhost->updateWorkspacePosition();
     p_componentGhost->update();
 
     event->accept();
@@ -306,17 +326,21 @@ void CircuitWorkspace::mouseDoubleClickEvent(QMouseEvent* event)
 
   if (!item || item == backgroundGridItem) {
     setInteractionState(InteractionState::NONE);
+    emit selectionCleared();
     return;
   }
   auto* abstractItem = dynamic_cast<AbstractGraphicsObject*>(item);
   if (!abstractItem) {
     setInteractionState(InteractionState::NONE);
+    emit selectionCleared();
     return;
   }
 
   switch (interactionState) {
     case InteractionState::NONE: 
     case InteractionState::SELECTED_ITEM: {
+      // Deselect whatever was selected before (if different), so
+      // its highlight/Qt-selection flag doesn't stick around.
       if (p_selectedItem && p_selectedItem != abstractItem) {
           p_selectedItem->setSelected(false);
           p_selectedItem->update();
@@ -330,6 +354,8 @@ void CircuitWorkspace::mouseDoubleClickEvent(QMouseEvent* event)
       p_selectedItem->update();
 
       setInteractionState(InteractionState::SELECTED_ITEM);
+
+      emit itemSelected(p_selectedItem->parentPropagator);
 
       qDebug() << "Selected graphics item:"
               << p_selectedItem;
@@ -363,7 +389,8 @@ void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
       tempWire.segments = std::move(newSegments);
 
       auto unique = std::make_unique<Wire>(tempWire);
-      globalProjectManager->addNewPropagator(std::move(unique));
+      AbstractPropagator* placed = globalProjectManager->addNewPropagator(std::move(unique));
+      emit wirePlaced(static_cast<Wire*>(placed));
       event->accept();
       return;
       break;
@@ -420,6 +447,8 @@ void CircuitWorkspace::deleteSelectedItem()
 
     AbstractGraphicsObject* item = p_selectedItem;
 
+    // Clears p_selectedItem/Qt-selection flag via setInteractionState's
+    // existing cleanup.
     p_selectedItem = nullptr;
     setInteractionState(InteractionState::NONE);
 
@@ -429,9 +458,15 @@ void CircuitWorkspace::deleteSelectedItem()
         {
             auto* pin = static_cast<Pin*>(item->parentPropagator);
 
+            emit itemDeleted(pin);
+
             globalProjectManager->gridManager.removeFromGrid(pin->getGridPosition(), pin);
             globalProjectManager->currentOpenComponent->removePropagator(pin);
 
+            // The currently-open component is always a sentinel
+            // (definitions are what get edited here) -- removing one
+            // of its pins is a structural change placed instances
+            // elsewhere need to pick up.
             globalProjectManager->currentOpenComponent->notifyInstancesOfStructureChange();
             break;
         }
@@ -440,8 +475,13 @@ void CircuitWorkspace::deleteSelectedItem()
         {
             auto* component = static_cast<Component*>(item->parentPropagator);
 
+            emit itemDeleted(component);
+
             for (Pin* pin : component->getPins()) {
-                globalProjectManager->gridManager.removeFromGrid(component->getGridPosition() + pin->getAppearancePosition(), pin);
+                globalProjectManager->gridManager.removeFromGrid(
+                    component->getGridPosition() + pin->getAppearancePosition(),
+                    pin
+                );
             }
 
             globalProjectManager->currentOpenComponent->removePropagator(component);
@@ -466,6 +506,7 @@ void CircuitWorkspace::deleteSelectedItem()
             }
 
             if (wire->segments.empty()) {
+                emit itemDeleted(wire);
                 globalProjectManager->currentOpenComponent->removePropagator(wire);
             } else {
                 globalProjectManager->gridManager.addToGrid(wire->segments, wire);
@@ -473,6 +514,8 @@ void CircuitWorkspace::deleteSelectedItem()
                 if (wireGraphics) {
                     wireGraphics->update();
                 }
+
+                emit wireModified(wire);
             }
 
             break;
@@ -551,9 +594,8 @@ void CircuitWorkspace::onComponentSelected(
     QPoint mousePos = mapFromGlobal(QCursor::pos());
     Position position = convertEventPosToPosition(mousePos);
 
-    p_componentGhost->setPos(
-        position.getGridScaledCopy().getQPointF()
-    );
+    p_temporaryComponentToPlace->setGridPosition(position);
+    p_componentGhost->updateWorkspacePosition();
 
     p_componentGhost->update();
 

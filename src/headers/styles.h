@@ -1,113 +1,129 @@
 #ifndef STYLES_H
 #define STYLES_H
 
+
 #define STYLESHEET_TEXTEDIT \
 "QTextEdit {" \
-" background: #3a3a3a;" \
-" color: white;" \
-" border: 1px solid #555;" \
+" background: #11141a;" \
+" color: #e5e7eb;" \
+" border: 1px solid #2d323d;" \
 " border-radius: 4px;" \
 " padding: 8px;" \
 " font-size: 14px;" \
 "}" \
 "QTextEdit:focus {" \
-" border: 1px solid #4da6ff;" \
+" border: 1px solid #3d8cff;" \
 "}"
+
 
 #define STYLESHEET_BUTTON_NORMAL \
 "QPushButton {" \
-" background: #444444;" \
-" color: white;" \
-" border: 1px solid #555555;" \
+" background: #1a1d25;" \
+" color: #e5e7eb;" \
+" border: 1px solid #303541;" \
 " border-radius: 4px;" \
 " padding: 8px 18px;" \
 " font-size: 14px;" \
 "}" \
 "QPushButton:hover {" \
-" background: #555555;" \
+" background: #222631;" \
+" border: 1px solid #3c4351;" \
 "}" \
 "QPushButton:pressed {" \
-" background: #333333;" \
+" background: #12151b;" \
 "}"
 
 
 #define STYLESHEET_BUTTON_MAIN \
 "QPushButton {" \
-" background: #2d8cff;" \
+" background: #2878d4;" \
 " color: white;" \
-" border: 1px solid #a3ccff;" \
-" border-radius: 4px;" \
-" padding: 8px 18px;" \
+" border: 1px solid #5da0ee;" \
+" border-radius: 6px;" \
+" padding: 10px 24px;" \
 " font-size: 14px;" \
 "}" \
 "QPushButton:hover {" \
-" background: #4da6ff;" \
+" background: #3589e8;" \
+" border: 1px solid #79b4f5;" \
 "}" \
 "QPushButton:pressed {" \
-" background: #1c6dcc;" \
+" background: #1d5fae;" \
+" border: 1px solid #4c8ed0;" \
 "}"
+
 
 #define STYLESHEET_BUTTON_DANGER \
 "QPushButton {" \
-" background: #d9534f;" \
-" color: white;" \
-" border: 1px solid #ffbab8;" \
+" background: #642a2a;" \
+" color: #ffdddd;" \
+" border: 1px solid #8b3b3b;" \
 " border-radius: 4px;" \
 " padding: 8px 18px;" \
 " font-size: 14px;" \
 "}" \
 "QPushButton:hover {" \
-" background: #e57373;" \
+" background: #7b3030;" \
+" border: 1px solid #a64b4b;" \
 "}" \
 "QPushButton:pressed {" \
-" background: #b52b27;" \
+" background: #4d2020;" \
 "}"
+
 
 #define STYLESHEET_FRAME_MAIN \
 "QFrame {" \
-" background: #2b2b2b;" \
+" background: #11141b;" \
 "}"
+
 
 #define STYLESHEET_FRAME_SECONDARY \
 "QFrame {" \
-" background: #333333;" \
+" background: #171a22;" \
 "}"
+
 
 #define STYLESHEET_WIDGET_SECONDARY \
 "QWidget {" \
-" background: #333333;" \
+" background: #171a22;" \
 " border: none;" \
 " border-radius: 4px;" \
 "}"
 
+
 #define STYLESHEET_FRAME_CARD \
 "QFrame {" \
-" background: #3a3a3a;" \
-" border-radius: 4px;" \
-" border: 1px solid #555555;" \
+" background: #1b1f28;" \
+" border-radius: 5px;" \
+" border: 1px solid #2c313c;" \
 "}"
 
+
 #define STYLESHEET_OVERLAY \
-"background: rgba(0,0,0,120);"
+"background: rgba(0,0,0,175);"
+
 
 #define STYLESHEET_LABEL_TEXT \
 "QLabel {" \
-" color: #dddddd;" \
+" color: #d5d9e0;" \
 " font-size: 14px;" \
 "}"
 
+
 #define STYLESHEET_LABEL_TITLE \
 "QLabel {" \
-" color: white;" \
+" color: #f3f4f6;" \
 " font-size: 20px;" \
 " font-weight: bold;" \
 "}"
 
+
 #define STYLESHEET_LABEL_SECONDARY \
 "QLabel {" \
-" color: #aaaaaa;" \
+" color: #858c99;" \
 " font-size: 12px;" \
 "}"
+
 
 #define STYLESHEET_LABEL_ERROR \
 "QLabel {" \
@@ -116,18 +132,20 @@
 " font-weight: bold;" \
 "}"
 
+
 #define STYLESHEET_LABEL_SUCCESS \
 "QLabel {" \
-" color: #4caf50;" \
+" color: #5fc77b;" \
 " font-size: 13px;" \
 " font-weight: bold;" \
 "}"
 
+
 #define STYLESHEET_PROPERTY_SECTION_HEADER \
 "QToolButton {" \
-" background: #3a3a3a;" \
-" color: white;" \
-" border: 1px solid #555555;" \
+" background: #1b1f28;" \
+" color: #e5e7eb;" \
+" border: 1px solid #2c313c;" \
 " border-radius: 4px;" \
 " padding: 2px;" \
 " text-align: left;" \
@@ -135,30 +153,31 @@
 " font-weight: bold;" \
 "}" \
 "QToolButton:hover {" \
-" background: #454545;" \
+" background: #222631;" \
+" border: 1px solid #3c4351;" \
 "}" \
 "QToolButton:pressed {" \
-" background: #2f2f2f;" \
+" background: #151820;" \
 "}"
 
 
 #define STYLESHEET_PROPERTY_SECTION_SCROLLAREA \
 "QScrollArea {" \
 " border: none;" \
-" background: #2b2b2b;" \
+" background: #11141b;" \
 "}" \
 "QScrollBar:vertical {" \
-" background: #2b2b2b;" \
+" background: #0b0d12;" \
 " width: 10px;" \
 " margin: 0px;" \
 "}" \
 "QScrollBar::handle:vertical {" \
-" background: #555555;" \
+" background: #292e38;" \
 " min-height: 20px;" \
 " border-radius: 5px;" \
 "}" \
 "QScrollBar::handle:vertical:hover {" \
-" background: #666666;" \
+" background: #383f4c;" \
 "}" \
 "QScrollBar::add-line:vertical," \
 "QScrollBar::sub-line:vertical {" \
@@ -172,20 +191,22 @@
 
 #define STYLESHEET_PROPERTY_CONTENT \
 "QWidget {" \
-" background: #2b2b2b;" \
+" background: #11141b;" \
 "}"
 
 
 #define STYLESHEET_PROPERTY_ROW \
 "QWidget {" \
-" background: #333333;" \
-" border: 1px solid #555555;" \
+" background: #171a22;" \
+" border: 1px solid #2c313c;" \
 " border-radius: 4px;" \
 "}" \
 "QLabel {" \
-" color: #dddddd;" \
+" color: #d5d9e0;" \
 " border: none;" \
 " background: transparent;" \
 " font-size: 13px;" \
 "}"
+
+
 #endif // STYLES_H

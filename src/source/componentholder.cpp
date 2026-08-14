@@ -11,6 +11,8 @@ std::unordered_set<Propagator*> ComponentHolder::addToGrid(const Position& posit
     auto returnCell = cell;
     for (auto* ptr : returnCell) {
         ptr->addRelatedPropagator(propagator);
+
+        propagator->addRelatedPropagator(ptr);
     }
     cell.emplace(propagator);
     return returnCell;
@@ -71,9 +73,6 @@ std::unordered_set<Propagator*> ComponentHolder::getOccupied(const std::vector<S
 void ComponentHolder::removeFromGrid(const std::vector<Position>& anchors, Propagator* propagator) {
     if (anchors.size() < 2) return;
 
-    // FIX: same off-by-one as addToGrid() above — must match it exactly,
-    // or removal will leave stale entries for whichever segment addToGrid
-    // added but removeFromGrid failed to remove (or vice versa).
     for (size_t i = 0; i + 1 < anchors.size(); i++) {
         removeFromGridAlongTwoPoints(anchors[i], anchors[i + 1], propagator);
     }

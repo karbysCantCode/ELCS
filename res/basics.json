@@ -1,0 +1,32 @@
+{
+  "title": "AND Gates and Wires",
+  "steps": [
+    {
+      "instructions": "Place two AND gates onto the workspace. Click the AND button below, then click again on the canvas to drop it.",
+      "highlight": ["toolbox", "workspace"],
+      "restrictInput": true,
+      "toolbox": ["AND"],
+      "conditions": [
+        { "type": "placeComponent", "component": "AND", "count": 2, "bind": ["gateX", "gateY"] }
+      ]
+    },
+    {
+      "instructions": "Draw a wire from an output pin of the first gate to an input pin of the second.",
+      "highlight": "workspace",
+      "conditions": [
+        { "type": "connected", "a": "$gateX", "b": "$gateY" }
+      ]
+    },
+    {
+      "instructions": "Nice work! Now select gateY (double-click it) and press Backspace to delete it.",
+      "highlight": "workspace",
+      "conditions": [
+        { "type": "deleted", "target": "$gateY" }
+      ]
+    },
+    {
+      "instructions": "That's it -- you've placed components, wired them together, and deleted one. Tutorial complete!",
+      "conditions": []
+    }
+  ]
+}

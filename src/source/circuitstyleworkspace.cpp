@@ -27,13 +27,6 @@ CircuitStyleWorkspace::CircuitStyleWorkspace(
         QGraphicsView::FullViewportUpdate
     );
 
-
-    /*
-        Large virtual workspace.
-
-        The component sits around (0,0).
-    */
-
     workspaceScene.setSceneRect(
         -5000,
         -5000,
@@ -298,13 +291,6 @@ void CircuitStyleWorkspace::mousePressEvent(
         return;
     }
 
-    /*
-        Use Qt's own item-picking system (same approach as
-        CircuitWorkspace) instead of manual distance-based hit
-        testing. The style graphics object maintains invisible
-        ComponentStyleHandleItem children -- whichever one itemAt()
-        resolves to tells us what was clicked.
-    */
 
     QGraphicsItem* hitItem =
         itemAt(event->pos());

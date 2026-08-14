@@ -10,6 +10,7 @@
 #include "componentholder.h"
 #include "propertysection.h"
 #include "circuitstyleworkspace.h"
+#include "tutorialmanager.h"
 
 class CircuitStyleWorkspace;
 class ProjectManager
@@ -21,6 +22,7 @@ public:
     CircuitStyleWorkspace* styleWorkspace = nullptr;
     ComponentHolder gridManager;
     std::unordered_set<SentinelComponent*> unresolvedSentinelComponents;
+    TutorialManager tutorialManager;
 
     void dummyLoad();
     bool createNewComponent(const std::string& name);
@@ -49,4 +51,6 @@ private:
 extern ProjectManager* globalProjectManager;
 extern CircuitWorkspace* __circuitworkspace;
 extern CircuitStyleWorkspace* __circuitStyleWorkspace;
+extern TutorialOverlay* __tutorialOverlay;
+extern TutorialToolbox* __tutorialToobox;
 #endif // PROJECTMANAGER_H

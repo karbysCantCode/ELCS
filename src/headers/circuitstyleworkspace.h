@@ -122,6 +122,7 @@ private:
 
     ComponentStyleGraphicsObject* p_graphicsObject = nullptr;
 
+    
 
     InteractionState interactionState =
         InteractionState::NONE;

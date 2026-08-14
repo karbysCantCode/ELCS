@@ -41,9 +41,6 @@ namespace
 }
 
 
-/*
-    ================= ComponentStyleHandleItem =================
-*/
 
 ComponentStyleHandleItem::ComponentStyleHandleItem(
     StyleHitType hitType,
@@ -107,9 +104,6 @@ void ComponentStyleHandleItem::setRectHitArea(
 }
 
 
-/*
-    ================= ComponentStyleGraphicsObject =================
-*/
 
 ComponentStyleGraphicsObject::ComponentStyleGraphicsObject(
     SentinelComponent& component,
@@ -463,14 +457,6 @@ void ComponentStyleGraphicsObject::paint(
 }
 
 
-/*
-    ================= Handle rebuilding =================
-
-    These build the invisible child items used purely for Qt's own
-    hit testing (itemAt() / items()), so CircuitStyleWorkspace can
-    pick elements the same way CircuitWorkspace picks items on the
-    main canvas, instead of doing manual distance/point math.
-*/
 
 ComponentStyleHandleItem* ComponentStyleGraphicsObject::addPointHandle(
     StyleHitType type,
@@ -534,9 +520,6 @@ void ComponentStyleGraphicsObject::rebuildHandles()
         component.getAppearance();
 
 
-    /*
-        Anchor.
-    */
 
     addPointHandle(
         StyleHitType::ANCHOR,
@@ -546,12 +529,6 @@ void ComponentStyleGraphicsObject::rebuildHandles()
     );
 
 
-    /*
-        Lines: one stroke handle for the body, plus point handles
-        for the two endpoints. Endpoint handles have a higher
-        z-value so they win over the body when a click lands near
-        the end of the line.
-    */
 
     for (int i = 0;
          i < static_cast<int>(appearance.lines.size());
@@ -609,11 +586,6 @@ void ComponentStyleGraphicsObject::rebuildHandles()
     }
 
 
-    /*
-        Labels: a loose rect around the drawn text. drawText()'s
-        point is the baseline's left edge, so the rect is offset
-        upward by the text height.
-    */
 
     for (int i = 0;
          i < static_cast<int>(appearance.labels.size());
@@ -636,10 +608,6 @@ void ComponentStyleGraphicsObject::rebuildHandles()
         addRectHandle(StyleHitType::LABEL, i, textRect);
     }
 
-
-    /*
-        Pins. Not draggable here, but still selectable/highlightable.
-    */
 
     const auto pins = component.getPins();
 
