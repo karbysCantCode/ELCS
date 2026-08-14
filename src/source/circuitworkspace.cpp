@@ -641,3 +641,8 @@ void CircuitWorkspace::startPlacingPin()
 
     qDebug() << "Placing a new pin";
 }
+
+void CircuitWorkspace::setState(EditingStates _state) {
+  state = _state;
+  
+}

@@ -246,12 +246,15 @@ QRectF ComponentGraphicsObject::calculateBoundingRect() const
     {
         if (first)
         {
-            result = QRectF(point, QSizeF(0, 0));
+            result = QRectF(point, point);
             first = false;
         }
         else
         {
-            result |= QRectF(point, QSizeF(0, 0));
+            result.setLeft(std::min(result.left(), point.x()));
+            result.setRight(std::max(result.right(), point.x()));
+            result.setTop(std::min(result.top(), point.y()));
+            result.setBottom(std::max(result.bottom(), point.y()));
         }
     };
 

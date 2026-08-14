@@ -14,6 +14,7 @@
 
 
 class ComponentStyleGraphicsObject;
+class QToolButton;
 
 
 class CircuitStyleWorkspace : public QGraphicsView
@@ -89,6 +90,9 @@ public:
 
     void cancelCurrentOperation();
 
+    void setLineButton(QToolButton* button) {addLineButton = button;}
+    void setCurveButton(QToolButton* button) {addCurveButton = button;}
+    void setLabelButton(QToolButton* button) {addLabelButton = button;}
 
 signals:
 
@@ -113,7 +117,6 @@ protected:
         const QRectF& rect
     ) override;
 
-
 private:
 
     QGraphicsScene workspaceScene;
@@ -122,7 +125,9 @@ private:
 
     ComponentStyleGraphicsObject* p_graphicsObject = nullptr;
 
-    
+    QToolButton* addLineButton = nullptr;
+    QToolButton* addCurveButton = nullptr;
+    QToolButton* addLabelButton = nullptr;
 
     InteractionState interactionState =
         InteractionState::NONE;

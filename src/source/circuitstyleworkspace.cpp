@@ -4,6 +4,7 @@
 #include <QCursor>
 #include <QInputDialog>
 #include <QScrollBar>
+#include <QToolButton>
 
 #include <algorithm>
 #include <cmath>
@@ -1210,6 +1211,10 @@ void CircuitStyleWorkspace::keyPressEvent(
 void CircuitStyleWorkspace::cancelCurrentOperation()
 {
     p_curveCreationStage = 0;
+
+    addLineButton->setChecked(false);
+    addCurveButton->setChecked(false);
+    addLabelButton->setChecked(false);
 
     selectedType =
         StyleElementType::NONE;

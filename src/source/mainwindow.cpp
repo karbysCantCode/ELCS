@@ -41,6 +41,10 @@ MainWindow::MainWindow(QWidget *parent)
   __circuitworkspace = ui->SimulatorCircuitWorkspace;
   __circuitStyleWorkspace = ui->StyleCircuitWorkspace;
 
+
+  __circuitStyleWorkspace->setCurveButton(ui->AddCurveButton);
+  __circuitStyleWorkspace->setLineButton(ui->AddLineButton);
+  __circuitStyleWorkspace->setLabelButton(ui->AddLabelButton);
   //below is done in main.cpp
   // globalProjectManager->workspace = __circuitworkspace;
   // globalProjectManager->styleWorkspace= __circuitStyleWorkspace;

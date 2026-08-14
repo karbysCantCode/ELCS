@@ -32,7 +32,7 @@ public:
         POKE,
     };
 
-    void setState(EditingStates _state) {state = _state;}
+    void setState(EditingStates _state);
     inline EditingStates getState() const {return state;}
 public slots:
     void onComponentSelected(const SentinelComponent& component);
