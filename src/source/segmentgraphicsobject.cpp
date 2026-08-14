@@ -48,14 +48,18 @@ void SegmentGraphicsObject::paint(
     if (wire.segments.empty())
         return;
 
+    // Wires are colored by their current propagation state (see
+    // stateColor() in component.h) rather than a fixed/random color,
+    // so the whole net visually reflects what it's carrying.
+    const QColor stateCol = stateColor(wire.getEffectingState());
 
-    QPen pen(color);
+    QPen pen(stateCol);
     pen.setWidthF(2.0);
     pen.setCapStyle(Qt::RoundCap);
     pen.setJoinStyle(Qt::RoundJoin);
 
     painter->setPen(pen);
-    painter->setBrush(color);
+    painter->setBrush(stateCol);
 
     for (const auto& segment : wire.segments)
     {   

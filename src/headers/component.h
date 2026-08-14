@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <filesystem>
 #include <fstream>
+#include <QColor>
 
 // #include "segmentgraphicsobject.h"
 #include "componentappearance.h"
@@ -25,6 +26,25 @@ enum States
     CONFLICT = 3,
     ERROR = 4
 };
+
+inline QColor stateColor(States state)
+{
+    switch (state)
+    {
+    case States::LOW:
+        return QColor("#0b6e1c");      // dark green
+    case States::HIGH:
+        return QColor("#39ff14");      // bright green
+    case States::FLOATING:
+        return QColor("#3d8cff");      // blue
+    case States::CONFLICT:
+        return QColor("#ffd500");      // yellow
+    case States::ERROR:
+        return QColor("#ff3b30");      // red
+    default:
+        return QColor("#3d8cff");
+    }
+}
 
 class Component;
 class SentinelComponent;

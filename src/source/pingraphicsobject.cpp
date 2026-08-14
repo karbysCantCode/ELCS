@@ -16,10 +16,12 @@ void PinGraphicsObject::paint(
   const QStyleOptionGraphicsItem *, 
   QWidget *) 
 { 
-  QPen pen(Qt::black); 
+  const QColor stateCol = stateColor(pin.getEffectingState());
+
+  QPen pen(stateCol); 
   pen.setWidthF(2); 
   painter->setPen(pen); 
-  painter->setBrush(Qt::black); 
+  painter->setBrush(stateCol); 
   
   // dot 
   painter->drawEllipse(QPointF(0,0), 4, 4); 

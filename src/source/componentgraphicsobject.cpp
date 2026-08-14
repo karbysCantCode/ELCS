@@ -115,7 +115,6 @@ void ComponentGraphicsObject::paintPins(
 ) const
 {
     painter->setPen(Qt::NoPen);
-    painter->setBrush(Qt::black);
 
     for (const auto& propagator : component.getPropagators())
     {
@@ -132,6 +131,10 @@ void ComponentGraphicsObject::paintPins(
             appearanceToPixel(
                 pin->getAppearancePosition()
             );
+
+        // Color the pin marker by its current propagation state,
+        // matching the wire/pin colors elsewhere (see stateColor()).
+        painter->setBrush(stateColor(pin->getEffectingState()));
 
         painter->drawEllipse(
             position,

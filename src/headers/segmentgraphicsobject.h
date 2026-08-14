@@ -6,7 +6,6 @@
 #include <QPainterPathStroker>
 #include <QPen>
 #include <vector>
-#include <QRandomGenerator>
 #include "abstractgraphicsobject.h"
 
 // #include "component.h"
@@ -29,13 +28,6 @@ public:
     {
         setZValue(1);
         setAcceptedMouseButtons(Qt::NoButton);
-        auto* rng = QRandomGenerator::global();
-
-        color = QColor::fromHsv(
-          rng->bounded(360),      // Hue
-          rng->bounded(160, 256), // Saturation
-          rng->bounded(180, 256)  // Value (brightness)
-        );
     }
 
     virtual void updateWorkspacePosition() override;
