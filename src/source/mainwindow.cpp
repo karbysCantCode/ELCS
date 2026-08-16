@@ -7,9 +7,14 @@
 #include "circuitstyleworkspace.h"
 #include "tutorialoverlay.h"
 #include "tutorialtoolbox.h"
+#include "schedulermenu.h"
+#include "styles.h"
 
 #include <QWidget>
 #include <QStyle>
+#include <QMenuBar>
+#include <QMenu>
+#include <QAction>
 
 void repolishVariants(QWidget* widget)
 {
@@ -41,6 +46,26 @@ MainWindow::MainWindow(QWidget *parent)
   __circuitworkspace = ui->SimulatorCircuitWorkspace;
   __circuitStyleWorkspace = ui->StyleCircuitWorkspace;
 
+  menuBar()->setStyleSheet(STYLESHEET_MENUBAR);
+  menuBar()->addMenu(new SchedulerMenu(this));
+  // QAction* testAction = menuBar()->addAction("TEST");
+  // new SchedulerMenu(menuBar());
+
+  qDebug() << "menuBar =" << menuBar();
+qDebug() << "isVisible =" << menuBar()->isVisible();
+qDebug() << "actions =" << menuBar()->actions().size();
+qDebug() << "menuBar visible:" << menuBar()->isVisible();
+qDebug() << "menuBar native:" << menuBar()->isNativeMenuBar();
+qDebug() << "menuBar parent:" << menuBar()->parent();
+qDebug() << "menuBar geometry:" << menuBar()->geometry();
+
+QAction* test = menuBar()->addAction("TEST");
+test->setMenuRole(QAction::NoRole);
+qDebug() << "after adding:";
+qDebug() << "actions =" << menuBar()->actions().size();
+
+for (QAction* action : menuBar()->actions())
+    qDebug() << action->text();
 
   __circuitStyleWorkspace->setCurveButton(ui->AddCurveButton);
   __circuitStyleWorkspace->setLineButton(ui->AddLineButton);

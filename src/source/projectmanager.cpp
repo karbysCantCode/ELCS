@@ -469,10 +469,17 @@ void ProjectManager::visuallyRegisterPropagator(
                 ptr->getGridPosition()
                 + pin->getAppearancePosition();
 
-            globalProjectManager->gridManager.addToGrid(
+            auto touching = globalProjectManager->gridManager.addToGrid(
                 absolutePinPosition,
                 pin
             );
+
+            pin->propagate();
+
+            for (auto* neighbor : touching) {
+                neighbor->propagate();
+                neighbor->refreshGraphics();
+            }
         }
 
 
@@ -533,7 +540,7 @@ void ProjectManager::visuallyRegisterPropagator(
             static_cast<Pin*>(ptr);
 
 
-        globalProjectManager->gridManager.addToGrid(
+        auto touching = globalProjectManager->gridManager.addToGrid(
             np->getGridPosition(),
             np
         );
@@ -543,6 +550,14 @@ void ProjectManager::visuallyRegisterPropagator(
             new PinGraphicsObject(
                 *np
             );
+
+        np->propagate();
+        item->update();
+
+        for (auto* neighbor : touching) {
+            neighbor->propagate();
+            neighbor->refreshGraphics();
+        }
 
 
         np->setGraphicsObject(
@@ -615,6 +630,17 @@ void ProjectManager::visuallyRegisterPropagator(
 
 
         np->graphicsObject->setZValue(1);
+
+        np->propagate();
+        np->graphicsObject->update();
+
+        for (auto* neighbor : touchingElements) {
+            if (tempDeathReg.find(static_cast<Wire*>(neighbor)) != tempDeathReg.end())
+                continue;
+
+            neighbor->propagate();
+            neighbor->refreshGraphics();
+        }
 
         return;
     }

@@ -21,6 +21,9 @@ CircuitWorkspace::CircuitWorkspace(QWidget* parent) {
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setScene(&workspaceScene);
 
+    setMouseTracking(true);
+    viewport()->setMouseTracking(true);
+
     setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
 
     // Needed for keyPressEvent (Delete/Backspace/Escape) to actually
@@ -162,7 +165,16 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
       Position nPos = convertEventPosToPosition((event->pos()));
       auto* abstractItem = dynamic_cast<AbstractGraphicsObject*>(item);
       if (state == EditingStates::POKE) {
-
+        if (abstractItem && abstractItem->graphicsObjectType() == AbstractGraphicsObject::PIN) {
+          Pin* pin = static_cast<Pin*>(abstractItem->parentPropagator);
+          if (pin) {
+            States newState = pin->getEffectingState() == States::LOW ? States::HIGH : States::LOW;
+            pin->poke(newState);
+            abstractItem->update();
+          }
+        }
+        event->accept();
+        return;
       } else if (state == EditingStates::EDIT) {
         if ((item == nullptr || item == backgroundGridItem) && interactionState == InteractionState::SELECTED_ITEM) interactionState = InteractionState::NONE;
         qDebug() << "EDITING START" << (int)interactionState;
@@ -396,6 +408,47 @@ void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
       break;
     }
     case InteractionState::MOVING_ITEM: {
+      if (p_selectedItem && p_selectedItem->parentPropagator) {
+        auto reconnect = [](Propagator* prop, const Position& oldPos, const Position& newPos) {
+          auto disconnected = globalProjectManager->gridManager.removeFromGrid(oldPos, prop);
+          auto connected = globalProjectManager->gridManager.addToGrid(newPos, prop);
+
+          prop->propagate();
+
+          for (auto* neighbor : disconnected) {
+            neighbor->propagate();
+            neighbor->refreshGraphics();
+          }
+          for (auto* neighbor : connected) {
+            neighbor->propagate();
+            neighbor->refreshGraphics();
+          }
+        };
+
+        if (p_selectedItem->parentPropagator->isAbstract()) {
+          auto* component = static_cast<Component*>(p_selectedItem->parentPropagator);
+          const Position oldGridPosition = Position::setAsScaledFromGrid(p_itemDragStartPosition);
+          const Position newGridPosition = component->getGridPosition();
+
+          if (oldGridPosition != newGridPosition) {
+            for (auto* pin : component->getPins()) {
+              reconnect(pin, oldGridPosition + pin->getAppearancePosition(), newGridPosition + pin->getAppearancePosition());
+            }
+            p_selectedItem->update();
+          }
+        } else {
+          auto* propagator = static_cast<Propagator*>(p_selectedItem->parentPropagator);
+          if (propagator->getKind() == Propagator::Kinds::PIN) {
+            const Position oldGridPosition = Position::setAsScaledFromGrid(p_itemDragStartPosition);
+            const Position newGridPosition = propagator->getGridPosition();
+
+            if (oldGridPosition != newGridPosition) {
+              reconnect(propagator, oldGridPosition, newGridPosition);
+              p_selectedItem->update();
+            }
+          }
+        }
+      }
       setInteractionState(InteractionState::SELECTED_ITEM);
       event->accept();
       return;
@@ -567,7 +620,18 @@ int CircuitWorkspace::getMaxYPosition() const {
 }
 
 void CircuitWorkspace::reset() {
+  cancelCurrentPlacement();
+
+  if (tempWire.graphicsObject) {
+    scene()->removeItem(tempWire.graphicsObject);
+    delete tempWire.graphicsObject;
+    tempWire.graphicsObject = nullptr;
+  }
+  tempWire.reset();
+
   scene()->clear();
+  backgroundGridItem = nullptr;
+
   updateWorkspacePosition();
 }
 

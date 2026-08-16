@@ -5,6 +5,8 @@
 #include <thread>
 #include <utility>
 #include <mutex>
+#include <atomic>
+#include <condition_variable>
 
 #include "component.h"
 
@@ -54,6 +56,7 @@ private:
     };
 public:
     _typename* front() const {return _front ? _front->value : nullptr;}
+    bool empty() const {return _front == nullptr;}
     _typename* operator[](_typenameIndex index) const;
     std::pair<bool, _typename*> emplaceAt(_typenameIndex index);
     void popFront();
@@ -67,10 +70,11 @@ class Scheduler
 {
 private:
     int nsPerTick = 0;
-    long long currentTick = 0;
-    bool running = false;
+    std::atomic<long long> currentTick{0};
+    std::atomic<bool> running{false};
     std::unique_ptr<std::thread> worker;
     std::mutex listMutex;
+    std::condition_variable ticksCV;
 
     void runTick();
     void workerRunTicks(int tickCount = 0);
@@ -85,6 +89,9 @@ public:
     void runTicks(int tickCount = 0);
     void stopTicks();
     void clear();
+
+    bool isRunning() const { return running.load(); }
+    long long getCurrentTick() const { return currentTick.load(); }
 };
 
 //static defined in scheduler.h

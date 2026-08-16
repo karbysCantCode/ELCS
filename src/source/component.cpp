@@ -463,10 +463,16 @@ void Propagator::forgetPropagator(AbstractPropagator* abstract) {
 
 void Propagator::evaluateEffectingState() {
     auto it = affectors.begin();
-    States currentState = affectors.end() != it ? (*it)->getEffectingState() : States::FLOATING;
+    if (it == affectors.end()) {
+        effectingState = States::FLOATING;
+        return;
+    }
+
+    States currentState = (*it)->getEffectingState();
     it++;
     while (it != affectors.end()) {
         currentState = evaluateTwoStates(currentState, (*it)->getEffectingState());
+        it++;
     }
     effectingState = currentState;
 }
@@ -594,14 +600,20 @@ void Pin::evaluateEffectingState() {
             break;
         case Operations::BUFFER:
         {
-            auto it = affectors.begin();
-            States currentState = affectors.end() != it ? (*it)->getEffectingState() : States::FLOATING;
-            it++;
-            while (it != affectors.end()) {
-                currentState = evaluateTwoStates(currentState, (*it)->getEffectingState());
-            }
-            effectingState = currentState;
-            break;
+          auto it = affectors.begin();
+          if (it == affectors.end()) {
+              effectingState = States::FLOATING;
+              return;
+          }
+
+          States currentState = (*it)->getEffectingState();
+          it++;
+          while (it != affectors.end()) {
+              currentState = evaluateTwoStates(currentState, (*it)->getEffectingState());
+              it++;
+          }
+          effectingState = currentState;
+          break;
         }
     }
 }
@@ -851,6 +863,11 @@ void Pin::saveToAddress(uint32_t* data) const {
     *data++ = static_cast<uint32_t>(appearancePosition.x);
     *data++ = static_cast<uint32_t>(appearancePosition.y);
     writePackedStringToAddress(data, name);
+}
+
+void Pin::poke(States newState) {
+    effectingState = newState;
+    globalScheduler->registerCallback(effectors, this);
 }
 
 size_t Pin::getUint32sToSave() const {
@@ -1257,4 +1274,16 @@ void SentinelComponent::simulateConnections() {
       }
     }
   }
+}
+
+void Propagator::refreshGraphics() {
+    if (getKind() == Kinds::PIN) {
+        auto* pin = static_cast<Pin*>(this);
+        if (pin->getGraphicsObject())
+            pin->getGraphicsObject()->update();
+    } else {
+        auto* wire = static_cast<Wire*>(this);
+        if (wire->graphicsObject)
+            wire->graphicsObject->update();
+    }
 }

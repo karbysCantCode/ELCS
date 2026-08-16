@@ -105,6 +105,7 @@ void Scheduler::registerCallback(CallbackFunc func, int ticksUntilExecute) {
     std::lock_guard<std::mutex> lock(listMutex);
     auto [inserted, ptr] = ticks.emplaceAt(ticksUntilExecute);
     ptr->registerCallback(func);
+    ticksCV.notify_one();
 }
 
 void Scheduler::registerCallback(std::vector<Propagator*>& propagators, Propagator* excludedPropagator, int ticksUntilExecute) {
@@ -117,6 +118,7 @@ void Scheduler::registerCallback(std::vector<Propagator*>& propagators, Propagat
             propagator->propagate();
         });
     }
+    ticksCV.notify_one();
 }
 
 void Scheduler::registerCallback(std::unordered_set<Propagator*>& propagators, Propagator* excludedPropagator, int ticksUntilExecute) {
@@ -129,11 +131,19 @@ void Scheduler::registerCallback(std::unordered_set<Propagator*>& propagators, P
             propagator->propagate();
         });
     }
+    ticksCV.notify_one();
 }
 
 void Scheduler::workerRunTicks(int tickCount) {
     if (tickCount == 0) {
         while (running) {
+            std::unique_lock<std::mutex> lock(listMutex);
+            ticksCV.wait(lock, [this] { return !running || !ticks.empty(); });
+            lock.unlock();
+
+            if (!running)
+                break;
+
             runTick();
         }
     } else {
@@ -142,6 +152,7 @@ void Scheduler::workerRunTicks(int tickCount) {
             runTick();
         }
     }
+    running = false;
 }
 
 void Scheduler::runTicks(int tickCount) {
@@ -155,9 +166,12 @@ void Scheduler::runTicks(int tickCount) {
 
 void Scheduler::stopTicks() {
     running = false;
+    ticksCV.notify_all();
 }
 
 void Scheduler::runTick() {
+    currentTick++;
+
     auto it = ticks.getIterator();
     while (it != nullptr) {
         std::lock_guard<std::mutex> lock(listMutex);

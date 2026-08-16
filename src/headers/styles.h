@@ -208,5 +208,47 @@
 " font-size: 13px;" \
 "}"
 
+#define STYLESHEET_SPINBOX \
+"QSpinBox {" \
+" background: #1a1d25;" \
+" color: #e5e7eb;" \
+" border: 1px solid #303541;" \
+" border-radius: 4px;" \
+" padding: 4px 6px;" \
+" font-size: 13px;" \
+"}" \
+"QSpinBox:focus {" \
+" border: 1px solid #3d8cff;" \
+"}" \
+"QSpinBox::up-button, QSpinBox::down-button {" \
+" background: #1a1d25;" \
+" border: none;" \
+" width: 16px;" \
+"}" \
+"QSpinBox::up-button:hover, QSpinBox::down-button:hover {" \
+" background: #222631;" \
+"}"
+
+#define STYLESHEET_MENUBAR \
+"QMenuBar {" \
+" background: #11141b;" \
+" color: #e5e7eb;" \
+" border-bottom: 1px solid #2c313c;" \
+" padding: 2px;" \
+"}" \
+"QMenuBar::item {" \
+" background: transparent;" \
+" padding: 6px 12px;" \
+" border-radius: 4px;" \
+"}" \
+"QMenuBar::item:selected {" \
+" background: #222631;" \
+"}" \
+"QMenuBar::item:pressed {" \
+" background: #1a1d25;" \
+"}"
+
+
+
 
 #endif // STYLES_H

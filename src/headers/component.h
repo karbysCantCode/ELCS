@@ -74,22 +74,24 @@ class Propagator : public AbstractPropagator
 protected:
     static States evaluateTwoStates(const States& stateA, const States& stateB);
     static uint32_t findIdOfPropagatorPointer(Propagator* propagator, const std::unordered_map<Propagator*, uint32_t>& map);
-
+    
     int tickPropagationDelay = 1;
     States effectingState = States::FLOATING;
     std::unordered_set<Propagator*> effectors; // those that this propagator effects
     std::unordered_set<Propagator*> affectors; // those that this propagator is affected by
     bool acceptsEffects = true;
-public:
+    public:
     virtual constexpr bool isAbstract() const override {return false;}
     enum Kinds {
         WIRE,
         PIN
     };
-
+    
     void setTickPropagationDelay(int delay) {tickPropagationDelay=delay;}
     int getTickPropagationDelay() const {return tickPropagationDelay;}
-
+    
+    void refreshGraphics();
+    
     States getEffectingState() const {return effectingState;}
 
     void setAcceptsEffects(bool accepts) {acceptsEffects=accepts;}
@@ -226,6 +228,7 @@ public:
     virtual Kinds getKind() const override {return Kinds::PIN;}
     virtual size_t getUint32sToSave() const override;
     virtual void saveToAddress(uint32_t* data) const override;
+    void poke(States newState);
     Pin(Component& _parent, States* _state = nullptr) : parent(_parent), state(_state) {}
     // does not sync effectors and affectors.
     Pin(const Pin& pinToCopy, Component& _parent);
