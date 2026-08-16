@@ -8,6 +8,8 @@
 
 #include "projectmanager.h"
 
+extern const char* const TOOLBOX_COMPONENT_MIME_TYPE;
+
 class ToolboxElement : public QFrame
 {
     Q_OBJECT
@@ -27,10 +29,13 @@ signals:
 protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseDoubleClickEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
 
 private:
     SentinelComponent& component;
     QLabel* nameLabel = nullptr;
+    QPoint dragStartPosition;
 };
 
 using ToolboxConnectionFunction =

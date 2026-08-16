@@ -115,6 +115,7 @@ signals:
     void stepChanged(int index, const QString& instructions);
     void tutorialCompleted();
     void tutorialCancelled();
+    void tutorialStarted();
 
 private slots:
     void onComponentPlaced(Component* component);

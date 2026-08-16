@@ -9,12 +9,15 @@
 #include "tutorialtoolbox.h"
 #include "schedulermenu.h"
 #include "styles.h"
+#include "genericcomponenttoolbox.h"
 
 #include <QWidget>
 #include <QStyle>
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
+#include <QTimer>
+#include <QSpacerItem>
 
 void repolishVariants(QWidget* widget)
 {
@@ -135,9 +138,33 @@ for (QAction* action : menuBar()->actions())
 
   auto overlay = new TutorialOverlay(ui->centralwidget);
   __tutorialOverlay = overlay;
+  auto* generic = new GenericComponentToolbox(*__circuitworkspace, ui->toolbar);
+  ui->toolbar->layout()->addWidget(generic);
   __tutorialToobox = new TutorialToolbox(*__circuitworkspace,ui->toolbar);
   ui->toolbar->layout()->addWidget(__tutorialToobox);
+  auto* stretch = new QSpacerItem(
+    40,                      
+    20,                      
+    QSizePolicy::Expanding,  
+    QSizePolicy::Minimum     
+  );
+  ui->toolbar->layout()->addItem(stretch);
 
+  QTimer::singleShot(0, this, [generic]()
+  {
+    auto syncToolboxVisibility = [generic]()
+    {
+      const bool tutorialActive = globalProjectManager->tutorialManager.isActive();
+      generic->setVisible(!tutorialActive);
+      __tutorialToobox->setVisible(tutorialActive);
+    };
+
+    syncToolboxVisibility();
+
+    QObject::connect(&globalProjectManager->tutorialManager, &TutorialManager::tutorialStarted, generic, syncToolboxVisibility);
+    QObject::connect(&globalProjectManager->tutorialManager, &TutorialManager::tutorialCompleted, generic, syncToolboxVisibility);
+    QObject::connect(&globalProjectManager->tutorialManager, &TutorialManager::tutorialCancelled, generic, syncToolboxVisibility);
+  });
   // leave this past any ui creation
 
   repolishVariants(this);

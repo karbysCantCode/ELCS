@@ -144,6 +144,7 @@ void TutorialManager::start()
             condition.matchedCount = 0;
         }
 
+    emit tutorialStarted();
     advanceStep();
 }
 

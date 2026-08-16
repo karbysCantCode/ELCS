@@ -6,7 +6,13 @@
 
 #include <QLabel>
 #include <QVBoxLayout>
+#include <QMouseEvent>
+#include <QDrag>
+#include <QMimeData>
+#include <QApplication>
 #include "styles.h"
+
+const char* const TOOLBOX_COMPONENT_MIME_TYPE = "application/x-elcs-component";
 
 componentToolbox* simulatorCircuitToolbox = nullptr;
 componentToolbox* styleCircuitToolbox = nullptr;
@@ -65,10 +71,40 @@ void ToolboxElement::mousePressEvent(QMouseEvent* event)
 {
   if (event->button() == Qt::LeftButton)
   {
-    emit componentSelected(component);
+    dragStartPosition = event->pos();
   }
 
   QFrame::mousePressEvent(event);
+}
+
+void ToolboxElement::mouseMoveEvent(QMouseEvent* event)
+{
+  if (!(event->buttons() & Qt::LeftButton))
+    return;
+
+  if ((event->pos() - dragStartPosition).manhattanLength() < QApplication::startDragDistance())
+    return;
+
+  auto* mimeData = new QMimeData();
+  mimeData->setData(TOOLBOX_COMPONENT_MIME_TYPE, QByteArray::fromStdString(component.getName()));
+
+  auto* drag = new QDrag(this);
+  drag->setMimeData(mimeData);
+  drag->setPixmap(grab());
+  drag->setHotSpot(event->pos());
+
+  drag->exec(Qt::CopyAction);
+}
+
+void ToolboxElement::mouseReleaseEvent(QMouseEvent* event)
+{
+  if (event->button() == Qt::LeftButton &&
+      (event->pos() - dragStartPosition).manhattanLength() < QApplication::startDragDistance())
+  {
+    emit componentSelected(component);
+  }
+
+  QFrame::mouseReleaseEvent(event);
 }
 
 void ToolboxElement::mouseDoubleClickEvent(QMouseEvent* event)
