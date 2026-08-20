@@ -2,13 +2,26 @@
 
 #include "projectmanager.h"
 
+#include <algorithm>
+
 #define PADDING 20
 
 QRectF PinGraphicsObject::boundingRect() const {
   QFontMetrics fm(QFont("Arial",12));
   int width = fm.horizontalAdvance(name) + PADDING;
 
-  return QRectF(30,-20,width,40);
+  QRectF rect(30,-20,width,40);
+
+  if (!pin.getAppearanceName().empty())
+  {
+    QFontMetrics nameMetrics(QFont("Arial", 9, QFont::Bold));
+    const int nameWidth = nameMetrics.horizontalAdvance(QString::fromStdString(pin.getAppearanceName()));
+
+    rect.setLeft(std::min(rect.left(), -nameWidth / 2.0 - 4.0));
+    rect.setTop(std::min(rect.top(), -26.0));
+  }
+
+  return rect;
 }
 
 void PinGraphicsObject::paint(
@@ -41,6 +54,24 @@ void PinGraphicsObject::paint(
     painter->setFont(font);
     painter->drawText( textRect, Qt::AlignCenter, name );
   } 
+
+  if (!pin.getAppearanceName().empty())
+  {
+    QFont nameFont("Arial", 9);
+    nameFont.setBold(true);
+
+    QFontMetrics nameMetrics(nameFont);
+    const QString appearanceName = QString::fromStdString(pin.getAppearanceName());
+    const int textWidth = nameMetrics.horizontalAdvance(appearanceName);
+
+    painter->setFont(nameFont);
+    painter->setPen(Qt::white);
+
+    painter->drawText(
+      QPointF(-textWidth / 2.0, -12),
+      appearanceName
+    );
+  }
 
   if (isSelected())
   {

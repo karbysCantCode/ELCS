@@ -216,6 +216,9 @@ void ComponentGraphicsObject::paint(
         5
     );
 
+    painter->save();
+    painter->rotate(component.getRotation());
+
     for (const auto& line : component.getAppearance().lines)
     {
         paintLine(painter, line);
@@ -232,6 +235,27 @@ void ComponentGraphicsObject::paint(
     }
 
     paintPins(painter);
+
+    painter->restore();
+
+    if (!component.getAppearanceName().empty())
+    {
+        QFont nameFont;
+        nameFont.setPointSize(9);
+        nameFont.setBold(true);
+
+        painter->setFont(nameFont);
+        painter->setPen(Qt::white);
+
+        QFontMetrics metrics(nameFont);
+        const QString appearanceName = QString::fromStdString(component.getAppearanceName());
+        const int textWidth = metrics.horizontalAdvance(appearanceName);
+
+        painter->drawText(
+            QPointF(br.center().x() - textWidth / 2.0, br.top() - 6),
+            appearanceName
+        );
+    }
 
     if (isSelected())
     {
@@ -263,21 +287,21 @@ QRectF ComponentGraphicsObject::calculateBoundingRect() const
 
     for (const auto& line : component.getAppearance().lines)
     {
-        addPoint(line.begin.getGridScaledCopy(0).getQPointF());
-        addPoint(line.end.getGridScaledCopy(0).getQPointF());
+        addPoint(line.begin.getRotatedCopy(component.getRotation()).getGridScaledCopy(0).getQPointF());
+        addPoint(line.end.getRotatedCopy(component.getRotation()).getGridScaledCopy(0).getQPointF());
     }
 
     for (const auto& curve : component.getAppearance().curves)
     {
-        addPoint(curve.begin.getGridScaledCopy(0).getQPointF());
-        addPoint(curve.control1.getGridScaledCopy(0).getQPointF());
-        addPoint(curve.control2.getGridScaledCopy(0).getQPointF());
-        addPoint(curve.end.getGridScaledCopy(0).getQPointF());
+        addPoint(curve.begin.getRotatedCopy(component.getRotation()).getGridScaledCopy(0).getQPointF());
+        addPoint(curve.control1.getRotatedCopy(component.getRotation()).getGridScaledCopy(0).getQPointF());
+        addPoint(curve.control2.getRotatedCopy(component.getRotation()).getGridScaledCopy(0).getQPointF());
+        addPoint(curve.end.getRotatedCopy(component.getRotation()).getGridScaledCopy(0).getQPointF());
     }
 
     for (const auto& label : component.getAppearance().labels)
     {
-        addPoint(label.position.getGridScaledCopy(0).getQPointF());
+        addPoint(label.position.getRotatedCopy(component.getRotation()).getGridScaledCopy(0).getQPointF());
     }
 
     for (const auto& propagator : component.getPropagators())
@@ -293,6 +317,7 @@ QRectF ComponentGraphicsObject::calculateBoundingRect() const
 
         addPoint(
             pin->getAppearancePosition()
+                .getRotatedCopy(component.getRotation())
                 .getGridScaledCopy(0)
                 .getQPointF()
         );

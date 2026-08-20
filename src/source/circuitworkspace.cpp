@@ -10,6 +10,7 @@
 #include <QCursor>
 #include <QKeyEvent>
 #include <iostream>
+#include <format>
 
 CircuitWorkspace::CircuitWorkspace(QWidget* parent) {
     std::cout << "INIT X:" << size().width() << std::endl;
@@ -432,7 +433,8 @@ void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
 
           if (oldGridPosition != newGridPosition) {
             for (auto* pin : component->getPins()) {
-              reconnect(pin, oldGridPosition + pin->getAppearancePosition(), newGridPosition + pin->getAppearancePosition());
+              const Position rotatedAppearancePosition = pin->getAppearancePosition().getRotatedCopy(component->getRotation());
+              reconnect(pin, oldGridPosition + rotatedAppearancePosition, newGridPosition + rotatedAppearancePosition);
             }
             p_selectedItem->update();
           }
@@ -490,7 +492,59 @@ void CircuitWorkspace::keyPressEvent(QKeyEvent* event)
         return;
     }
 
+    if (event->key() == Qt::Key_R) {
+        rotateSelectedComponent();
+        event->accept();
+        return;
+    }
+
     QGraphicsView::keyPressEvent(event);
+}
+
+void CircuitWorkspace::rotateSelectedComponent()
+{
+    if (!p_selectedItem || !p_selectedItem->parentPropagator || !p_selectedItem->parentPropagator->isAbstract())
+        return;
+
+    auto* component = static_cast<Component*>(p_selectedItem->parentPropagator);
+
+    setComponentRotation(component, component->getRotation() + 90);
+}
+
+void CircuitWorkspace::setComponentRotation(Component* component, int newRotation)
+{
+    if (!component)
+        return;
+
+    auto pins = component->getPins();
+
+    std::vector<Position> oldAbsolutePositions;
+    for (auto* pin : pins)
+        oldAbsolutePositions.push_back(component->getAbsolutePinPosition(*pin));
+
+    component->setRotation(newRotation);
+
+    for (size_t i = 0; i < pins.size(); i++) {
+        auto* pin = pins[i];
+        const Position newAbsolutePosition = component->getAbsolutePinPosition(*pin);
+
+        auto disconnected = globalProjectManager->gridManager.removeFromGrid(oldAbsolutePositions[i], pin);
+        auto connected = globalProjectManager->gridManager.addToGrid(newAbsolutePosition, pin);
+
+        pin->propagate();
+
+        for (auto* neighbor : disconnected) {
+            neighbor->propagate();
+            neighbor->refreshGraphics();
+        }
+        for (auto* neighbor : connected) {
+            neighbor->propagate();
+            neighbor->refreshGraphics();
+        }
+    }
+
+    if (component->getGraphicsObject())
+        component->getGraphicsObject()->update();
 }
 
 void CircuitWorkspace::deleteSelectedItem()
@@ -638,6 +692,19 @@ void CircuitWorkspace::reset() {
 void CircuitWorkspace::onComponentSelected(
     const SentinelComponent& component)
 {
+    if (globalProjectManager->currentOpenComponent == &component)
+    {
+        globalNotificationManager->notify(
+            "Can't Place Component",
+            std::format(
+                "\"{}\" can't be placed inside its own circuit.",
+                component.getName()
+            )
+        );
+
+        return;
+    }
+
     // Cancel any existing interaction (component OR pin placement).
     cancelCurrentPlacement();
 
@@ -687,6 +754,8 @@ void CircuitWorkspace::startPlacingPin()
 
     p_temporaryPinToPlace = std::make_unique<Pin>(*globalProjectManager->currentOpenComponent);
     p_temporaryPinToPlace->setName("pin");
+    p_temporaryPinToPlace->setIODirection(Pin::IODirection::INPUT);
+    p_temporaryPinToPlace->poke(States::LOW);
 
     setInteractionState(InteractionState::PLACING_PIN);
 

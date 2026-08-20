@@ -150,7 +150,7 @@ for (QAction* action : menuBar()->actions())
   );
   ui->toolbar->layout()->addItem(stretch);
 
-  QTimer::singleShot(0, this, [generic]()
+  QTimer::singleShot(0, this, [generic, section]()
   {
     auto syncToolboxVisibility = [generic]()
     {
@@ -164,6 +164,18 @@ for (QAction* action : menuBar()->actions())
     QObject::connect(&globalProjectManager->tutorialManager, &TutorialManager::tutorialStarted, generic, syncToolboxVisibility);
     QObject::connect(&globalProjectManager->tutorialManager, &TutorialManager::tutorialCompleted, generic, syncToolboxVisibility);
     QObject::connect(&globalProjectManager->tutorialManager, &TutorialManager::tutorialCancelled, generic, syncToolboxVisibility);
+
+    globalProjectManager->initiateSimulatorUIPropertyManager(section);
+
+    QObject::connect(__circuitworkspace, &CircuitWorkspace::itemSelected, __circuitworkspace, [](AbstractPropagator* propagator)
+    {
+      globalProjectManager->onPropagatorSelected(propagator);
+    });
+
+    QObject::connect(__circuitworkspace, &CircuitWorkspace::selectionCleared, __circuitworkspace, []()
+    {
+      globalProjectManager->onSelectionCleared();
+    });
   });
   // leave this past any ui creation
 
@@ -249,4 +261,3 @@ void MainWindow::on_AddLabelButton_clicked()
   ui->AddLineButton->setChecked(false);
   ui->AddLabelButton->setChecked(true);
 }
-

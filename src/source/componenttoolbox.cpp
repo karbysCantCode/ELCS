@@ -49,15 +49,18 @@ ToolboxElement::ToolboxElement(
     this
   );
 
-  this->setStyleSheet(STYLESHEET_FRAME_CARD);
-  nameLabel->setStyleSheet(STYLESHEET_LABEL_TITLE);
+  this->setStyleSheet(STYLESHEET_TOOLBOX_ITEM);
+  this->setAttribute(Qt::WA_Hover);
+  nameLabel->setStyleSheet(STYLESHEET_TOOLBOX_ITEM_LABEL);
   nameLabel->setAlignment(Qt::AlignCenter);
+  nameLabel->setWordWrap(true);
   nameLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
 
   auto* layout = new QVBoxLayout(this);
-  layout->setContentsMargins(8, 8, 8, 8);
+  layout->setContentsMargins(14, 12, 14, 12);
   layout->addWidget(nameLabel);
 
+  setMinimumHeight(48);
   setFrameShape(QFrame::StyledPanel);
   setCursor(Qt::PointingHandCursor);
 }

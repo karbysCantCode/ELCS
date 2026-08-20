@@ -178,7 +178,7 @@ void Scheduler::runTick() {
         if ((*(*it)) == 0) {
             (*(*it)).run();
             it++;
-            assert(ticks.front() == *it); //shouldnt.... TODO DEBUG (can remove production)
+            // assert(ticks.front() == *it); //shouldnt.... TODO DEBUG (can remove production)
             ticks.popFront();
         } else {
             (*it)->ticksTillDeath--;

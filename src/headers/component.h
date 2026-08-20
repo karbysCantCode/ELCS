@@ -80,6 +80,7 @@ protected:
     std::unordered_set<Propagator*> effectors; // those that this propagator effects
     std::unordered_set<Propagator*> affectors; // those that this propagator is affected by
     bool acceptsEffects = true;
+    bool acceptsAffectors = true;
     public:
     virtual constexpr bool isAbstract() const override {return false;}
     enum Kinds {
@@ -97,10 +98,13 @@ protected:
     void setAcceptsEffects(bool accepts) {acceptsEffects=accepts;}
     bool getAcceptsEffects() const {return acceptsEffects;}
 
+    void setAcceptsAffectors(bool accepts) {acceptsAffectors=accepts;}
+    bool getAcceptsAffectors() const {return acceptsAffectors;}
+
     void addEffector(Propagator* effector) {if (!acceptsEffects)return; effectors.emplace(effector);}
-    void addAffector(Propagator* affector) {affectors.emplace(affector);}
+    void addAffector(Propagator* affector) {if (!acceptsAffectors)return; affectors.emplace(affector);}
     void addEffectors(std::unordered_set<Propagator*> _effectors) {if (!acceptsEffects)return; effectors.insert(_effectors.begin(), _effectors.end());}
-    void addAffectors(std::unordered_set<Propagator*> _affectors) {affectors.insert(_affectors.begin(), _affectors.end());}
+    void addAffectors(std::unordered_set<Propagator*> _affectors) {if (!acceptsAffectors)return; affectors.insert(_affectors.begin(), _affectors.end());}
     std::unordered_set<Propagator*> getEffectors() const {return effectors;}
     std::unordered_set<Propagator*> getAffectors() const {return affectors;}
     void forget(Propagator* propagator) {effectors.erase(propagator); affectors.erase(propagator);}
@@ -159,18 +163,8 @@ public:
 
     void setGraphicsObject(SegmentGraphicsObject* object)  {graphicsObject=object;}
 
-    // Removes the segment at `index`. Returns true if a segment was
-    // removed (false if index was out of range). Caller is
-    // responsible for unregistering the removed segment from the
-    // grid first (mirrors how the rest of this class leaves grid
-    // bookkeeping to the caller, e.g. mergeCollidingWires()).
     bool removeSegmentAt(size_t index);
 
-    // Index of whichever segment sits closest to `point` (grid
-    // space), or -1 if this wire has no segments. Used to figure out
-    // which segment a user meant when deleting part of a
-    // multi-segment wire (segments are axis-aligned, so this is a
-    // simple clamped-point distance check).
     int nearestSegmentIndex(const Position& point) const;
 
     // does not sync effectors and affectors.
@@ -203,9 +197,18 @@ public:
         BUFFER
     };
 
+    enum IODirection {
+        INPUT,
+        OUTPUT,
+        TWO_WAY
+    };
+
     
     Operations getEffectorOperation() const { return effectorOperation; }
     void setEffectorOperation(Operations value) { effectorOperation = value; }
+
+    IODirection getIODirection() const { return ioDirection; }
+    void setIODirection(IODirection value) { ioDirection = value; }
     
     Position getAppearancePosition() const {return appearancePosition;}
     void setAppearancePosition(const Position& _appearancePosition) {appearancePosition = _appearancePosition;}
@@ -217,6 +220,9 @@ public:
     
     const std::string& getName() const { return name; }
     void setName(const std::string& newName) { name = newName; }
+
+    const std::string& getAppearanceName() const { return appearanceName; }
+    void setAppearanceName(const std::string& value) { appearanceName = value; }
     
     PinGraphicsObject* getGraphicsObject() const {return graphicsObject;}
     void setGraphicsObject(PinGraphicsObject* object)  {graphicsObject=object;}
@@ -236,8 +242,10 @@ public:
     ~Pin();
 private:
     Operations effectorOperation = Operations::BUFFER;
+    IODirection ioDirection = IODirection::TWO_WAY;
     Position appearancePosition;
     std::string name;
+    std::string appearanceName;
     Component& parent;
     PinGraphicsObject* graphicsObject = nullptr;
     // state should be inherited by wire, begins nullptr assuming no connected wire, beware.
@@ -259,6 +267,16 @@ public:
     // name
     const std::string& getName() const { return name; }
     void setName(const std::string& value) { name = value; }
+
+    // appearanceName
+    const std::string& getAppearanceName() const { return appearanceName; }
+    void setAppearanceName(const std::string& value) { appearanceName = value; }
+
+    // rotation, in degrees, always one of 0/90/180/270
+    int getRotation() const { return rotation; }
+    void setRotation(int degrees) { rotation = ((degrees % 360) + 360) % 360; }
+
+    Position getAbsolutePinPosition(const Pin& pin) const;
 
     // filePath
     const std::filesystem::path& getFilePath() const { return filePath; }
@@ -342,6 +360,8 @@ public:
 
 protected:
     std::string name;
+    std::string appearanceName;
+    int rotation = 0;
     std::filesystem::path filePath;
     std::vector<std::unique_ptr<AbstractPropagator>> propagators;
     ComponentAppearance appearance;
@@ -355,8 +375,14 @@ protected:
 
 class SentinelComponent : public Component {
 private:
+    struct DeferredComponentPlacement {
+        Position position;
+        std::string appearanceName;
+        int rotation = 0;
+    };
+
     bool resolved = false;
-    std::unordered_map<std::string, std::vector<Position>> unresolvedComponentPositions;
+    std::unordered_map<std::string, std::vector<DeferredComponentPlacement>> unresolvedComponentPositions;
     bool evaluateResolved() {resolved = unresolvedComponentPositions.empty(); return resolved;}
 
     mutable std::unordered_set<Component*> instances;
@@ -374,7 +400,7 @@ public:
     bool loadFromFile(const std::filesystem::path& path);
     bool saveToFile(const std::filesystem::path& path) const;
 
-    void createComponent(const Position& _position, const SentinelComponent& _component);
+    void createComponent(const Position& _position, const SentinelComponent& _component, const std::string& _appearanceName = "", int _rotation = 0);
     std::unique_ptr<AbstractPropagator> createDerivativeComponent(const Position& _position) const;
     void simulateConnections();
 

@@ -120,6 +120,73 @@ namespace
 
         return result;
     }
+
+    void loadPinFieldsV1(Pin& pin, const std::function<uint32_t(bool)>& readU32)
+    {
+        pin.setEffectorOperation(static_cast<Pin::Operations>(readU32(true)));
+        pin.setGridPosition({static_cast<int>(readU32(true)), static_cast<int>(readU32(true))});
+        pin.setAppearancePosition({static_cast<int>(readU32(true)), static_cast<int>(readU32(true))});
+        pin.setName(readPackedString(readU32));
+    }
+
+    void loadPinFieldsV2(Pin& pin, const std::function<uint32_t(bool)>& readU32)
+    {
+        pin.setEffectorOperation(static_cast<Pin::Operations>(readU32(true)));
+        pin.setIODirection(static_cast<Pin::IODirection>(readU32(true)));
+        pin.setAcceptsEffects(readU32(true) != 0);
+        pin.setAcceptsAffectors(readU32(true) != 0);
+        pin.setGridPosition({static_cast<int>(readU32(true)), static_cast<int>(readU32(true))});
+        pin.setAppearancePosition({static_cast<int>(readU32(true)), static_cast<int>(readU32(true))});
+        pin.setName(readPackedString(readU32));
+    }
+
+    void loadPinFieldsV3(Pin& pin, const std::function<uint32_t(bool)>& readU32)
+    {
+        pin.setEffectorOperation(static_cast<Pin::Operations>(readU32(true)));
+        pin.setIODirection(static_cast<Pin::IODirection>(readU32(true)));
+        pin.setAcceptsEffects(readU32(true) != 0);
+        pin.setAcceptsAffectors(readU32(true) != 0);
+        pin.setGridPosition({static_cast<int>(readU32(true)), static_cast<int>(readU32(true))});
+        pin.setAppearancePosition({static_cast<int>(readU32(true)), static_cast<int>(readU32(true))});
+        pin.setName(readPackedString(readU32));
+        pin.setAppearanceName(readPackedString(readU32));
+    }
+
+    void loadPinFields(uint32_t minorVersion, Pin& pin, const std::function<uint32_t(bool)>& readU32)
+    {
+        if (minorVersion >= 3)
+            loadPinFieldsV3(pin, readU32);
+        else if (minorVersion == 2)
+            loadPinFieldsV2(pin, readU32);
+        else
+            loadPinFieldsV1(pin, readU32);
+    }
+
+    void loadNestedComponentFieldsV1(std::string& compName, Position& compPos, std::string& compAppearanceName, int& compRotation, const std::function<uint32_t(bool)>& readU32)
+    {
+        compName = readPackedString(readU32);
+        compPos.x = static_cast<int>(readU32(true));
+        compPos.y = static_cast<int>(readU32(true));
+        compAppearanceName.clear();
+        compRotation = 0;
+    }
+
+    void loadNestedComponentFieldsV3(std::string& compName, Position& compPos, std::string& compAppearanceName, int& compRotation, const std::function<uint32_t(bool)>& readU32)
+    {
+        compName = readPackedString(readU32);
+        compPos.x = static_cast<int>(readU32(true));
+        compPos.y = static_cast<int>(readU32(true));
+        compRotation = static_cast<int>(readU32(true));
+        compAppearanceName = readPackedString(readU32);
+    }
+
+    void loadNestedComponentFields(uint32_t minorVersion, std::string& compName, Position& compPos, std::string& compAppearanceName, int& compRotation, const std::function<uint32_t(bool)>& readU32)
+    {
+        if (minorVersion >= 3)
+            loadNestedComponentFieldsV3(compName, compPos, compAppearanceName, compRotation, readU32);
+        else
+            loadNestedComponentFieldsV1(compName, compPos, compAppearanceName, compRotation, readU32);
+    }
 }
 
 Component::Component() {}
@@ -743,7 +810,6 @@ bool SentinelComponent::loadFromFile(const std::filesystem::path& path) {
 
     const uint32_t majorVersion = readU32();
     const uint32_t minorVersion = readU32();
-    (void)minorVersion;
 
     if (majorVersion != COMPONENT_SAVE_VERSION_MAJOR) {
       qDebug() << "Component save file has an unexpected major version ("
@@ -790,28 +856,26 @@ bool SentinelComponent::loadFromFile(const std::filesystem::path& path) {
 
         auto pin = std::make_unique<Pin>(*this);
 
-        pin->setEffectorOperation(static_cast<Pin::Operations>(readU32()));
-        pin->setGridPosition({static_cast<int>(readU32()), static_cast<int>(readU32())});
-        pin->setAppearancePosition({static_cast<int>(readU32()), static_cast<int>(readU32())});
-        pin->setName(readPackedString(readU32));
+        loadPinFields(minorVersion, *pin, readU32);
 
         addPropagator(std::move(pin));
     }
 
     for (uint32_t i = 0; i < totalComponents; i++) {
 
-        const std::string compName = readPackedString(readU32);
-
+        std::string compName;
         Position compPos;
-        compPos.x = static_cast<int>(readU32());
-        compPos.y = static_cast<int>(readU32());
+        std::string compAppearanceName;
+        int compRotation = 0;
+
+        loadNestedComponentFields(minorVersion, compName, compPos, compAppearanceName, compRotation, readU32);
 
         auto it = globalProjectManager->components.find(compName);
         if (it != globalProjectManager->components.end()) {
-          createComponent(compPos, *it->second);
+          createComponent(compPos, *it->second, compAppearanceName, compRotation);
         } else {
           globalProjectManager->unresolvedSentinelComponents.emplace(this);
-          unresolvedComponentPositions[compName].push_back(compPos);
+          unresolvedComponentPositions[compName].push_back({compPos, compAppearanceName, compRotation});
         }
     }
 
@@ -858,11 +922,15 @@ uint32_t Propagator::findIdOfPropagatorPointer(Propagator* propagator, const std
 
 void Pin::saveToAddress(uint32_t* data) const {
     *data++ = effectorOperation;
+    *data++ = ioDirection;
+    *data++ = getAcceptsEffects() ? 1 : 0;
+    *data++ = getAcceptsAffectors() ? 1 : 0;
     *data++ = static_cast<uint32_t>(getGridPosition().x);
     *data++ = static_cast<uint32_t>(getGridPosition().y);
     *data++ = static_cast<uint32_t>(appearancePosition.x);
     *data++ = static_cast<uint32_t>(appearancePosition.y);
-    writePackedStringToAddress(data, name);
+    data += writePackedStringToAddress(data, name);
+    writePackedStringToAddress(data, appearanceName);
 }
 
 void Pin::poke(States newState) {
@@ -871,8 +939,7 @@ void Pin::poke(States newState) {
 }
 
 size_t Pin::getUint32sToSave() const {
-    // operation + gridPosition.x/.y + appearancePosition.x/.y
-    return 5 + packedStringUint32s(name);
+    return 8 + packedStringUint32s(name) + packedStringUint32s(appearanceName);
 }
 
 size_t Wire::getUint32sToSave() const {
@@ -1082,6 +1149,12 @@ void Component::notifyChildStructureChanged()
 }
 
 void Propagator::copyEffectorsAndEffectors(const Propagator& propagator, std::unordered_map<Propagator*, Propagator*>& oldNewPropagatorPointerMap) {
+    const bool hadAcceptsEffects = acceptsEffects;
+    const bool hadAcceptsAffectors = acceptsAffectors;
+
+    acceptsEffects = true;
+    acceptsAffectors = true;
+
     for (auto* effector : propagator.effectors) {
         auto it = oldNewPropagatorPointerMap.find(effector);
         if (it != oldNewPropagatorPointerMap.end()) {
@@ -1094,6 +1167,9 @@ void Propagator::copyEffectorsAndEffectors(const Propagator& propagator, std::un
             affectors.emplace(it->second);
         }
     }
+
+    acceptsEffects = hadAcceptsEffects;
+    acceptsAffectors = hadAcceptsAffectors;
 }
 
 uint32_t Component::getUint32Size(uint32_t& propagatorId, std::unordered_map<Propagator*, uint32_t>& wiresById,std::unordered_map<Propagator*, uint32_t>& pinsById, std::vector<Component*>& components, bool canRecurse = false) const {
@@ -1123,8 +1199,10 @@ uint32_t Component::getUint32Size(uint32_t& propagatorId, std::unordered_map<Pro
 Pin::Pin(const Pin& pinToCopy, Component& _parent)
     : parent(_parent),
     effectorOperation(pinToCopy.effectorOperation),
+    ioDirection(pinToCopy.ioDirection),
     appearancePosition(pinToCopy.appearancePosition),
     name(pinToCopy.name),
+    appearanceName(pinToCopy.appearanceName),
     Propagator(pinToCopy)
     {
 
@@ -1133,6 +1211,8 @@ Pin::Pin(const Pin& pinToCopy, Component& _parent)
     Propagator::Propagator(const Propagator& propagator)
     : tickPropagationDelay(propagator.tickPropagationDelay),
     effectingState(propagator.getEffectingState()),
+    acceptsEffects(propagator.acceptsEffects),
+    acceptsAffectors(propagator.acceptsAffectors),
     AbstractPropagator(propagator)
     {}
 
@@ -1163,8 +1243,8 @@ QPointF Pin::gridAlignPoint(const QPointF& point) {
 bool SentinelComponent::informAddedComponentToSeeIfFullyResolved(const std::string& name, const SentinelComponent& _component) {
   auto it = unresolvedComponentPositions.find(name);
   if (it != unresolvedComponentPositions.end()) {
-    for (const auto& _position : it->second) {
-      createComponent(_position, _component);
+    for (const auto& placement : it->second) {
+      createComponent(placement.position, _component, placement.appearanceName, placement.rotation);
     }
     unresolvedComponentPositions.erase(name);
   }
@@ -1172,18 +1252,26 @@ bool SentinelComponent::informAddedComponentToSeeIfFullyResolved(const std::stri
 }
 
 size_t Component::getUint32sToSave() const {
-  return packedStringUint32s(name) + 2; // + gridPosition.x/.y
+  return packedStringUint32s(name) + 3 + packedStringUint32s(appearanceName);
+}
+
+Position Component::getAbsolutePinPosition(const Pin& pin) const {
+  return gridPosition + pin.getAppearancePosition().getRotatedCopy(rotation);
 }
 
 void Component::saveToAddress(uint32_t* dataPtr) const {
   dataPtr += writePackedStringToAddress(dataPtr, name);
   *dataPtr++ = static_cast<uint32_t>(gridPosition.x);
   *dataPtr++ = static_cast<uint32_t>(gridPosition.y);
+  *dataPtr++ = static_cast<uint32_t>(rotation);
+  writePackedStringToAddress(dataPtr, appearanceName);
 }
 
-void SentinelComponent::createComponent(const Position& _position, const SentinelComponent& _component) {
+void SentinelComponent::createComponent(const Position& _position, const SentinelComponent& _component, const std::string& _appearanceName, int _rotation) {
   auto cptr = new Component(_component);
   cptr->setGridPosition(_position);
+  cptr->setAppearanceName(_appearanceName);
+  cptr->setRotation(_rotation);
   cptr->sourceSentinel = const_cast<SentinelComponent*>(&_component);
   _component.registerInstance(cptr);
 

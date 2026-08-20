@@ -99,6 +99,26 @@
 "}"
 
 
+#define STYLESHEET_TOOLBOX_ITEM \
+"QFrame {" \
+" background: #1b1f28;" \
+" border-radius: 8px;" \
+" border: 1px solid #2c313c;" \
+"}" \
+"QFrame:hover {" \
+" background: #20242e;" \
+" border: 1px solid #3d8cff;" \
+"}"
+
+
+#define STYLESHEET_TOOLBOX_ITEM_LABEL \
+"QLabel {" \
+" color: #e5e7eb;" \
+" font-size: 13px;" \
+" font-weight: 600;" \
+"}"
+
+
 #define STYLESHEET_OVERLAY \
 "background: rgba(0,0,0,175);"
 
@@ -227,6 +247,38 @@
 "}" \
 "QSpinBox::up-button:hover, QSpinBox::down-button:hover {" \
 " background: #222631;" \
+"}"
+
+#define STYLESHEET_LINEEDIT \
+"QLineEdit {" \
+" background: #1a1d25;" \
+" color: #e5e7eb;" \
+" border: 1px solid #303541;" \
+" border-radius: 4px;" \
+" padding: 4px 8px;" \
+" font-size: 13px;" \
+"}" \
+"QLineEdit:focus {" \
+" border: 1px solid #3d8cff;" \
+"}"
+
+#define STYLESHEET_COMBOBOX \
+"QComboBox {" \
+" background: #1a1d25;" \
+" color: #e5e7eb;" \
+" border: 1px solid #303541;" \
+" border-radius: 4px;" \
+" padding: 4px 8px;" \
+" font-size: 13px;" \
+"}" \
+"QComboBox:focus {" \
+" border: 1px solid #3d8cff;" \
+"}" \
+"QComboBox QAbstractItemView {" \
+" background: #1a1d25;" \
+" color: #e5e7eb;" \
+" border: 1px solid #303541;" \
+" selection-background-color: #222631;" \
 "}"
 
 #define STYLESHEET_MENUBAR \

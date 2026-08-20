@@ -9,8 +9,35 @@
 #include "circuitstyleworkspace.h"
 #include "coregates.h"
 #include "tutorialmanager.h"
+#include "styles.h"
+
+#include <QLabel>
+#include <QLineEdit>
+#include <QComboBox>
 
 #include <format>
+
+
+namespace {
+    QString stateToDisplayString(States state)
+    {
+        switch (state) {
+            case States::LOW: return "Low";
+            case States::HIGH: return "High";
+            case States::FLOATING: return "Floating";
+            case States::CONFLICT: return "Conflict";
+            case States::ERROR: return "Error";
+            default: return "Unknown";
+        }
+    }
+
+    QLabel* makeReadOnlyPropertyLabel(const QString& text)
+    {
+        auto* label = new QLabel(text);
+        label->setStyleSheet(STYLESHEET_LABEL_SECONDARY);
+        return label;
+    }
+}
 
 
 ProjectManager* globalProjectManager = nullptr;
@@ -466,8 +493,7 @@ void ProjectManager::visuallyRegisterPropagator(
         for (auto* pin : pins)
         {
             const Position absolutePinPosition =
-                ptr->getGridPosition()
-                + pin->getAppearancePosition();
+                ptr->getAbsolutePinPosition(*pin);
 
             auto touching = globalProjectManager->gridManager.addToGrid(
                 absolutePinPosition,
@@ -653,4 +679,136 @@ void ProjectManager::initiateSimulatorUIPropertyManager(
 {
     simulatorPropertySection =
         _propertySection;
+}
+
+void ProjectManager::onSelectionCleared()
+{
+    if (!simulatorPropertySection)
+        return;
+
+    simulatorPropertySection->clear();
+}
+
+void ProjectManager::onPropagatorSelected(AbstractPropagator* propagator)
+{
+    if (!simulatorPropertySection || !propagator)
+        return;
+
+    simulatorPropertySection->clear();
+
+    if (propagator->isAbstract())
+    {
+        populateComponentProperties(static_cast<Component*>(propagator));
+        return;
+    }
+
+    auto* prop = static_cast<Propagator*>(propagator);
+
+    if (prop->getKind() == Propagator::Kinds::PIN)
+        populatePinProperties(static_cast<Pin*>(prop));
+    else
+        populateWireProperties(static_cast<Wire*>(prop));
+}
+
+void ProjectManager::populatePinProperties(Pin* pin)
+{
+    simulatorPropertySection->addProperty(
+        "Name",
+        makeReadOnlyPropertyLabel(QString::fromStdString(pin->getName()))
+    );
+
+    auto* appearanceNameEdit = new QLineEdit(QString::fromStdString(pin->getAppearanceName()));
+    appearanceNameEdit->setStyleSheet(STYLESHEET_LINEEDIT);
+
+    QObject::connect(appearanceNameEdit, &QLineEdit::editingFinished, [pin, appearanceNameEdit]()
+    {
+        pin->setAppearanceName(appearanceNameEdit->text().toStdString());
+        pin->refreshGraphics();
+    });
+
+    simulatorPropertySection->addProperty("Appearance Name", appearanceNameEdit);
+
+    auto* directionCombo = new QComboBox();
+    directionCombo->setStyleSheet(STYLESHEET_COMBOBOX);
+    directionCombo->addItem("Input");
+    directionCombo->addItem("Output");
+    directionCombo->addItem("Two-Way");
+    directionCombo->setCurrentIndex(static_cast<int>(pin->getIODirection()));
+
+    QObject::connect(directionCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), [pin](int index)
+    {
+        pin->setIODirection(static_cast<Pin::IODirection>(index));
+    });
+
+    simulatorPropertySection->addProperty("Direction", directionCombo);
+
+    simulatorPropertySection->addProperty(
+        "State",
+        makeReadOnlyPropertyLabel(stateToDisplayString(pin->getEffectingState()))
+    );
+
+    simulatorPropertySection->addProperty(
+        "Grid Position",
+        makeReadOnlyPropertyLabel(QString("(%1, %2)").arg(pin->getGridPosition().x).arg(pin->getGridPosition().y))
+    );
+}
+
+void ProjectManager::populateComponentProperties(Component* component)
+{
+    simulatorPropertySection->addProperty(
+        "Type",
+        makeReadOnlyPropertyLabel(QString::fromStdString(component->getName()))
+    );
+
+    auto* appearanceNameEdit = new QLineEdit(QString::fromStdString(component->getAppearanceName()));
+    appearanceNameEdit->setStyleSheet(STYLESHEET_LINEEDIT);
+
+    QObject::connect(appearanceNameEdit, &QLineEdit::editingFinished, [component, appearanceNameEdit]()
+    {
+        component->setAppearanceName(appearanceNameEdit->text().toStdString());
+
+        if (component->getGraphicsObject())
+            component->getGraphicsObject()->update();
+    });
+
+    simulatorPropertySection->addProperty("Appearance Name", appearanceNameEdit);
+
+    auto* rotationCombo = new QComboBox();
+    rotationCombo->setStyleSheet(STYLESHEET_COMBOBOX);
+    rotationCombo->addItem(QString::fromUtf8("0\u00B0"));
+    rotationCombo->addItem(QString::fromUtf8("90\u00B0"));
+    rotationCombo->addItem(QString::fromUtf8("180\u00B0"));
+    rotationCombo->addItem(QString::fromUtf8("270\u00B0"));
+    rotationCombo->setCurrentIndex(component->getRotation() / 90);
+
+    QObject::connect(rotationCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), [component](int index)
+    {
+        if (globalProjectManager->workspace)
+            globalProjectManager->workspace->setComponentRotation(component, index * 90);
+    });
+
+    simulatorPropertySection->addProperty("Rotation", rotationCombo);
+
+    simulatorPropertySection->addProperty(
+        "Grid Position",
+        makeReadOnlyPropertyLabel(QString("(%1, %2)").arg(component->getGridPosition().x).arg(component->getGridPosition().y))
+    );
+}
+
+void ProjectManager::populateWireProperties(Wire* wire)
+{
+    simulatorPropertySection->addProperty(
+        "Type",
+        makeReadOnlyPropertyLabel("Wire")
+    );
+
+    simulatorPropertySection->addProperty(
+        "Segments",
+        makeReadOnlyPropertyLabel(QString::number(wire->segments.size()))
+    );
+
+    simulatorPropertySection->addProperty(
+        "State",
+        makeReadOnlyPropertyLabel(stateToDisplayString(wire->getEffectingState()))
+    );
 }

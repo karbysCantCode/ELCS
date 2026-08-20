@@ -39,10 +39,16 @@ public:
 
     void onComponentEditRequested(const SentinelComponent& component);
 
+    void onPropagatorSelected(AbstractPropagator* propagator);
+    void onSelectionCleared();
+
 private:
   void removeExistingComponentFromWorkspace();
   void addCurrentComponentToWorkspace();
   void visuallyRegisterPropagator(AbstractPropagator* _ptr);
+  void populatePinProperties(Pin* pin);
+  void populateComponentProperties(Component* component);
+  void populateWireProperties(Wire* wire);
   std::unordered_set<std::function<void()>*> newComponentCallbacks;
 
   PropertySection* simulatorPropertySection = nullptr;

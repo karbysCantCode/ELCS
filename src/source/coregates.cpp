@@ -15,7 +15,8 @@ namespace CoreGates
         SentinelComponent& component,
         const std::string& name,
         const Position& appearancePosition,
-        Pin::Operations operation = Pin::Operations::BUFFER
+        Pin::Operations operation = Pin::Operations::BUFFER,
+        Pin::IODirection direction = Pin::IODirection::TWO_WAY
     )
     {
         auto pin = std::make_unique<Pin>(component);
@@ -23,6 +24,7 @@ namespace CoreGates
         pin->setName(name);
         pin->setAppearancePosition(appearancePosition);
         pin->setEffectorOperation(operation);
+        pin->setIODirection(direction);
 
         Pin* result = pin.get();
 
@@ -45,24 +47,31 @@ SentinelComponent makeAND()
     Pin* A = addPin(
         component,
         "A",
-        Position(-2, -1)
+        Position(-2, -1),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* B = addPin(
         component,
         "B",
-        Position(-2, 1)
+        Position(-2, 1),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* OUT = addPin(
         component,
         "OUT",
         Position(2, 0),
-        Pin::Operations::AND
+        Pin::Operations::AND,
+        Pin::IODirection::OUTPUT
     );
 
     connect(*A, *OUT);
     connect(*B, *OUT);
+
+    OUT->setAcceptsAffectors(false);
 
 
     // Left side
@@ -114,24 +123,31 @@ SentinelComponent makeNAND()
     Pin* A = addPin(
         component,
         "A",
-        Position(-2, -1)
+        Position(-2, -1),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* B = addPin(
         component,
         "B",
-        Position(-2, 1)
+        Position(-2, 1),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* OUT = addPin(
         component,
         "OUT",
         Position(2, 0),
-        Pin::Operations::NAND
+        Pin::Operations::NAND,
+        Pin::IODirection::OUTPUT
     );
 
     connect(*A, *OUT);
     connect(*B, *OUT);
+
+    OUT->setAcceptsAffectors(false);
 
 
     // AND body
@@ -194,24 +210,31 @@ SentinelComponent makeOR()
     Pin* A = addPin(
         component,
         "A",
-        Position(-2, -1)
+        Position(-2, -1),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* B = addPin(
         component,
         "B",
-        Position(-2, 1)
+        Position(-2, 1),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* OUT = addPin(
         component,
         "OUT",
         Position(2, 0),
-        Pin::Operations::OR
+        Pin::Operations::OR,
+        Pin::IODirection::OUTPUT
     );
 
     connect(*A, *OUT);
     connect(*B, *OUT);
+
+    OUT->setAcceptsAffectors(false);
 
 
     // Main OR curves
@@ -257,24 +280,31 @@ SentinelComponent makeNOR()
     Pin* A = addPin(
         component,
         "A",
-        Position(-2, -1)
+        Position(-2, -1),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* B = addPin(
         component,
         "B",
-        Position(-2, 1)
+        Position(-2, 1),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* OUT = addPin(
         component,
         "OUT",
         Position(2, 0),
-        Pin::Operations::NOR
+        Pin::Operations::NOR,
+        Pin::IODirection::OUTPUT
     );
 
     connect(*A, *OUT);
     connect(*B, *OUT);
+
+    OUT->setAcceptsAffectors(false);
 
 
     // OR body -- exactly following supplied design
@@ -336,24 +366,31 @@ SentinelComponent makeXOR()
     Pin* A = addPin(
         component,
         "A",
-        Position(-2, 1)
+        Position(-2, 1),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* B = addPin(
         component,
         "B",
-        Position(-2, -1)
+        Position(-2, -1),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* OUT = addPin(
         component,
         "OUT",
         Position(2, 0),
-        Pin::Operations::XOR
+        Pin::Operations::XOR,
+        Pin::IODirection::OUTPUT
     );
 
     connect(*A, *OUT);
     connect(*B, *OUT);
+
+    OUT->setAcceptsAffectors(false);
 
 
     // Extra XOR curve
@@ -401,24 +438,31 @@ SentinelComponent makeXNOR()
     Pin* A = addPin(
         component,
         "A",
-        Position(-2, 1)
+        Position(-2, 1),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* B = addPin(
         component,
         "B",
-        Position(-2, -1)
+        Position(-2, -1),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* OUT = addPin(
         component,
         "OUT",
         Position(2, 0),
-        Pin::Operations::XNOR
+        Pin::Operations::XNOR,
+        Pin::IODirection::OUTPUT
     );
 
     connect(*A, *OUT);
     connect(*B, *OUT);
+
+    OUT->setAcceptsAffectors(false);
 
 
     // Extra XOR curve
@@ -482,17 +526,22 @@ SentinelComponent makeNOT()
     Pin* IN = addPin(
         component,
         "IN",
-        Position(-2, 0)
+        Position(-2, 0),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* OUT = addPin(
         component,
         "OUT",
         Position(2, 0),
-        Pin::Operations::NOT
+        Pin::Operations::NOT,
+        Pin::IODirection::OUTPUT
     );
 
     connect(*IN, *OUT);
+
+    OUT->setAcceptsAffectors(false);
 
 
     // Triangle
@@ -555,17 +604,22 @@ SentinelComponent makeBUFFER()
     Pin* IN = addPin(
         component,
         "IN",
-        Position(-2, 0)
+        Position(-2, 0),
+        Pin::Operations::BUFFER,
+        Pin::IODirection::INPUT
     );
 
     Pin* OUT = addPin(
         component,
         "OUT",
         Position(2, 0),
-        Pin::Operations::BUFFER
+        Pin::Operations::BUFFER,
+        Pin::IODirection::OUTPUT
     );
 
     connect(*IN, *OUT);
+
+    OUT->setAcceptsAffectors(false);
 
 
     // Standard buffer triangle

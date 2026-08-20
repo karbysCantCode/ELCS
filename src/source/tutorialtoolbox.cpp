@@ -2,9 +2,56 @@
 
 #include "circuitworkspace.h"
 #include "component.h"
+#include "componenttoolbox.h"
+#include "styles.h"
 
 #include <QVBoxLayout>
-#include <QPushButton>
+#include <QLabel>
+#include <QFrame>
+#include <QMouseEvent>
+
+#include <functional>
+
+namespace {
+
+class TutorialToolboxPinButton : public QFrame
+{
+public:
+    TutorialToolboxPinButton(std::function<void()> _onClick, QWidget* parent)
+        : QFrame(parent), onClick(std::move(_onClick))
+    {
+        auto* label = new QLabel("Pin", this);
+
+        setStyleSheet(STYLESHEET_TOOLBOX_ITEM);
+        setAttribute(Qt::WA_Hover);
+        label->setStyleSheet(STYLESHEET_TOOLBOX_ITEM_LABEL);
+        label->setAlignment(Qt::AlignCenter);
+        label->setWordWrap(true);
+        label->setAttribute(Qt::WA_TransparentForMouseEvents);
+
+        auto* layout = new QVBoxLayout(this);
+        layout->setContentsMargins(14, 12, 14, 12);
+        layout->addWidget(label);
+
+        setMinimumHeight(48);
+        setFrameShape(QFrame::StyledPanel);
+        setCursor(Qt::PointingHandCursor);
+    }
+
+protected:
+    void mouseReleaseEvent(QMouseEvent* event) override
+    {
+        if (event->button() == Qt::LeftButton && rect().contains(event->pos()))
+            onClick();
+
+        QFrame::mouseReleaseEvent(event);
+    }
+
+private:
+    std::function<void()> onClick;
+};
+
+}
 
 TutorialToolbox::TutorialToolbox(CircuitWorkspace& workspace, QWidget* parent)
     : QWidget(parent), workspace(workspace)
@@ -42,26 +89,24 @@ void TutorialToolbox::setAvailableComponents(
         if (!component)
             continue;
 
-        auto* button = new QPushButton(QString::fromStdString(component->getName()), this);
+        auto* element = new ToolboxElement(*component, this);
 
-        connect(button, &QPushButton::clicked, this, [this, component]()
+        connect(element, &ToolboxElement::componentSelected, this, [this](SentinelComponent& selected)
         {
-            workspace.onComponentSelected(*component);
-            emit componentButtonClicked(component);
+            workspace.onComponentSelected(selected);
+            emit componentButtonClicked(&selected);
         });
 
-        buttonLayout->addWidget(button);
+        buttonLayout->addWidget(element);
     }
 
     if (includePinButton)
     {
-        auto* pinButton = new QPushButton("Pin", this);
-
-        connect(pinButton, &QPushButton::clicked, this, [this]()
+        auto* pinButton = new TutorialToolboxPinButton([this]()
         {
             workspace.startPlacingPin();
             emit pinButtonClicked();
-        });
+        }, this);
 
         buttonLayout->addWidget(pinButton);
     }
