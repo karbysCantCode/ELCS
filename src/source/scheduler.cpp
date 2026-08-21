@@ -174,10 +174,14 @@ void Scheduler::runTick() {
 
     auto it = ticks.getIterator();
     while (it != nullptr) {
-        std::lock_guard<std::mutex> lock(listMutex);
+        std::unique_lock<std::mutex> lock(listMutex);
         if ((*(*it)) == 0) {
-            (*(*it)).run();
+            Tick* dueTick = *it;
             it++;
+
+            lock.unlock();
+            dueTick->run();
+            lock.lock();
             // assert(ticks.front() == *it); //shouldnt.... TODO DEBUG (can remove production)
             ticks.popFront();
         } else {

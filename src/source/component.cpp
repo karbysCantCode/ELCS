@@ -152,9 +152,24 @@ namespace
         pin.setAppearanceName(readPackedString(readU32));
     }
 
+    void loadPinFieldsV5(Pin& pin, const std::function<uint32_t(bool)>& readU32)
+    {
+        pin.setEffectorOperation(static_cast<Pin::Operations>(readU32(true)));
+        pin.setIODirection(static_cast<Pin::IODirection>(readU32(true)));
+        pin.setAcceptsEffects(readU32(true) != 0);
+        pin.setAcceptsAffectors(readU32(true) != 0);
+        pin.setGridPosition({static_cast<int>(readU32(true)), static_cast<int>(readU32(true))});
+        pin.setAppearancePosition({static_cast<int>(readU32(true)), static_cast<int>(readU32(true))});
+        pin.setRotation(static_cast<int>(readU32(true)));
+        pin.setName(readPackedString(readU32));
+        pin.setAppearanceName(readPackedString(readU32));
+    }
+
     void loadPinFields(uint32_t minorVersion, Pin& pin, const std::function<uint32_t(bool)>& readU32)
     {
-        if (minorVersion >= 3)
+        if (minorVersion >= 5)
+            loadPinFieldsV5(pin, readU32);
+        else if (minorVersion >= 3)
             loadPinFieldsV3(pin, readU32);
         else if (minorVersion == 2)
             loadPinFieldsV2(pin, readU32);
@@ -737,6 +752,7 @@ bool SentinelComponent::saveToFile(const std::filesystem::path& path) const
         buffer.push_back(COMPONENT_SAVE_VERSION_MINOR);
 
         writePackedString(buffer, name);
+        writePackedString(buffer, appearanceName);
 
         buffer.push_back(static_cast<uint32_t>(propagators.size()));
 
@@ -818,6 +834,12 @@ bool SentinelComponent::loadFromFile(const std::filesystem::path& path) {
     }
 
     name = readPackedString(readU32);
+
+    if (minorVersion >= 4) {
+      appearanceName = readPackedString(readU32);
+    } else {
+      appearanceName.clear();
+    }
 
     const uint32_t totalPropagators = readU32();
     checkSaneCount(totalPropagators, "propagator count");
@@ -929,6 +951,7 @@ void Pin::saveToAddress(uint32_t* data) const {
     *data++ = static_cast<uint32_t>(getGridPosition().y);
     *data++ = static_cast<uint32_t>(appearancePosition.x);
     *data++ = static_cast<uint32_t>(appearancePosition.y);
+    *data++ = static_cast<uint32_t>(rotation);
     data += writePackedStringToAddress(data, name);
     writePackedStringToAddress(data, appearanceName);
 }
@@ -939,7 +962,7 @@ void Pin::poke(States newState) {
 }
 
 size_t Pin::getUint32sToSave() const {
-    return 8 + packedStringUint32s(name) + packedStringUint32s(appearanceName);
+    return 9 + packedStringUint32s(name) + packedStringUint32s(appearanceName);
 }
 
 size_t Wire::getUint32sToSave() const {
@@ -1203,6 +1226,7 @@ Pin::Pin(const Pin& pinToCopy, Component& _parent)
     appearancePosition(pinToCopy.appearancePosition),
     name(pinToCopy.name),
     appearanceName(pinToCopy.appearanceName),
+    rotation(pinToCopy.rotation),
     Propagator(pinToCopy)
     {
 

@@ -29,7 +29,7 @@ private:
     QHBoxLayout* buttonLayout = nullptr;
 
     std::vector<std::string> loadoutOrder;
-    std::vector<ToolboxElement*> elements;
+    std::vector<QWidget*> elements;
 
     static QString loadoutFilePath();
     void loadLoadout();

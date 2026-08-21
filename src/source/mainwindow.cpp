@@ -176,6 +176,11 @@ for (QAction* action : menuBar()->actions())
     {
       globalProjectManager->onSelectionCleared();
     });
+
+    simulatorCircuitToolbox->addPinButton([]()
+    {
+      globalProjectManager->workspace->startPlacingPin();
+    });
   });
   // leave this past any ui creation
 

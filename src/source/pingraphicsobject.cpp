@@ -6,11 +6,24 @@
 
 #define PADDING 20
 
-QRectF PinGraphicsObject::boundingRect() const {
+QRectF PinGraphicsObject::labelRect() const {
   QFontMetrics fm(QFont("Arial",12));
   int width = fm.horizontalAdvance(name) + PADDING;
 
-  QRectF rect(30,-20,width,40);
+  const int rotation = pin.getRotation();
+
+  if (rotation == 90)
+    return QRectF(-width / 2.0, 30, width, 24);
+  if (rotation == 180)
+    return QRectF(-30 - width, -12, width, 24);
+  if (rotation == 270)
+    return QRectF(-width / 2.0, -30 - 24, width, 24);
+
+  return QRectF(30, -12, width, 24);
+}
+
+QRectF PinGraphicsObject::boundingRect() const {
+  QRectF rect = labelRect().adjusted(-10, -8, 10, 8);
 
   if (!pin.getAppearanceName().empty())
   {
@@ -35,17 +48,23 @@ void PinGraphicsObject::paint(
   pen.setWidthF(2); 
   painter->setPen(pen); 
   painter->setBrush(stateCol); 
-  
+
+  painter->save();
+  painter->rotate(pin.getRotation());
+
   // dot 
   painter->drawEllipse(QPointF(0,0), 4, 4); 
   
   // line 
   painter->drawLine( QPointF(4,0), QPointF(30,0) ); 
+
+  painter->restore();
   
   // text box 
   QFont font("Arial", 12); 
   QFontMetrics fm(font); 
-  QRectF textRect(30,-12,fm.horizontalAdvance(name) + PADDING ,24); 
+  QRectF textRect = labelRect();
+  painter->setPen(pen);
   painter->setBrush(QColor("#333333")); 
   painter->drawRoundedRect( textRect, 4, 4 );
 

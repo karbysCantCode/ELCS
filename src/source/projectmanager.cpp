@@ -742,6 +742,22 @@ void ProjectManager::populatePinProperties(Pin* pin)
 
     simulatorPropertySection->addProperty("Direction", directionCombo);
 
+    auto* rotationCombo = new QComboBox();
+    rotationCombo->setStyleSheet(STYLESHEET_COMBOBOX);
+    rotationCombo->addItem(QString::fromUtf8("0\u00B0"));
+    rotationCombo->addItem(QString::fromUtf8("90\u00B0"));
+    rotationCombo->addItem(QString::fromUtf8("180\u00B0"));
+    rotationCombo->addItem(QString::fromUtf8("270\u00B0"));
+    rotationCombo->setCurrentIndex(pin->getRotation() / 90);
+
+    QObject::connect(rotationCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), [pin](int index)
+    {
+        if (globalProjectManager->workspace)
+            globalProjectManager->workspace->setPinRotation(pin, index * 90);
+    });
+
+    simulatorPropertySection->addProperty("Rotation", rotationCombo);
+
     simulatorPropertySection->addProperty(
         "State",
         makeReadOnlyPropertyLabel(stateToDisplayString(pin->getEffectingState()))

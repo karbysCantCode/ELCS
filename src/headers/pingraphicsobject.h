@@ -49,6 +49,8 @@ protected:
   //     return PinGraphicsObject::Type;
   // }
 private:
+  QRectF labelRect() const;
+
   QString name;
   Pin& pin;
   bool showText = true;

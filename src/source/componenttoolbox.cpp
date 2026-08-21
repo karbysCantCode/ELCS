@@ -13,6 +13,7 @@
 #include "styles.h"
 
 const char* const TOOLBOX_COMPONENT_MIME_TYPE = "application/x-elcs-component";
+const char* const TOOLBOX_PIN_SENTINEL = "\x01__elcs_pin__\x01";
 
 componentToolbox* simulatorCircuitToolbox = nullptr;
 componentToolbox* styleCircuitToolbox = nullptr;
@@ -44,8 +45,12 @@ ToolboxElement::ToolboxElement(
     : QFrame(parent),
       component(component)
 {
+  const QString displayName = component.getAppearanceName().empty()
+      ? QString::fromStdString(component.getName())
+      : QString::fromStdString(component.getAppearanceName());
+
   nameLabel = new QLabel(
-    QString::fromStdString(component.getName()),
+    displayName,
     this
   );
 
@@ -116,6 +121,67 @@ void ToolboxElement::mouseDoubleClickEvent(QMouseEvent* event)
   {
     emit componentEditRequested(component);
   }
+}
+
+PinToolboxButton::PinToolboxButton(QWidget* parent)
+    : QFrame(parent)
+{
+  auto* label = new QLabel("Pin", this);
+
+  setStyleSheet(STYLESHEET_TOOLBOX_ITEM);
+  setAttribute(Qt::WA_Hover);
+  label->setStyleSheet(STYLESHEET_TOOLBOX_ITEM_LABEL);
+  label->setAlignment(Qt::AlignCenter);
+  label->setWordWrap(true);
+  label->setAttribute(Qt::WA_TransparentForMouseEvents);
+
+  auto* layout = new QVBoxLayout(this);
+  layout->setContentsMargins(14, 12, 14, 12);
+  layout->addWidget(label);
+
+  setMinimumHeight(48);
+  setFrameShape(QFrame::StyledPanel);
+  setCursor(Qt::PointingHandCursor);
+}
+
+void PinToolboxButton::mousePressEvent(QMouseEvent* event)
+{
+  if (event->button() == Qt::LeftButton)
+  {
+    dragStartPosition = event->pos();
+  }
+
+  QFrame::mousePressEvent(event);
+}
+
+void PinToolboxButton::mouseMoveEvent(QMouseEvent* event)
+{
+  if (!(event->buttons() & Qt::LeftButton))
+    return;
+
+  if ((event->pos() - dragStartPosition).manhattanLength() < QApplication::startDragDistance())
+    return;
+
+  auto* mimeData = new QMimeData();
+  mimeData->setData(TOOLBOX_COMPONENT_MIME_TYPE, QByteArray(TOOLBOX_PIN_SENTINEL));
+
+  auto* drag = new QDrag(this);
+  drag->setMimeData(mimeData);
+  drag->setPixmap(grab());
+  drag->setHotSpot(event->pos());
+
+  drag->exec(Qt::CopyAction);
+}
+
+void PinToolboxButton::mouseReleaseEvent(QMouseEvent* event)
+{
+  if (event->button() == Qt::LeftButton &&
+      (event->pos() - dragStartPosition).manhattanLength() < QApplication::startDragDistance())
+  {
+    emit pinSelected();
+  }
+
+  QFrame::mouseReleaseEvent(event);
 }
 
 void componentToolbox::initScrollArea(QWidget* _scrollArea) {
@@ -195,4 +261,16 @@ void componentToolbox::updateElements()
             ++it;
         }
     }
+}
+
+void componentToolbox::addPinButton(std::function<void()> onClick)
+{
+    if (pinButton || !scrollArea || !layout)
+        return;
+
+    pinButton = new PinToolboxButton(scrollArea);
+
+    QObject::connect(pinButton, &PinToolboxButton::pinSelected, scrollArea, std::move(onClick));
+
+    layout->insertWidget(0, pinButton);
 }

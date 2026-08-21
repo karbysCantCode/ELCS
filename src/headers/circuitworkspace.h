@@ -36,6 +36,8 @@ public:
     inline EditingStates getState() const {return state;}
 
     void setComponentRotation(Component* component, int newRotation);
+    void rotateSelectedComponent();
+    void setPinRotation(Pin* pin, int newRotation);
 public slots:
     void onComponentSelected(const SentinelComponent& component);
     void onComponentEditRequested(const SentinelComponent& component);
@@ -43,7 +45,6 @@ public slots:
     void startPlacingPin();
 
 signals:
-
     void componentPlaced(Component* component);
     void pinPlaced(Pin* pin);
     void wirePlaced(Wire* wire);
@@ -97,6 +98,7 @@ private:
     const SentinelComponent* p_componentToPlace = nullptr;
     ComponentGraphicsObject* p_componentGhost = nullptr;
 
+    // Pin placement -- mirrors the component-ghost members above.
     std::unique_ptr<Pin> p_temporaryPinToPlace;
     PinGraphicsObject* p_pinGhost = nullptr;
 
@@ -132,7 +134,7 @@ private:
     int getMaxYPosition() const;
 
     void deleteSelectedItem();
-    void rotateSelectedComponent();
+    void rotateSelectedItem();
 
     void cancelCurrentPlacement();
 };

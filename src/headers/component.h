@@ -163,8 +163,18 @@ public:
 
     void setGraphicsObject(SegmentGraphicsObject* object)  {graphicsObject=object;}
 
+    // Removes the segment at `index`. Returns true if a segment was
+    // removed (false if index was out of range). Caller is
+    // responsible for unregistering the removed segment from the
+    // grid first (mirrors how the rest of this class leaves grid
+    // bookkeeping to the caller, e.g. mergeCollidingWires()).
     bool removeSegmentAt(size_t index);
 
+    // Index of whichever segment sits closest to `point` (grid
+    // space), or -1 if this wire has no segments. Used to figure out
+    // which segment a user meant when deleting part of a
+    // multi-segment wire (segments are axis-aligned, so this is a
+    // simple clamped-point distance check).
     int nearestSegmentIndex(const Position& point) const;
 
     // does not sync effectors and affectors.
@@ -223,6 +233,10 @@ public:
 
     const std::string& getAppearanceName() const { return appearanceName; }
     void setAppearanceName(const std::string& value) { appearanceName = value; }
+
+    // rotation, in degrees, always one of 0/90/180/270
+    int getRotation() const { return rotation; }
+    void setRotation(int degrees) { rotation = ((degrees % 360) + 360) % 360; }
     
     PinGraphicsObject* getGraphicsObject() const {return graphicsObject;}
     void setGraphicsObject(PinGraphicsObject* object)  {graphicsObject=object;}
@@ -246,6 +260,7 @@ private:
     Position appearancePosition;
     std::string name;
     std::string appearanceName;
+    int rotation = 0;
     Component& parent;
     PinGraphicsObject* graphicsObject = nullptr;
     // state should be inherited by wire, begins nullptr assuming no connected wire, beware.

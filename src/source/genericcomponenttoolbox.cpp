@@ -102,6 +102,24 @@ void GenericComponentToolbox::rebuildElements()
 
     for (const auto& name : loadoutOrder)
     {
+        if (name == TOOLBOX_PIN_SENTINEL)
+        {
+            auto* pinButton = new PinToolboxButton(this);
+            pinButton->installEventFilter(this);
+
+            connect(
+                pinButton,
+                &PinToolboxButton::pinSelected,
+                &workspace,
+                &CircuitWorkspace::startPlacingPin
+            );
+
+            buttonLayout->insertWidget(buttonLayout->count() - 1, pinButton);
+            elements.push_back(pinButton);
+
+            continue;
+        }
+
         auto it = globalProjectManager->components.find(name);
 
         if (it == globalProjectManager->components.end())
@@ -166,11 +184,17 @@ bool GenericComponentToolbox::eventFilter(QObject* watched, QEvent* event)
 
         if (mouseEvent->button() == Qt::RightButton)
         {
-            auto* element = qobject_cast<ToolboxElement*>(watched);
-
-            if (element)
+            if (auto* element = qobject_cast<ToolboxElement*>(watched))
             {
                 removeFromLoadout(element->getComponent().getName());
+                rebuildElements();
+                saveLoadout();
+                return true;
+            }
+
+            if (qobject_cast<PinToolboxButton*>(watched))
+            {
+                removeFromLoadout(TOOLBOX_PIN_SENTINEL);
                 rebuildElements();
                 saveLoadout();
                 return true;

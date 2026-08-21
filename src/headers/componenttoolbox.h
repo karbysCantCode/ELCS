@@ -9,6 +9,7 @@
 #include "projectmanager.h"
 
 extern const char* const TOOLBOX_COMPONENT_MIME_TYPE;
+extern const char* const TOOLBOX_PIN_SENTINEL;
 
 class ToolboxElement : public QFrame
 {
@@ -38,6 +39,25 @@ private:
     QPoint dragStartPosition;
 };
 
+class PinToolboxButton : public QFrame
+{
+    Q_OBJECT
+
+public:
+    explicit PinToolboxButton(QWidget* parent = nullptr);
+
+signals:
+    void pinSelected();
+
+protected:
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
+
+private:
+    QPoint dragStartPosition;
+};
+
 using ToolboxConnectionFunction =
     std::function<void(ToolboxElement*)>;
 class componentToolbox : public QScrollArea
@@ -46,6 +66,7 @@ class componentToolbox : public QScrollArea
 private:
     QVBoxLayout* layout;
     QWidget* scrollArea = nullptr;
+    PinToolboxButton* pinButton = nullptr;
 
 
     std::vector<ToolboxConnectionFunction> registeredConnections;
@@ -59,6 +80,7 @@ public:
 
     void initScrollArea(QWidget* _scrollArea);
     void updateElements();
+    void addPinButton(std::function<void()> onClick);
     componentToolbox(QWidget* parent = nullptr);
 
     
