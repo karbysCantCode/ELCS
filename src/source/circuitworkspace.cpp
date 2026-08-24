@@ -166,6 +166,11 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
       Position nPos = convertEventPosToPosition((event->pos()));
       auto* abstractItem = dynamic_cast<AbstractGraphicsObject*>(item);
       if (state == EditingStates::POKE) {
+        if (isReadOnly()) {
+          notifyReadOnly();
+          event->accept();
+          return;
+        }
         if (abstractItem && abstractItem->graphicsObjectType() == AbstractGraphicsObject::PIN) {
           Pin* pin = static_cast<Pin*>(abstractItem->parentPropagator);
           if (pin) {
@@ -182,6 +187,11 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
         switch (interactionState)
         {
         case InteractionState::NONE: {
+          if (isReadOnly()) {
+            notifyReadOnly();
+            event->accept();
+            return;
+          }
           if (globalProjectManager->gridManager.isOccupied(nPos)) {
             globalNotificationManager->notify("Debug", "is occupied", 1000);
             setInteractionState(InteractionState::WIRING);
@@ -211,6 +221,11 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
           break;
         }
         case InteractionState::SELECTED_ITEM: {
+          if (isReadOnly()) {
+            notifyReadOnly();
+            event->accept();
+            return;
+          }
           p_itemDragStartMouse = event->pos();
           p_itemDragStartPosition = p_selectedItem->pos();
           //p_selectedItem = abstractItem;
@@ -493,7 +508,7 @@ void CircuitWorkspace::keyPressEvent(QKeyEvent* event)
     }
 
     if (event->key() == Qt::Key_R) {
-        rotateSelectedComponent();
+        rotateSelectedItem();
         event->accept();
         return;
     }
@@ -501,20 +516,48 @@ void CircuitWorkspace::keyPressEvent(QKeyEvent* event)
     QGraphicsView::keyPressEvent(event);
 }
 
-void CircuitWorkspace::rotateSelectedComponent()
+void CircuitWorkspace::rotateSelectedItem()
 {
-    if (!p_selectedItem || !p_selectedItem->parentPropagator || !p_selectedItem->parentPropagator->isAbstract())
+    if (!p_selectedItem || !p_selectedItem->parentPropagator)
         return;
 
-    auto* component = static_cast<Component*>(p_selectedItem->parentPropagator);
+    if (p_selectedItem->parentPropagator->isAbstract()) {
+        auto* component = static_cast<Component*>(p_selectedItem->parentPropagator);
+        setComponentRotation(component, component->getRotation() + 90);
+        return;
+    }
 
-    setComponentRotation(component, component->getRotation() + 90);
+    auto* propagator = static_cast<Propagator*>(p_selectedItem->parentPropagator);
+
+    if (propagator->getKind() == Propagator::Kinds::PIN) {
+        auto* pin = static_cast<Pin*>(propagator);
+        setPinRotation(pin, pin->getRotation() + 90);
+    }
+}
+
+void CircuitWorkspace::setPinRotation(Pin* pin, int newRotation)
+{
+    if (!pin)
+        return;
+
+    if (isReadOnly()) {
+        notifyReadOnly();
+        return;
+    }
+
+    pin->setRotation(newRotation);
+    pin->refreshGraphics();
 }
 
 void CircuitWorkspace::setComponentRotation(Component* component, int newRotation)
 {
     if (!component)
         return;
+
+    if (isReadOnly()) {
+        notifyReadOnly();
+        return;
+    }
 
     auto pins = component->getPins();
 
@@ -551,6 +594,11 @@ void CircuitWorkspace::deleteSelectedItem()
 {
     if (!p_selectedItem || !globalProjectManager || !globalProjectManager->currentOpenComponent)
         return;
+
+    if (isReadOnly()) {
+        notifyReadOnly();
+        return;
+    }
 
     AbstractGraphicsObject* item = p_selectedItem;
 
@@ -615,14 +663,26 @@ void CircuitWorkspace::deleteSelectedItem()
             if (wire->segments.empty()) {
                 emit itemDeleted(wire);
                 globalProjectManager->currentOpenComponent->removePropagator(wire);
-            } else {
-                globalProjectManager->gridManager.addToGrid(wire->segments, wire);
+                break;
+            }
 
-                if (wireGraphics) {
-                    wireGraphics->update();
-                }
+            auto groups = wire->findConnectedSegmentGroups();
 
-                emit wireModified(wire);
+            wire->segments = groups.front();
+            globalProjectManager->gridManager.addToGrid(wire->segments, wire);
+
+            if (wireGraphics) {
+                wireGraphics->update();
+            }
+
+            emit wireModified(wire);
+
+            for (size_t i = 1; i < groups.size(); i++) {
+                auto splitWire = std::make_unique<Wire>();
+                splitWire->segments = groups[i];
+
+                AbstractPropagator* placed = globalProjectManager->addNewPropagator(std::move(splitWire));
+                emit wirePlaced(static_cast<Wire*>(placed));
             }
 
             break;
@@ -692,6 +752,12 @@ void CircuitWorkspace::reset() {
 void CircuitWorkspace::onComponentSelected(
     const SentinelComponent& component)
 {
+    if (isReadOnly())
+    {
+        notifyReadOnly();
+        return;
+    }
+
     if (globalProjectManager->currentOpenComponent == &component)
     {
         globalNotificationManager->notify(
@@ -748,6 +814,12 @@ void CircuitWorkspace::startPlacingPin()
 {
     if (!globalProjectManager || !globalProjectManager->currentOpenComponent)
         return;
+
+    if (isReadOnly())
+    {
+        notifyReadOnly();
+        return;
+    }
 
     // Cancel any existing interaction (component OR pin placement).
     cancelCurrentPlacement();

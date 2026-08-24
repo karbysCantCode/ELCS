@@ -16,6 +16,12 @@
 #include "pingraphicsobject.h"
 #include "componentgraphicsobject.h"
 
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonValue>
+
 namespace
 {
     constexpr uint32_t COMPONENT_APPEARANCE_SECTION_MAGIC = 0x41505052; // 'APPR'
@@ -201,6 +207,66 @@ namespace
             loadNestedComponentFieldsV3(compName, compPos, compAppearanceName, compRotation, readU32);
         else
             loadNestedComponentFieldsV1(compName, compPos, compAppearanceName, compRotation, readU32);
+    }
+
+    QJsonObject positionToJson(const Position& pos)
+    {
+        QJsonObject obj;
+        obj["x"] = pos.x;
+        obj["y"] = pos.y;
+        return obj;
+    }
+
+    Position positionFromJson(const QJsonObject& obj)
+    {
+        Position pos;
+        pos.x = obj["x"].toInt();
+        pos.y = obj["y"].toInt();
+        return pos;
+    }
+
+    QString pinOperationToString(Pin::Operations op)
+    {
+        switch (op) {
+            case Pin::Operations::OR: return "OR";
+            case Pin::Operations::AND: return "AND";
+            case Pin::Operations::XOR: return "XOR";
+            case Pin::Operations::NOT: return "NOT";
+            case Pin::Operations::NOR: return "NOR";
+            case Pin::Operations::NAND: return "NAND";
+            case Pin::Operations::XNOR: return "XNOR";
+            case Pin::Operations::BUFFER: return "BUFFER";
+        }
+        return "BUFFER";
+    }
+
+    Pin::Operations pinOperationFromString(const QString& text)
+    {
+        if (text == "OR") return Pin::Operations::OR;
+        if (text == "AND") return Pin::Operations::AND;
+        if (text == "XOR") return Pin::Operations::XOR;
+        if (text == "NOT") return Pin::Operations::NOT;
+        if (text == "NOR") return Pin::Operations::NOR;
+        if (text == "NAND") return Pin::Operations::NAND;
+        if (text == "XNOR") return Pin::Operations::XNOR;
+        return Pin::Operations::BUFFER;
+    }
+
+    QString pinDirectionToString(Pin::IODirection dir)
+    {
+        switch (dir) {
+            case Pin::IODirection::INPUT: return "INPUT";
+            case Pin::IODirection::OUTPUT: return "OUTPUT";
+            case Pin::IODirection::TWO_WAY: return "TWO_WAY";
+        }
+        return "TWO_WAY";
+    }
+
+    Pin::IODirection pinDirectionFromString(const QString& text)
+    {
+        if (text == "INPUT") return Pin::IODirection::INPUT;
+        if (text == "OUTPUT") return Pin::IODirection::OUTPUT;
+        return Pin::IODirection::TWO_WAY;
     }
 }
 
@@ -516,6 +582,43 @@ int Wire::nearestSegmentIndex(const Position& point) const {
     return bestIndex;
 }
 
+std::vector<std::vector<Segment>> Wire::findConnectedSegmentGroups() const {
+    std::vector<std::vector<Segment>> groups;
+    std::vector<bool> visited(segments.size(), false);
+
+    for (size_t i = 0; i < segments.size(); i++) {
+        if (visited[i])
+            continue;
+
+        std::vector<Segment> group;
+        std::vector<size_t> stack{i};
+        visited[i] = true;
+
+        while (!stack.empty()) {
+            const size_t current = stack.back();
+            stack.pop_back();
+            group.push_back(segments[current]);
+
+            for (size_t j = 0; j < segments.size(); j++) {
+                if (visited[j])
+                    continue;
+
+                if (segments[current].begin == segments[j].begin ||
+                    segments[current].begin == segments[j].end ||
+                    segments[current].end == segments[j].begin ||
+                    segments[current].end == segments[j].end) {
+                    visited[j] = true;
+                    stack.push_back(j);
+                }
+            }
+        }
+
+        groups.push_back(std::move(group));
+    }
+
+    return groups;
+}
+
 void Propagator::addRelatedPropagator(AbstractPropagator* abstract) {
   if (abstract->isAbstract()) {
     qDebug("Not sure what to do or how it would happen but um,,,, component?");
@@ -746,53 +849,129 @@ bool SentinelComponent::saveToFile(const std::filesystem::path& path) const
 {
     try
     {
-        std::vector<uint32_t> buffer;
+        QJsonObject root;
 
-        buffer.push_back(COMPONENT_SAVE_VERSION_MAJOR);
-        buffer.push_back(COMPONENT_SAVE_VERSION_MINOR);
+        root["formatVersion"] = 1;
+        root["name"] = QString::fromStdString(name);
+        root["appearanceName"] = QString::fromStdString(appearanceName);
 
-        writePackedString(buffer, name);
-        writePackedString(buffer, appearanceName);
+        QJsonArray wiresArray;
+        QJsonArray pinsArray;
+        QJsonArray componentsArray;
 
-        buffer.push_back(static_cast<uint32_t>(propagators.size()));
+        for (const auto& _propagator : propagators)
+        {
+            if (!_propagator->isAbstract())
+            {
+                auto* propagator = static_cast<Propagator*>(_propagator.get());
 
-        uint32_t propagatorId = 0;
-        std::unordered_map<Propagator*, uint32_t> wiresById;
-        std::unordered_map<Propagator*, uint32_t> pinsById;
-        std::vector<Component*> components;
+                if (propagator->getKind() == Propagator::Kinds::PIN)
+                {
+                    auto* pin = static_cast<Pin*>(propagator);
 
-        const uint32_t uint32Size = getUint32Size(propagatorId, wiresById, pinsById, components, true);
+                    QJsonObject pinObj;
+                    pinObj["name"] = QString::fromStdString(pin->getName());
+                    pinObj["appearanceName"] = QString::fromStdString(pin->getAppearanceName());
+                    pinObj["operation"] = pinOperationToString(pin->getEffectorOperation());
+                    pinObj["ioDirection"] = pinDirectionToString(pin->getIODirection());
+                    pinObj["acceptsEffects"] = pin->getAcceptsEffects();
+                    pinObj["acceptsAffectors"] = pin->getAcceptsAffectors();
+                    pinObj["gridPosition"] = positionToJson(pin->getGridPosition());
+                    pinObj["appearancePosition"] = positionToJson(pin->getAppearancePosition());
+                    pinObj["rotation"] = pin->getRotation();
 
-        buffer.push_back(static_cast<uint32_t>(wiresById.size()));
-        buffer.push_back(static_cast<uint32_t>(pinsById.size()));
-        buffer.push_back(static_cast<uint32_t>(components.size()));
+                    pinsArray.append(pinObj);
+                }
+                else
+                {
+                    auto* wire = static_cast<Wire*>(propagator);
 
-        const size_t propagatorSectionOffset = buffer.size();
-        buffer.resize(buffer.size() + uint32Size);
+                    QJsonArray segmentsArray;
 
-        size_t propagatorIndex = propagatorSectionOffset;
+                    for (const auto& segment : wire->segments)
+                    {
+                        QJsonObject segmentObj;
+                        segmentObj["begin"] = positionToJson(segment.begin);
+                        segmentObj["end"] = positionToJson(segment.end);
+                        segmentsArray.append(segmentObj);
+                    }
 
-        for (const auto& [wire, id] : wiresById) {
-            wire->saveToAddress(buffer.data() + propagatorIndex);
-            propagatorIndex += wire->getUint32sToSave();
+                    QJsonObject wireObj;
+                    wireObj["segments"] = segmentsArray;
+
+                    wiresArray.append(wireObj);
+                }
+            }
+            else
+            {
+                auto* component = static_cast<Component*>(_propagator.get());
+
+                QJsonObject compObj;
+                compObj["name"] = QString::fromStdString(component->getName());
+                compObj["appearanceName"] = QString::fromStdString(component->getAppearanceName());
+                compObj["position"] = positionToJson(component->getGridPosition());
+                compObj["rotation"] = component->getRotation();
+
+                componentsArray.append(compObj);
+            }
         }
-        for (const auto& [pin, id] : pinsById) {
-            pin->saveToAddress(buffer.data() + propagatorIndex);
-            propagatorIndex += pin->getUint32sToSave();
+
+        root["wires"] = wiresArray;
+        root["pins"] = pinsArray;
+        root["components"] = componentsArray;
+
+        QJsonObject appearanceObj;
+        appearanceObj["anchor"] = positionToJson(appearance.anchor);
+
+        QJsonArray linesArray;
+        for (const auto& line : appearance.lines)
+        {
+            QJsonObject lineObj;
+            lineObj["begin"] = positionToJson(line.begin);
+            lineObj["end"] = positionToJson(line.end);
+            lineObj["color"] = line.color.name(QColor::HexArgb);
+            lineObj["width"] = line.width;
+            linesArray.append(lineObj);
         }
-        for (const auto* component : components) {
-            component->saveToAddress(buffer.data() + propagatorIndex);
-            propagatorIndex += component->getUint32sToSave();
+        appearanceObj["lines"] = linesArray;
+
+        QJsonArray curvesArray;
+        for (const auto& curve : appearance.curves)
+        {
+            QJsonObject curveObj;
+            curveObj["begin"] = positionToJson(curve.begin);
+            curveObj["control1"] = positionToJson(curve.control1);
+            curveObj["control2"] = positionToJson(curve.control2);
+            curveObj["end"] = positionToJson(curve.end);
+            curveObj["color"] = curve.color.name(QColor::HexArgb);
+            curveObj["width"] = curve.width;
+            curvesArray.append(curveObj);
+        }
+        appearanceObj["curves"] = curvesArray;
+
+        QJsonArray labelsArray;
+        for (const auto& label : appearance.labels)
+        {
+            QJsonObject labelObj;
+            labelObj["text"] = label.text;
+            labelObj["position"] = positionToJson(label.position);
+            labelObj["color"] = label.color.name(QColor::HexArgb);
+            labelObj["fontSize"] = label.fontSize;
+            labelsArray.append(labelObj);
+        }
+        appearanceObj["labels"] = labelsArray;
+
+        root["appearance"] = appearanceObj;
+
+        QFile file(QString::fromStdString(path.string()));
+
+        if (!file.open(QIODevice::WriteOnly))
+        {
+            std::cerr << "Failed to save component \"" << name << "\": couldn't open file for writing\n";
+            return false;
         }
 
-        buffer.push_back(COMPONENT_APPEARANCE_SECTION_MAGIC);
-
-        const size_t appearanceUint32s = appearance.getUint32sToSave();
-        const size_t appearanceOffset = buffer.size();
-        buffer.resize(buffer.size() + appearanceUint32s);
-        appearance.saveToAddress(buffer.data() + appearanceOffset);
-
-        writeUint32VectorToFile(path, buffer);
+        file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
 
         return true;
     }
@@ -804,6 +983,173 @@ bool SentinelComponent::saveToFile(const std::filesystem::path& path) const
 }
 
 bool SentinelComponent::loadFromFile(const std::filesystem::path& path) {
+  try
+  {
+    filePath = path;
+
+    QFile file(QString::fromStdString(path.string()));
+
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        std::cerr << "Failed to load component from \"" << path.string() << "\": couldn't open file\n";
+        return false;
+    }
+
+    const QByteArray contents = file.readAll();
+    const QByteArray trimmed = contents.trimmed();
+
+    if (!trimmed.isEmpty() && trimmed.at(0) == '{')
+      return loadFromJson(contents);
+  }
+  catch (const std::exception& e)
+  {
+    std::cerr << "Failed to load component from \"" << path.string() << "\": " << e.what() << '\n';
+    return false;
+  }
+
+  return loadFromLegacyBinary(path);
+}
+
+bool SentinelComponent::loadFromJson(const QByteArray& contents) {
+  try
+  {
+    QJsonParseError parseError;
+    const QJsonDocument doc = QJsonDocument::fromJson(contents, &parseError);
+
+    if (parseError.error != QJsonParseError::NoError)
+    {
+        std::cerr << "Failed to parse component JSON: " << parseError.errorString().toStdString() << '\n';
+        return false;
+    }
+
+    if (!doc.isObject())
+    {
+        std::cerr << "Failed to parse component JSON: root is not an object\n";
+        return false;
+    }
+
+    const QJsonObject root = doc.object();
+
+    name = root["name"].toString().toStdString();
+    appearanceName = root["appearanceName"].toString().toStdString();
+
+    for (const auto& wireValue : root["wires"].toArray())
+    {
+        const QJsonObject wireObj = wireValue.toObject();
+
+        auto wire = std::make_unique<Wire>();
+
+        for (const auto& segmentValue : wireObj["segments"].toArray())
+        {
+            const QJsonObject segmentObj = segmentValue.toObject();
+
+            Segment segment;
+            segment.begin = positionFromJson(segmentObj["begin"].toObject());
+            segment.end = positionFromJson(segmentObj["end"].toObject());
+
+            wire->segments.push_back(segment);
+        }
+
+        addPropagator(std::move(wire));
+    }
+
+    for (const auto& pinValue : root["pins"].toArray())
+    {
+        const QJsonObject pinObj = pinValue.toObject();
+
+        auto pin = std::make_unique<Pin>(*this);
+
+        pin->setName(pinObj["name"].toString().toStdString());
+        pin->setAppearanceName(pinObj["appearanceName"].toString().toStdString());
+        pin->setEffectorOperation(pinOperationFromString(pinObj["operation"].toString()));
+        pin->setIODirection(pinDirectionFromString(pinObj["ioDirection"].toString()));
+        pin->setAcceptsEffects(pinObj["acceptsEffects"].toBool(true));
+        pin->setAcceptsAffectors(pinObj["acceptsAffectors"].toBool(true));
+        pin->setGridPosition(positionFromJson(pinObj["gridPosition"].toObject()));
+        pin->setAppearancePosition(positionFromJson(pinObj["appearancePosition"].toObject()));
+        pin->setRotation(pinObj["rotation"].toInt());
+
+        addPropagator(std::move(pin));
+    }
+
+    for (const auto& compValue : root["components"].toArray())
+    {
+        const QJsonObject compObj = compValue.toObject();
+
+        const std::string compName = compObj["name"].toString().toStdString();
+        const Position compPos = positionFromJson(compObj["position"].toObject());
+        const std::string compAppearanceName = compObj["appearanceName"].toString().toStdString();
+        const int compRotation = compObj["rotation"].toInt();
+
+        auto it = globalProjectManager->components.find(compName);
+        if (it != globalProjectManager->components.end()) {
+          createComponent(compPos, *it->second, compAppearanceName, compRotation);
+        } else {
+          globalProjectManager->unresolvedSentinelComponents.emplace(this);
+          unresolvedComponentPositions[compName].push_back({compPos, compAppearanceName, compRotation});
+        }
+    }
+
+    isResolved();
+
+    const QJsonObject appearanceObj = root["appearance"].toObject();
+
+    appearance.anchor = positionFromJson(appearanceObj["anchor"].toObject());
+
+    appearance.lines.clear();
+    for (const auto& lineValue : appearanceObj["lines"].toArray())
+    {
+        const QJsonObject lineObj = lineValue.toObject();
+
+        ComponentLine line;
+        line.begin = positionFromJson(lineObj["begin"].toObject());
+        line.end = positionFromJson(lineObj["end"].toObject());
+        line.color = QColor(lineObj["color"].toString());
+        line.width = lineObj["width"].toDouble(2.0);
+
+        appearance.lines.push_back(line);
+    }
+
+    appearance.curves.clear();
+    for (const auto& curveValue : appearanceObj["curves"].toArray())
+    {
+        const QJsonObject curveObj = curveValue.toObject();
+
+        ComponentCurve curve;
+        curve.begin = positionFromJson(curveObj["begin"].toObject());
+        curve.control1 = positionFromJson(curveObj["control1"].toObject());
+        curve.control2 = positionFromJson(curveObj["control2"].toObject());
+        curve.end = positionFromJson(curveObj["end"].toObject());
+        curve.color = QColor(curveObj["color"].toString());
+        curve.width = curveObj["width"].toDouble(2.0);
+
+        appearance.curves.push_back(curve);
+    }
+
+    appearance.labels.clear();
+    for (const auto& labelValue : appearanceObj["labels"].toArray())
+    {
+        const QJsonObject labelObj = labelValue.toObject();
+
+        ComponentLabel label;
+        label.text = labelObj["text"].toString();
+        label.position = positionFromJson(labelObj["position"].toObject());
+        label.color = QColor(labelObj["color"].toString());
+        label.fontSize = labelObj["fontSize"].toInt(14);
+
+        appearance.labels.push_back(label);
+    }
+
+    return true;
+  }
+  catch (const std::exception& e)
+  {
+    std::cerr << "Failed to load component from JSON: " << e.what() << '\n';
+    return false;
+  }
+}
+
+bool SentinelComponent::loadFromLegacyBinary(const std::filesystem::path& path) {
   try
   {
     filePath = path;

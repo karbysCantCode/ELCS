@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <fstream>
 #include <QColor>
+#include <QByteArray>
 
 // #include "segmentgraphicsobject.h"
 #include "componentappearance.h"
@@ -176,6 +177,8 @@ public:
     // multi-segment wire (segments are axis-aligned, so this is a
     // simple clamped-point distance check).
     int nearestSegmentIndex(const Position& point) const;
+
+    std::vector<std::vector<Segment>> findConnectedSegmentGroups() const;
 
     // does not sync effectors and affectors.
     Wire(const Wire& wireToCopy);
@@ -415,6 +418,11 @@ public:
     bool loadFromFile(const std::filesystem::path& path);
     bool saveToFile(const std::filesystem::path& path) const;
 
+private:
+    bool loadFromJson(const QByteArray& contents);
+    bool loadFromLegacyBinary(const std::filesystem::path& path);
+
+public:
     void createComponent(const Position& _position, const SentinelComponent& _component, const std::string& _appearanceName = "", int _rotation = 0);
     std::unique_ptr<AbstractPropagator> createDerivativeComponent(const Position& _position) const;
     void simulateConnections();
