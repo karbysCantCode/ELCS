@@ -279,3 +279,26 @@ void MainWindow::on_AddLabelButton_clicked()
   ui->AddLineButton->setChecked(false);
   ui->AddLabelButton->setChecked(true);
 }
+void MainWindow::on_OpenProjectButton_clicked()
+{
+
+}
+
+
+void MainWindow::on_CreateProjectButton_clicked()
+{
+
+}
+
+
+void MainWindow::on_SettingsButton_clicked()
+{
+
+}
+
+
+void MainWindow::on_getStartedButton_clicked()
+{
+
+}
+
