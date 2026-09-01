@@ -9,6 +9,8 @@
 #include <QVector>
 #include <QPair>
 
+#include "truthtablewidget.h"
+
 class QGraphicsView;
 class QPushButton;
 
@@ -56,46 +58,57 @@ class TutorialOverlay : public QWidget
 public:
     explicit TutorialOverlay(QWidget* parent);
 
-    // Shows (and raises) the overlay with this instruction text.
+    
     void showInstruction(const QString& text);
     void hideInstruction();
 
-    // Highlights exactly this set of widgets, tracked live -- pass
-    // an empty list (or call clearHighlight()) to remove all
-    // highlights.
+    
+    
+    
     void highlightWidgets(const QVector<QWidget*>& widgets);
     void highlightWidget(QWidget* widget);
 
-    // Highlights a rectangle in a QGraphicsView's scene coordinates,
-    // also tracked live against the view. Replaces any widget
-    // highlights set via highlightWidget(s)().
+    
+    
+    
     void highlightSceneRect(QGraphicsView* view, const QRectF& sceneRect);
 
     void clearHighlight();
 
-    // Small floating name tags, each pointing at a scene position in
-    // `view` -- e.g. [("gateX", posOfGateX), ("gateY", posOfGateY)]
-    // so the user can actually tell which placed component a
-    // tutorial-bound variable refers to. Replaces any previous set;
-    // pass an empty list to clear them. Positions are re-read from
-    // `view` on every repaint, so panning/zooming stays in sync as
-    // long as *something* triggers a repaint afterwards (a resize,
-    // a new call to this function, etc.) -- pure panning with no
-    // other state change won't proactively refresh a stale tag.
+    
+    
+    
+    
+    
+    
+    
+    
+    
     void setVariableLabels(QGraphicsView* view, const QVector<QPair<QString, QPointF>>& labels);
 
-    // When true, clicks outside every highlighted rect (and outside
-    // the instruction bubble / variable tags, which are always
-    // interactive-if-restricted-elsewhere) are swallowed -- only the
-    // highlighted region(s) stay interactive. When false (the
-    // default), every click passes straight through everywhere
-    // except the always-clickable close button.
+    
+    
+    
+    
+    void showTruthTable(
+        const QVector<TruthTableColumn>& inputs,
+        const QVector<TruthTableColumn>& outputs,
+        const QVector<QVector<QString>>& expectedOutputRows = {}
+    );
+    void hideTruthTable();
+
+    
+    
+    
+    
+    
+    
     void setRestrictInputToHighlight(bool restrict);
 
 signals:
-    // The user clicked the close ("X") button on the instruction
-    // bubble. TutorialManager treats this as "done" if this was the
-    // last step, otherwise as an early cancel.
+    
+    
+    
     void dismissRequested();
 
 protected:
@@ -118,6 +131,8 @@ private:
 
     QPushButton* closeButton = nullptr;
 
+    TruthTableWidget* truthTableWidget = nullptr;
+
     void stopTrackingHighlightedWidgets();
 
     QVector<QRect> computeHighlightRects() const;
@@ -126,9 +141,10 @@ private:
     QRect instructionBubbleRect() const;
 
     void repositionCloseButton();
+    void repositionTruthTable();
 
-    // Re-syncs geometry to the parent, recomputes the mask from
-    // current highlight/bubble/label geometry, and repaints.
+    
+    
     void refresh();
 };
 

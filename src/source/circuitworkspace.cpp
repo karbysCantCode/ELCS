@@ -9,8 +9,15 @@
 
 #include <QCursor>
 #include <QKeyEvent>
+#include <QHBoxLayout>
+#include <QPushButton>
+#include <QLabel>
 #include <iostream>
 #include <format>
+
+#include "styles.h"
+#include "hotkeymanager.h"
+#include "hotkeyoverlay.h"
 
 CircuitWorkspace::CircuitWorkspace(QWidget* parent) {
     std::cout << "INIT X:" << size().width() << std::endl;
@@ -27,22 +34,124 @@ CircuitWorkspace::CircuitWorkspace(QWidget* parent) {
 
     setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
 
-    // Needed for keyPressEvent (Delete/Backspace/Escape) to actually
-    // reach this widget.
+    
+    
     setFocusPolicy(Qt::StrongFocus);
+
+    p_breadcrumbBar = new QWidget(this);
+    p_breadcrumbBar->setStyleSheet(STYLESHEET_WIDGET_SECONDARY);
+    p_breadcrumbBar->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    p_breadcrumbBar->setVisible(false);
+    p_breadcrumbBar->raise();
+
+    p_hotkeyOverlay = new HotkeyOverlay("simulator", this);
+
+    globalHotkeyManager->registerHotkey("simulator", QKeySequence(Qt::Key_Delete), "Delete selected item");
+    globalHotkeyManager->registerHotkey("simulator", QKeySequence(Qt::Key_R), "Rotate selected item");
+    globalHotkeyManager->registerHotkey("simulator", QKeySequence(Qt::Key_Escape), "Cancel placement / step out of nested view");
 
 }
 
 void CircuitWorkspace::resizeEvent ( QResizeEvent * event )  {
     updateViewSize();
-    //resetBackgroundGrid();
+    repositionBreadcrumbBar();
+    if (p_hotkeyOverlay)
+        p_hotkeyOverlay->reposition();
+    
+}
+
+void CircuitWorkspace::setReadOnly(bool value)
+{
+    qDebug() << "[DEBUG] CircuitWorkspace::setReadOnly called, value=" << value;
+    p_readOnly = value;
+}
+
+void CircuitWorkspace::notifyReadOnly()
+{
+    globalNotificationManager->notify(
+        "Read-Only View",
+        "This component instance is opened read-only. Return to an ancestor circuit to make edits.",
+        2000
+    );
+}
+
+void CircuitWorkspace::repositionBreadcrumbBar()
+{
+    if (!p_breadcrumbBar)
+        return;
+
+    p_breadcrumbBar->adjustSize();
+    p_breadcrumbBar->move(width() - p_breadcrumbBar->width() - 8, 8);
+    p_breadcrumbBar->raise();
+}
+
+void CircuitWorkspace::updateBreadcrumb(const std::vector<std::string>& path)
+{
+    rebuildBreadcrumbBar(path);
+    repositionBreadcrumbBar();
+}
+
+void CircuitWorkspace::rebuildBreadcrumbBar(const std::vector<std::string>& path)
+{
+    if (!p_breadcrumbBar)
+        return;
+
+    delete p_breadcrumbBar->layout();
+
+    for (QObject* obj : p_breadcrumbBar->children()) {
+        if (auto* widget = qobject_cast<QWidget*>(obj))
+            widget->deleteLater();
+    }
+
+    if (path.size() <= 1) {
+        p_breadcrumbBar->setVisible(false);
+        return;
+    }
+
+    auto* layout = new QHBoxLayout(p_breadcrumbBar);
+    layout->setContentsMargins(6, 4, 6, 4);
+    layout->setSpacing(4);
+
+    for (size_t i = 0; i < path.size(); i++) {
+        if (i > 0) {
+            auto* separator = new QLabel(QString::fromUtf8("\u203A"));
+            separator->setStyleSheet(STYLESHEET_LABEL_SECONDARY);
+            layout->addWidget(separator);
+        }
+
+        const bool isCurrent = (i == path.size() - 1);
+
+        auto* crumb = new QPushButton(QString::fromStdString(path[i]));
+        crumb->setFlat(true);
+        crumb->setCursor(isCurrent ? Qt::ArrowCursor : Qt::PointingHandCursor);
+        crumb->setEnabled(!isCurrent);
+        crumb->setStyleSheet(
+            isCurrent
+                ? "QPushButton { color: #f3f4f6; font-weight: 600; border: none; background: transparent; }"
+                : "QPushButton { color: #5da0ee; border: none; background: transparent; }"
+                  "QPushButton:hover { color: #79b4f5; text-decoration: underline; }"
+        );
+
+        if (!isCurrent) {
+            const size_t depth = i;
+            QObject::connect(crumb, &QPushButton::clicked, [depth]() {
+                if (globalProjectManager)
+                    globalProjectManager->exitToViewDepth(depth);
+            });
+        }
+
+        layout->addWidget(crumb);
+    }
+
+    p_breadcrumbBar->setLayout(layout);
+    p_breadcrumbBar->setVisible(true);
 }
 
 void CircuitWorkspace::updateViewSize() {
     p_width = size().width();
     p_height = size().height();
 
-    p_maxWidth = p_width * 1.5; // needs handling to like actually grab circ size from a save file
+    p_maxWidth = p_width * 1.5; 
     p_maxHeight = p_height * 1.5;
 }
 
@@ -79,6 +188,11 @@ Position CircuitWorkspace::convertEventPosToPosition(const QPoint& point) const 
 
 void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
 
+  qDebug() << "[DEBUG] CircuitWorkspace::mousePressEvent reached, button=" << event->button()
+           << " isReadOnly=" << isReadOnly()
+           << " interactionState=" << static_cast<int>(interactionState)
+           << " state=" << static_cast<int>(state);
+
   if (event->button() == Qt::LeftButton) {
     QGraphicsItem* item = itemAt(event->pos());
 
@@ -90,13 +204,13 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
         Position position =
             convertEventPosToPosition(event->pos());
 
-        // Actually create the component
+        
         AbstractPropagator* placed =
             globalProjectManager->addNewPropagator(std::move(p_componentToPlace->createDerivativeComponent(position)));
 
         emit componentPlaced(static_cast<Component*>(placed));
 
-        // Remove ghost
+        
         if (p_componentGhost) {
             scene()->removeItem(p_componentGhost);
             delete p_componentGhost;
@@ -124,20 +238,20 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
 
         p_temporaryPinToPlace->setGridPosition(position);
 
-        // appearancePosition is what actually gets drawn once this
-        // pin is nested inside a placed component elsewhere (see
-        // ComponentGraphicsObject::paintPins()) -- without setting it
-        // too, it stays at its default (0,0) and every pin would
-        // render stacked at the component's own origin no matter
-        // where it was actually placed here.
+        
+        
+        
+        
+        
+        
         p_temporaryPinToPlace->setAppearancePosition(position);
 
         SentinelComponent* openComponent = globalProjectManager->currentOpenComponent;
 
-        // Hands ownership to the currently open component;
-        // addNewPropagator() registers it in the grid and creates
-        // its real (un-ghosted) PinGraphicsObject -- the ghost item
-        // itself is just discarded below.
+        
+        
+        
+        
         AbstractPropagator* placed =
             globalProjectManager->addNewPropagator(std::move(p_temporaryPinToPlace));
 
@@ -228,7 +342,7 @@ void CircuitWorkspace::mousePressEvent(QMouseEvent *event) {
           }
           p_itemDragStartMouse = event->pos();
           p_itemDragStartPosition = p_selectedItem->pos();
-          //p_selectedItem = abstractItem;
+          
           setInteractionState(InteractionState::MOVING_ITEM);
           qDebug() << "sefefe:";
           event->accept();
@@ -275,7 +389,7 @@ void CircuitWorkspace::mouseMoveEvent(QMouseEvent *event)  {
     }
     case InteractionState::MOVING_WORKSPACE: {
       moveWorkspaceToCurrentMouse(event->pos());
-      update(); // signal redraw
+      update(); 
       std::cout << "X:" << p_xposition << " Y:" << p_yposition << " mouse moved with redraw" << std::endl;
       event->accept();
       return;
@@ -312,10 +426,10 @@ void CircuitWorkspace::mouseMoveEvent(QMouseEvent *event)  {
 
     p_temporaryComponentToPlace->setGridPosition(position);
 
-    // This was the ghost-doesn't-track-the-cursor bug: updating the
-    // underlying Component's gridPosition data does nothing to the
-    // ghost QGraphicsItem's actual on-screen pos() -- update() only
-    // repaints it in place. Need to actually move it.
+    
+    
+    
+    
     p_componentGhost->updateWorkspacePosition();
     p_componentGhost->update();
 
@@ -365,16 +479,33 @@ void CircuitWorkspace::mouseDoubleClickEvent(QMouseEvent* event)
   }
 
   switch (interactionState) {
-    case InteractionState::NONE: 
     case InteractionState::SELECTED_ITEM: {
-      // Deselect whatever was selected before (if different), so
-      // its highlight/Qt-selection flag doesn't stick around.
+      if (abstractItem == p_selectedItem &&
+          abstractItem->graphicsObjectType() == AbstractGraphicsObject::COMPONENT)
+      {
+        auto* component = static_cast<Component*>(abstractItem->parentPropagator);
+
+        p_selectedItem->setSelected(false);
+        p_selectedItem->update();
+        p_selectedItem = nullptr;
+        setInteractionState(InteractionState::NONE);
+
+        globalProjectManager->enterComponentInstance(component);
+
+        event->accept();
+        return;
+      }
+      [[fallthrough]];
+    }
+    case InteractionState::NONE: {
+      
+      
       if (p_selectedItem && p_selectedItem != abstractItem) {
           p_selectedItem->setSelected(false);
           p_selectedItem->update();
       }
 
-      // Select it
+      
       p_selectedItem = abstractItem;
       p_selectionGridPosition = convertEventPosToPosition(event->pos());
 
@@ -480,7 +611,7 @@ void CircuitWorkspace::mouseReleaseEvent(QMouseEvent *event)  {
       case InteractionState::MOVING_WORKSPACE: {
         setInteractionState(InteractionState::NONE);
         moveWorkspaceToCurrentMouse(event->pos());
-        update(); // signal redraw
+        update(); 
 
         p_movementBegunQPoint.reset();
         event->accept();
@@ -502,7 +633,17 @@ void CircuitWorkspace::keyPressEvent(QKeyEvent* event)
     }
 
     if (event->key() == Qt::Key_Escape) {
-        cancelCurrentPlacement();
+        const bool hasActivePlacement =
+            p_componentGhost != nullptr ||
+            p_pinGhost != nullptr ||
+            interactionState == InteractionState::WIRING;
+
+        if (!hasActivePlacement && globalProjectManager && globalProjectManager->isViewingInstance()) {
+            globalProjectManager->exitOneViewLevel();
+        } else {
+            cancelCurrentPlacement();
+        }
+
         event->accept();
         return;
     }
@@ -602,8 +743,8 @@ void CircuitWorkspace::deleteSelectedItem()
 
     AbstractGraphicsObject* item = p_selectedItem;
 
-    // Clears p_selectedItem/Qt-selection flag via setInteractionState's
-    // existing cleanup.
+    
+    
     p_selectedItem = nullptr;
     setInteractionState(InteractionState::NONE);
 
@@ -618,10 +759,10 @@ void CircuitWorkspace::deleteSelectedItem()
             globalProjectManager->gridManager.removeFromGrid(pin->getGridPosition(), pin);
             globalProjectManager->currentOpenComponent->removePropagator(pin);
 
-            // The currently-open component is always a sentinel
-            // (definitions are what get edited here) -- removing one
-            // of its pins is a structural change placed instances
-            // elsewhere need to pick up.
+            
+            
+            
+            
             globalProjectManager->currentOpenComponent->notifyInstancesOfStructureChange();
             break;
         }
@@ -771,7 +912,7 @@ void CircuitWorkspace::onComponentSelected(
         return;
     }
 
-    // Cancel any existing interaction (component OR pin placement).
+    
     cancelCurrentPlacement();
 
     p_componentToPlace = &component;
@@ -779,7 +920,7 @@ void CircuitWorkspace::onComponentSelected(
 
     setInteractionState(InteractionState::PLACING_COMPONENT);
 
-    // Create the visual ghost
+    
     p_componentGhost =
         new ComponentGraphicsObject(*p_temporaryComponentToPlace.get());
 
@@ -787,7 +928,7 @@ void CircuitWorkspace::onComponentSelected(
 
     scene()->addItem(p_componentGhost);
 
-    // Put it initially under the mouse
+    
     QPoint mousePos = mapFromGlobal(QCursor::pos());
     Position position = convertEventPosToPosition(mousePos);
 
@@ -803,7 +944,7 @@ void CircuitWorkspace::onComponentSelected(
 void CircuitWorkspace::onComponentEditRequested(
     const SentinelComponent& component)
 {
-  //please cancel any component placement!
+  
   cancelCurrentPlacement();
 
     qDebug() << "edit reuqested"
@@ -821,7 +962,7 @@ void CircuitWorkspace::startPlacingPin()
         return;
     }
 
-    // Cancel any existing interaction (component OR pin placement).
+    
     cancelCurrentPlacement();
 
     p_temporaryPinToPlace = std::make_unique<Pin>(*globalProjectManager->currentOpenComponent);
@@ -836,7 +977,7 @@ void CircuitWorkspace::startPlacingPin()
 
     scene()->addItem(p_pinGhost);
 
-    // Put it initially under the mouse
+    
     const QPoint mousePos = mapFromGlobal(QCursor::pos());
     const Position position = convertEventPosToPosition(mousePos);
 

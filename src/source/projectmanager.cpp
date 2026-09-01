@@ -376,6 +376,8 @@ void ProjectManager::openComponent(
     currentOpenComponent =
         it->second.get();
 
+    viewStack.clear();
+
 
     /*
         Remove the currently displayed component.
@@ -389,6 +391,12 @@ void ProjectManager::openComponent(
     */
 
     addCurrentComponentToWorkspace();
+
+    if (workspace)
+    {
+        workspace->setReadOnly(false);
+        workspace->updateBreadcrumb(breadcrumbPath());
+    }
 }
 
 
@@ -403,9 +411,13 @@ void ProjectManager::addCurrentComponentToWorkspace()
 {
     std::vector<AbstractPropagator*> rawVec;
 
+    Component* container = currentViewContainer();
+
+    if (!container)
+        return;
 
     for (const auto& ptr :
-         currentOpenComponent->getPropagators())
+         container->getPropagators())
     {
         rawVec.push_back(
             ptr.get()
@@ -419,6 +431,78 @@ void ProjectManager::addCurrentComponentToWorkspace()
             propagator
         );
     }
+}
+
+
+Component* ProjectManager::currentViewContainer() const
+{
+    if (!viewStack.empty())
+        return viewStack.back();
+
+    return static_cast<Component*>(currentOpenComponent);
+}
+
+
+void ProjectManager::enterComponentInstance(Component* instance)
+{
+    if (!instance)
+        return;
+
+    viewStack.push_back(instance);
+
+    removeExistingComponentFromWorkspace();
+    addCurrentComponentToWorkspace();
+
+    if (workspace)
+    {
+        workspace->setReadOnly(true);
+        workspace->updateBreadcrumb(breadcrumbPath());
+    }
+}
+
+
+void ProjectManager::exitToViewDepth(size_t depth)
+{
+    if (depth >= viewStack.size())
+        return;
+
+    viewStack.resize(depth);
+
+    removeExistingComponentFromWorkspace();
+    addCurrentComponentToWorkspace();
+
+    if (workspace)
+    {
+        workspace->setReadOnly(!viewStack.empty());
+        workspace->updateBreadcrumb(breadcrumbPath());
+    }
+}
+
+
+void ProjectManager::exitOneViewLevel()
+{
+    if (viewStack.empty())
+        return;
+
+    exitToViewDepth(viewStack.size() - 1);
+}
+
+
+std::vector<std::string> ProjectManager::breadcrumbPath() const
+{
+    std::vector<std::string> names;
+
+    names.push_back(
+        currentOpenComponent ? currentOpenComponent->getName() : std::string()
+    );
+
+    for (Component* instance : viewStack)
+    {
+        const std::string& appearanceName = instance->getAppearanceName();
+        names.push_back(!appearanceName.empty() ? appearanceName : instance->getName());
+    }
+
+    return names;
 }
 
 
@@ -454,6 +538,9 @@ ProjectManager::addNewPropagator(
     std::unique_ptr<AbstractPropagator> propagator
 )
 {
+    if (isViewingInstance())
+        return nullptr;
+
     AbstractPropagator* ptr =
         propagator.get();
 

@@ -75,10 +75,10 @@ namespace
         return static_cast<double>(value);
     }
 
-    // Same 4-bytes-per-uint32 packing Component uses for its own
-    // strings (see component.cpp), kept local here so
-    // ComponentAppearance's on-disk format doesn't depend on
-    // Component's private helpers.
+    
+    
+    
+    
 
     size_t packedStringUint32s(const QString& text)
     {
@@ -148,16 +148,16 @@ namespace
 
 size_t ComponentAppearance::getUint32sToSave() const
 {
-    // anchor.x, anchor.y
+    
     size_t count = 2;
 
-    // lines: count-field + per-line (4 pos + 1 color + 1 width)
+    
     count += 1 + lines.size() * 6;
 
-    // curves: count-field + per-curve (8 pos + 1 color + 1 width)
+    
     count += 1 + curves.size() * 10;
 
-    // labels: count-field + per-label (2 pos + 1 color + 1 fontSize + packed text)
+    
     count += 1;
     for (const auto& label : labels)
     {

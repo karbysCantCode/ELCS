@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QStringList>
+#include <QVector>
 
 #include <vector>
 
@@ -54,15 +55,32 @@ struct TutorialCondition
     int count = 1;            
     QStringList bindNames;    
 
-    // connected
+    
     QString a;
     QString b;
 
-    // deleted
+    
     QString target;
 
     int matchedCount = 0;
     bool satisfied = false;
+};
+
+
+struct TruthTableColumnSpec
+{
+    QString ref;
+    QString label;
+};
+
+struct TruthTableSpec
+{
+    bool enabled = false;
+
+    QVector<TruthTableColumnSpec> inputs;
+    QVector<TruthTableColumnSpec> outputs;
+
+    QVector<QVector<QString>> expectedOutputRows;
 };
 
 
@@ -79,6 +97,8 @@ struct TutorialStep
     bool toolboxIncludesPin = false;
 
     std::vector<TutorialCondition> conditions;
+
+    TruthTableSpec truthTable;
 };
 
 #endif

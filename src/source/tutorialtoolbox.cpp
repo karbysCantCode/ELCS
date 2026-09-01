@@ -33,8 +33,8 @@ void TutorialToolbox::setAvailableComponents(
 {
     clear();
 
-    // Pull the trailing stretch back out so new buttons land above
-    // it, then put it back at the end once they're added.
+    
+    
     delete buttonLayout->takeAt(buttonLayout->count() - 1);
 
     for (SentinelComponent* component : components)

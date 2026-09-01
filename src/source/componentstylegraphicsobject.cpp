@@ -10,9 +10,9 @@
 
 namespace
 {
-    // Point/endpoint handles sit above the body/middle handles,
-    // and anchor/label/pin markers sit above those, so overlapping
-    // clicks resolve to the more "specific" element.
+    
+    
+    
     double handleZValueFor(StyleHitType type)
     {
         switch (type)

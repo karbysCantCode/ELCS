@@ -13,4 +13,4 @@ void writeUint32VectorToFile(const std::filesystem::path& path, const std::vecto
 bool doesFileExist(const std::filesystem::path& path);
 void createFile(const std::filesystem::path& path);
 std::vector<std::filesystem::path> getFilesInDirectory(const std::filesystem::path& directory);
-#endif // FILEHELPER_H
+#endif 

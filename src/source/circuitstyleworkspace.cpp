@@ -1,5 +1,7 @@
 #include "circuitstyleworkspace.h"
 #include "componentstylegraphicsobject.h"
+#include "hotkeymanager.h"
+#include "hotkeyoverlay.h"
 
 #include <QCursor>
 #include <QInputDialog>
@@ -45,8 +47,12 @@ CircuitStyleWorkspace::CircuitStyleWorkspace(
         QGraphicsView::NoAnchor
     );
 
+    p_hotkeyOverlay = new HotkeyOverlay("style", this);
 
-    // centerOn(0, 0);
+    globalHotkeyManager->registerHotkey("style", QKeySequence(Qt::Key_Delete), "Delete selected element");
+    globalHotkeyManager->registerHotkey("style", QKeySequence(Qt::Key_Escape), "Cancel current operation");
+
+    
 }
 
 void CircuitStyleWorkspace::drawBackground(
@@ -169,7 +175,7 @@ void CircuitStyleWorkspace::setComponent(
     );
 
 
-    // centerOn(0, 0);
+    
 
     p_graphicsObject->refresh();
 }
@@ -313,14 +319,14 @@ void CircuitStyleWorkspace::mousePressEvent(
     qDebug("BAD BAD GOOD GOOD>");
     switch (handle->getHitType())
     {
-        // case StyleHitType::ANCHOR:
-        //     qDebug("BAD anchor anchor! GONE>");
-        //     selectElement(
-        //         StyleElementType::ANCHOR,
-        //         -1
-        //     );
+        
+        
+        
+        
+        
+        
 
-        //     break;
+        
 
 
         case StyleHitType::LINE_BEGIN:
@@ -427,11 +433,11 @@ void CircuitStyleWorkspace::mousePressEvent(
             break;
     }
 
-    // if (selectedType ==
-    //     StyleElementType::PIN)
-    // {
-    //     return;
-    // }
+    
+    
+    
+    
+    
 
 
     beginMovingSelected(
@@ -487,12 +493,12 @@ void CircuitStyleWorkspace::beginMovingSelected(
             break;
 
 
-        // case StyleElementType::ANCHOR:
+        
 
-        //     p_dragOriginalA =
-        //         appearance.anchor;
+        
+        
 
-        //     break;
+        
 
 
         case StyleElementType::LABEL:
@@ -1235,6 +1241,9 @@ void CircuitStyleWorkspace::resizeEvent(
 
     p_width = width();
     p_height = height();
+
+    if (p_hotkeyOverlay)
+        p_hotkeyOverlay->reposition();
 }
 
 void CircuitStyleWorkspace::setInteractionState(

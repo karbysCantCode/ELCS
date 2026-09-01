@@ -13,6 +13,12 @@ ComponentGraphicsObject::ComponentGraphicsObject(
     refresh();
 }
 
+ComponentGraphicsObject::~ComponentGraphicsObject()
+{
+    if (component.getGraphicsObject() == this)
+        const_cast<Component&>(component).setGraphicsObject(nullptr);
+}
+
 void ComponentGraphicsObject::updateWorkspacePosition() {
     setPos(component.getGridPosition().getGridScaledCopy().getQPointF());
 }
@@ -132,8 +138,8 @@ void ComponentGraphicsObject::paintPins(
                 pin->getAppearancePosition()
             );
 
-        // Color the pin marker by its current propagation state,
-        // matching the wire/pin colors elsewhere (see stateColor()).
+        
+        
         painter->setBrush(stateColor(pin->getEffectingState()));
 
         painter->drawEllipse(
@@ -154,7 +160,7 @@ void ComponentGraphicsObject::paint(
 
     const QRectF br = boundingRect();
 
-    // Draw the bounding box.
+    
     QPen debugBoundingPen(Qt::red);
     debugBoundingPen.setWidthF(1.0);
     debugBoundingPen.setStyle(Qt::DashLine);
@@ -165,7 +171,7 @@ void ComponentGraphicsObject::paint(
     painter->drawRect(br);
 
 
-    // Draw the item's local origin.
+    
     QPen debugOriginPen(Qt::blue);
     debugOriginPen.setWidthF(1.5);
 
@@ -182,7 +188,7 @@ void ComponentGraphicsObject::paint(
     );
 
 
-    // Draw the component grid position.
+    
     painter->setPen(Qt::black);
 
     painter->drawText(
@@ -194,7 +200,7 @@ void ComponentGraphicsObject::paint(
         .arg(component.getGridPosition().y)
     );
 
-    // DEBUG: draw bounding box
+    
     QPen debugPen(Qt::red);
     debugPen.setWidthF(1.0);
     debugPen.setStyle(Qt::DashLine);
@@ -205,8 +211,8 @@ void ComponentGraphicsObject::paint(
     painter->drawRect(boundingRect());
 
 
-    // Draw a visible point at the component grid position
-    // in LOCAL coordinates.
+    
+    
     painter->setBrush(Qt::green);
     painter->setPen(Qt::NoPen);
 

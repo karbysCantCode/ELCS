@@ -3,6 +3,7 @@
 #include "circuitworkspace.h"
 #include "tutorialoverlay.h"
 #include "tutorialtoolbox.h"
+#include "truthtablewidget.h"
 #include "projectmanager.h"
 
 #include <QFile>
@@ -33,6 +34,10 @@ TutorialManager::TutorialManager(
 
     if (overlay)
         connect(overlay, &TutorialOverlay::dismissRequested, this, &TutorialManager::onDismissRequested);
+
+    labelPollTimer = new QTimer(this);
+    labelPollTimer->setInterval(100);
+    connect(labelPollTimer, &QTimer::timeout, this, &TutorialManager::updateVariableLabels);
 }
 
 bool TutorialManager::loadTutorial(const QString& jsonFilePath)
@@ -94,6 +99,8 @@ bool TutorialManager::loadTutorialFromJson(const QJsonObject& root)
         for (const QJsonValue& condVal : stepObj.value("conditions").toArray())
             step.conditions.push_back(parseCondition(condVal.toObject()));
 
+        step.truthTable = parseTruthTable(stepObj.value("truthTable").toObject());
+
         steps.push_back(step);
     }
 
@@ -132,6 +139,48 @@ TutorialCondition TutorialManager::parseCondition(const QJsonObject& obj) const
     return condition;
 }
 
+TruthTableSpec TutorialManager::parseTruthTable(const QJsonObject& obj) const
+{
+    TruthTableSpec spec;
+
+    if (obj.isEmpty())
+        return spec;
+
+    spec.enabled = true;
+
+    auto parseColumns = [](const QJsonArray& array) {
+        QVector<TruthTableColumnSpec> columns;
+
+        for (const QJsonValue& v : array)
+        {
+            const QJsonObject o = v.toObject();
+
+            TruthTableColumnSpec column;
+            column.ref = o.value("ref").toString();
+            column.label = o.value("label").toString();
+
+            columns.push_back(column);
+        }
+
+        return columns;
+    };
+
+    spec.inputs = parseColumns(obj.value("inputs").toArray());
+    spec.outputs = parseColumns(obj.value("outputs").toArray());
+
+    for (const QJsonValue& rowVal : obj.value("expected").toArray())
+    {
+        QVector<QString> row;
+
+        for (const QJsonValue& cellVal : rowVal.toArray())
+            row.push_back(cellVal.toString());
+
+        spec.expectedOutputRows.push_back(row);
+    }
+
+    return spec;
+}
+
 void TutorialManager::start()
 {
     currentStepIndex = -1;
@@ -144,6 +193,8 @@ void TutorialManager::start()
             condition.matchedCount = 0;
         }
 
+    labelPollTimer->start();
+
     emit tutorialStarted();
     advanceStep();
 }
@@ -151,6 +202,8 @@ void TutorialManager::start()
 void TutorialManager::cancel()
 {
     currentStepIndex = -1;
+
+    labelPollTimer->stop();
 
     if (overlay)
     {
@@ -196,10 +249,10 @@ void TutorialManager::bindNext(TutorialCondition& condition, const TutorialValue
 
 void TutorialManager::onDismissRequested()
 {
-    // On the last step, this *is* completion -- just the user closing
-    // the "you're done!" message rather than a condition firing (a
-    // trailing conditionless step has no other way to know it should
-    // go away). Anywhere earlier, it's an explicit early exit.
+    
+    
+    
+    
     if (isActive() && currentStepIndex == static_cast<int>(steps.size()) - 1)
         finishTutorial();
     else
@@ -209,6 +262,8 @@ void TutorialManager::onDismissRequested()
 void TutorialManager::finishTutorial()
 {
     currentStepIndex = -1;
+
+    labelPollTimer->stop();
 
     if (overlay)
     {
@@ -346,10 +401,10 @@ void TutorialManager::onItemDeleted(AbstractPropagator* propagator)
             condition.satisfied = true;
     }
 
-    // Invalidate any variable bound to this object now that we're
-    // done checking against it -- otherwise it'd sit in `variables`
-    // as a dangling pointer (read by updateVariableLabels(), a later
-    // "connected" check, etc) once it's actually destroyed.
+    
+    
+    
+    
     for (auto it = variables.begin(); it != variables.end(); ++it)
         if (it.value().propagator() == propagator)
             it.value() = TutorialValue();
@@ -495,6 +550,36 @@ void TutorialManager::presentCurrentStep()
             overlay->highlightWidgets(widgets);
 
         overlay->showInstruction(step.instructions);
+
+        if (step.truthTable.enabled)
+        {
+            auto resolveColumns = [this](const QVector<TruthTableColumnSpec>& specs) {
+                QVector<TruthTableColumn> columns;
+
+                for (const TruthTableColumnSpec& colSpec : specs)
+                {
+                    const TutorialValue value = resolveReference(colSpec.ref);
+
+                    TruthTableColumn column;
+                    column.label = colSpec.label;
+                    column.pin = value.kind == TutorialValue::Kind::Pin ? value.pin : nullptr;
+
+                    columns.push_back(column);
+                }
+
+                return columns;
+            };
+
+            overlay->showTruthTable(
+                resolveColumns(step.truthTable.inputs),
+                resolveColumns(step.truthTable.outputs),
+                step.truthTable.expectedOutputRows
+            );
+        }
+        else
+        {
+            overlay->hideTruthTable();
+        }
     }
 
     if (toolbox)
@@ -516,4 +601,4 @@ void TutorialManager::presentCurrentStep()
     emit stepChanged(currentStepIndex, step.instructions);
 
     updateVariableLabels();
-} 
+}

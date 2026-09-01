@@ -104,11 +104,11 @@ std::unordered_set<Propagator*> ComponentHolder::removeFromGrid(const std::vecto
 }
 
 
-//A to B
+
 std::unordered_set<Propagator*> ComponentHolder::addToGridAlongTwoPoints(const Position& posA, const Position& posB, Propagator* propagator) {
     std::unordered_set<Propagator*> retSet;
     if (posA.x == posB.x) {
-        // change y
+        
         int interpPos = posA.y;
         int aLessThanB = posA.y < posB.y;
         if (aLessThanB) {
@@ -138,7 +138,7 @@ std::unordered_set<Propagator*> ComponentHolder::addToGridAlongTwoPoints(const P
         }
     } else {
         std::cout << "same two positions componentholder.cpp" << std::endl;
-        return {}; //erorr.....
+        return {}; 
     }
     return retSet;
 }
@@ -158,11 +158,11 @@ std::unordered_set<Propagator*> ComponentHolder::removeFromGrid(const Segment& s
   return removeFromGridAlongTwoPoints(segment.begin, segment.end, propagator);
 }
 
-//A to B
+
 std::unordered_set<Propagator*> ComponentHolder::getOccupiedAlongTwoPoints(const Position& posA, const Position& posB ) const {
     std::unordered_set<Propagator*> retSet;
     if (posA.x == posB.x) {
-        // change y
+        
         int interpPos = posA.y;
         int aLessThanB = posA.y < posB.y;
         if (aLessThanB) {
@@ -192,16 +192,16 @@ std::unordered_set<Propagator*> ComponentHolder::getOccupiedAlongTwoPoints(const
         }
     } else {
         std::cout << "same two positions componentholder.cpp" << std::endl;
-        return {}; //erorr.....
+        return {}; 
     }
     return retSet;
 }
 
-//A to B
+
 std::unordered_set<Propagator*> ComponentHolder::removeFromGridAlongTwoPoints(const Position& posA, const Position& posB, Propagator* propagator) {
     std::unordered_set<Propagator*> retSet;
     if (posA.x == posB.x) {
-        // change y
+        
         int interpPos = posA.y;
         int aLessThanB = posA.y < posB.y;
         if (aLessThanB) {
@@ -231,7 +231,7 @@ std::unordered_set<Propagator*> ComponentHolder::removeFromGridAlongTwoPoints(co
         }
     } else {
         std::cout << "same two positions componentholder.cpp" << std::endl;
-        return {}; //erorr.....
+        return {}; 
     }
     return retSet;
 }

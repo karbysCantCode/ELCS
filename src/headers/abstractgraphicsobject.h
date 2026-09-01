@@ -50,4 +50,4 @@ protected:
     }
 };
 
-#endif // ABSTRACTGRAPHICSOBJECT_H
+#endif 

@@ -8,6 +8,7 @@
 #include "tutorialoverlay.h"
 #include "tutorialtoolbox.h"
 #include "schedulermenu.h"
+#include "hotkeymanager.h"
 #include "styles.h"
 #include "genericcomponenttoolbox.h"
 
@@ -51,8 +52,8 @@ MainWindow::MainWindow(QWidget *parent)
 
   menuBar()->setStyleSheet(STYLESHEET_MENUBAR);
   menuBar()->addMenu(new SchedulerMenu(this));
-  // QAction* testAction = menuBar()->addAction("TEST");
-  // new SchedulerMenu(menuBar());
+  
+  
 
   qDebug() << "menuBar =" << menuBar();
 qDebug() << "isVisible =" << menuBar()->isVisible();
@@ -73,9 +74,9 @@ for (QAction* action : menuBar()->actions())
   __circuitStyleWorkspace->setCurveButton(ui->AddCurveButton);
   __circuitStyleWorkspace->setLineButton(ui->AddLineButton);
   __circuitStyleWorkspace->setLabelButton(ui->AddLabelButton);
-  //below is done in main.cpp
-  // globalProjectManager->workspace = __circuitworkspace;
-  // globalProjectManager->styleWorkspace= __circuitStyleWorkspace;
+  
+  
+  
 
   auto* propertyHolderLayout = new QVBoxLayout(ui->propertyHolder);
   propertyHolderLayout->setContentsMargins(0,0,0,0);
@@ -138,6 +139,17 @@ for (QAction* action : menuBar()->actions())
 
   auto overlay = new TutorialOverlay(ui->centralwidget);
   __tutorialOverlay = overlay;
+
+  QObject::connect(ui->tabWidget, &QTabWidget::currentChanged, this, [overlay](int index) {
+    qDebug() << "[DEBUG] tabWidget currentChanged index=" << index
+             << " tutorialActive=" << globalProjectManager->tutorialManager.isActive();
+
+    if (!globalProjectManager->tutorialManager.isActive())
+    {
+      overlay->hideInstruction();
+    }
+  });
+
   auto* generic = new GenericComponentToolbox(*__circuitworkspace, ui->toolbar);
   ui->toolbar->layout()->addWidget(generic);
   __tutorialToobox = new TutorialToolbox(*__circuitworkspace,ui->toolbar);
@@ -182,23 +194,24 @@ for (QAction* action : menuBar()->actions())
       globalProjectManager->workspace->startPlacingPin();
     });
   });
-  // leave this past any ui creation
+  
 
   repolishVariants(this);
 
-  QShortcut* saveShortcut = new QShortcut(
+  globalHotkeyManager->registerActionHotkey(
+    "global",
     QKeySequence(Qt::CTRL | Qt::Key_S),
-    this
-  );
-
-  connect(saveShortcut, &QShortcut::activated, this, [this](){
-    if (this->ui->simulatorPage->isVisible()) {
-      globalProjectManager->saveCurrentComponent();
-      globalNotificationManager->notify("Save", std::format("Successfully saved component \"{}\" to \"{}\"", globalProjectManager->currentOpenComponent->getName(), globalProjectManager->currentOpenComponent->getFilePath().string()));
-    } else {
-      qDebug("NAHHH!!");
+    "Save current circuit",
+    this,
+    [this]() {
+      if (this->ui->simulatorPage->isVisible()) {
+        globalProjectManager->saveCurrentComponent();
+        globalNotificationManager->notify("Save", std::format("Successfully saved component \"{}\" to \"{}\"", globalProjectManager->currentOpenComponent->getName(), globalProjectManager->currentOpenComponent->getFilePath().string()));
+      } else {
+        qDebug("NAHHH!!");
+      }
     }
-  });
+  );
 }
 
 MainWindow::~MainWindow()
@@ -215,7 +228,7 @@ bool validateCircuitName(const QString& string) {
     return false;
   }
 
-  //create
+  
   globalProjectManager->createNewComponent(string.toStdString());
   return true;
 }

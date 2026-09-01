@@ -7,9 +7,9 @@
 
 namespace CoreGates
 {
-    // ------------------------------------------------------------
-    // Helper
-    // ------------------------------------------------------------
+    
+    
+    
 
     Pin* addPin(
         SentinelComponent& component,
@@ -74,7 +74,7 @@ SentinelComponent makeAND()
     OUT->setAcceptsAffectors(false);
 
 
-    // Left side
+    
     component.getAppearance().addLine(
         Position(-2, -2),
         Position(0, -2)
@@ -90,7 +90,7 @@ SentinelComponent makeAND()
         Position(0, 2)
     );
 
-    // Right side
+    
     component.getAppearance().addCurve(
         Position(0, -2),
         Position(3, -2),
@@ -112,9 +112,9 @@ SentinelComponent makeAND()
 }
 
 
-// ============================================================
-// NAND
-// ============================================================
+
+
+
 
 SentinelComponent makeNAND()
 {
@@ -150,7 +150,7 @@ SentinelComponent makeNAND()
     OUT->setAcceptsAffectors(false);
 
 
-    // AND body
+    
     component.getAppearance().addLine(
         Position(-2, -2),
         Position(0, -2)
@@ -174,7 +174,7 @@ SentinelComponent makeNAND()
     );
 
 
-    // Inversion bubble
+    
     component.getAppearance().addCurve(
         Position(2, 0),
         Position(2, -1),
@@ -199,9 +199,9 @@ SentinelComponent makeNAND()
 }
 
 
-// ============================================================
-// OR
-// ============================================================
+
+
+
 
 SentinelComponent makeOR()
 {
@@ -237,7 +237,7 @@ SentinelComponent makeOR()
     OUT->setAcceptsAffectors(false);
 
 
-    // Main OR curves
+    
     component.getAppearance().addCurve(
         Position(-3, -2),
         Position(-1, -1),
@@ -269,9 +269,9 @@ SentinelComponent makeOR()
 }
 
 
-// ============================================================
-// NOR
-// ============================================================
+
+
+
 
 SentinelComponent makeNOR()
 {
@@ -307,7 +307,7 @@ SentinelComponent makeNOR()
     OUT->setAcceptsAffectors(false);
 
 
-    // OR body -- exactly following supplied design
+    
     component.getAppearance().addCurve(
         Position(-3, -2),
         Position(-1, -1),
@@ -330,7 +330,7 @@ SentinelComponent makeNOR()
     );
 
 
-    // Output inversion bubble
+    
     component.getAppearance().addCurve(
         Position(2, 0),
         Position(2, -1),
@@ -355,9 +355,9 @@ SentinelComponent makeNOR()
 }
 
 
-// ============================================================
-// XOR
-// ============================================================
+
+
+
 
 SentinelComponent makeXOR()
 {
@@ -393,7 +393,7 @@ SentinelComponent makeXOR()
     OUT->setAcceptsAffectors(false);
 
 
-    // Extra XOR curve
+    
     component.getAppearance().addCurve(
         Position(-3, 2),
         Position(-1, 1),
@@ -401,7 +401,7 @@ SentinelComponent makeXOR()
         Position(-3, -2)
     );
 
-    // Main upper curve
+    
     component.getAppearance().addCurve(
         Position(-2, 2),
         Position(0, 1),
@@ -409,7 +409,7 @@ SentinelComponent makeXOR()
         Position(2, 0)
     );
 
-    // Main lower curve
+    
     component.getAppearance().addCurve(
         Position(-2, -2),
         Position(0, -2),
@@ -427,9 +427,9 @@ SentinelComponent makeXOR()
 }
 
 
-// ============================================================
-// XNOR
-// ============================================================
+
+
+
 
 SentinelComponent makeXNOR()
 {
@@ -465,7 +465,7 @@ SentinelComponent makeXNOR()
     OUT->setAcceptsAffectors(false);
 
 
-    // Extra XOR curve
+    
     component.getAppearance().addCurve(
         Position(-3, 2),
         Position(-1, 1),
@@ -473,7 +473,7 @@ SentinelComponent makeXNOR()
         Position(-3, -2)
     );
 
-    // Main upper curve
+    
     component.getAppearance().addCurve(
         Position(-2, 2),
         Position(0, 1),
@@ -481,7 +481,7 @@ SentinelComponent makeXNOR()
         Position(2, 0)
     );
 
-    // Main lower curve
+    
     component.getAppearance().addCurve(
         Position(-2, -2),
         Position(0, -2),
@@ -490,7 +490,7 @@ SentinelComponent makeXNOR()
     );
 
 
-    // Output inversion bubble
+    
     component.getAppearance().addCurve(
         Position(2, 0),
         Position(2, -1),
@@ -515,9 +515,9 @@ SentinelComponent makeXNOR()
 }
 
 
-// ============================================================
-// NOT
-// ============================================================
+
+
+
 
 SentinelComponent makeNOT()
 {
@@ -544,7 +544,7 @@ SentinelComponent makeNOT()
     OUT->setAcceptsAffectors(false);
 
 
-    // Triangle
+    
     component.getAppearance().addLine(
         Position(-2, -2),
         Position(-2, 2)
@@ -561,14 +561,14 @@ SentinelComponent makeNOT()
     );
 
 
-    // Supplied design's extra line
+    
     component.getAppearance().addLine(
         Position(0, -6),
         Position(2, -6)
     );
 
 
-    // Output inversion bubble
+    
     component.getAppearance().addCurve(
         Position(2, 0),
         Position(2, -1),
@@ -593,9 +593,9 @@ SentinelComponent makeNOT()
 }
 
 
-// ============================================================
-// BUFFER
-// ============================================================
+
+
+
 
 SentinelComponent makeBUFFER()
 {
@@ -622,7 +622,7 @@ SentinelComponent makeBUFFER()
     OUT->setAcceptsAffectors(false);
 
 
-    // Standard buffer triangle
+    
     component.getAppearance().addLine(
         Position(-2, -2),
         Position(-2, 2)

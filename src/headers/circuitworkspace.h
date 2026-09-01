@@ -8,15 +8,21 @@
 #include <QKeyEvent>
 #include <QGraphicsPixmapItem>
 #include <QResizeEvent>
+#include <QWidget>
+#include <QString>
+#include <vector>
 
 #include "component.h"
 
-// #include "wiregraphicsobject.h"
+
 
 class AbstractGraphicsObject;
 class ComponentGraphicsObject;
 class PinGraphicsObject;
 class SentinelComponent;
+
+class QWidget;
+class HotkeyOverlay;
 
 class CircuitWorkspace : public QGraphicsView
 {
@@ -38,6 +44,11 @@ public:
     void setComponentRotation(Component* component, int newRotation);
     void rotateSelectedComponent();
     void setPinRotation(Pin* pin, int newRotation);
+
+    bool isReadOnly() const {return p_readOnly;}
+    void setReadOnly(bool value);
+
+    void updateBreadcrumb(const std::vector<std::string>& path);
 public slots:
     void onComponentSelected(const SentinelComponent& component);
     void onComponentEditRequested(const SentinelComponent& component);
@@ -68,11 +79,11 @@ private:
     EditingStates state = EditingStates::EDIT;
 
     int p_width = 0;
-    int p_height = 0; // TODO set to window size?
+    int p_height = 0; 
 
 
 
-    int p_maxWidth = 0; // current * growth rate?
+    int p_maxWidth = 0; 
     int p_maxHeight = 0;
 
     int p_xposition = 0;
@@ -98,7 +109,7 @@ private:
     const SentinelComponent* p_componentToPlace = nullptr;
     ComponentGraphicsObject* p_componentGhost = nullptr;
 
-    // Pin placement -- mirrors the component-ghost members above.
+    
     std::unique_ptr<Pin> p_temporaryPinToPlace;
     PinGraphicsObject* p_pinGhost = nullptr;
 
@@ -109,7 +120,7 @@ private:
 
     QPoint p_itemDragStartMouse;
     QPointF p_itemDragStartPosition;
-    // WireGraphicsItem* tempWireItem = nullptr;
+    
 
     /*
         anchors
@@ -119,7 +130,7 @@ private:
     */
     Wire tempWire;
     
-    std::unique_ptr<QPoint> p_movementBegunQPoint = nullptr; // unique ptr only used for the null state + safety
+    std::unique_ptr<QPoint> p_movementBegunQPoint = nullptr; 
 
     QGraphicsScene workspaceScene;
     QGraphicsPixmapItem* backgroundGridItem = nullptr;
@@ -128,7 +139,7 @@ private:
 
     void moveWorkspaceToCurrentMouse(const QPoint& event);
     void updateWorkspacePosition();
-    // void resetBackgroundGrid();
+    
     void updateViewSize();
     int getMaxXPosition() const;
     int getMaxYPosition() const;
@@ -137,6 +148,16 @@ private:
     void rotateSelectedItem();
 
     void cancelCurrentPlacement();
+
+    void notifyReadOnly();
+
+    bool p_readOnly = false;
+
+    QWidget* p_breadcrumbBar = nullptr;
+    void rebuildBreadcrumbBar(const std::vector<std::string>& path);
+    void repositionBreadcrumbBar();
+
+    HotkeyOverlay* p_hotkeyOverlay = nullptr;
 };
 
-#endif // CIRCUITWORKSPACE_H
+#endif 

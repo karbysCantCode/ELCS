@@ -11,7 +11,7 @@
 #include <QColor>
 #include <QByteArray>
 
-// #include "segmentgraphicsobject.h"
+
 #include "componentappearance.h"
 #include "position.h"
 
@@ -33,15 +33,15 @@ inline QColor stateColor(States state)
     switch (state)
     {
     case States::LOW:
-        return QColor("#0b6e1c");      // dark green
+        return QColor("#0b6e1c");      
     case States::HIGH:
-        return QColor("#39ff14");      // bright green
+        return QColor("#39ff14");      
     case States::FLOATING:
-        return QColor("#3d8cff");      // blue
+        return QColor("#3d8cff");      
     case States::CONFLICT:
-        return QColor("#ffd500");      // yellow
+        return QColor("#ffd500");      
     case States::ERROR:
-        return QColor("#ff3b30");      // red
+        return QColor("#ff3b30");      
     default:
         return QColor("#3d8cff");
     }
@@ -78,8 +78,8 @@ protected:
     
     int tickPropagationDelay = 1;
     States effectingState = States::FLOATING;
-    std::unordered_set<Propagator*> effectors; // those that this propagator effects
-    std::unordered_set<Propagator*> affectors; // those that this propagator is affected by
+    std::unordered_set<Propagator*> effectors; 
+    std::unordered_set<Propagator*> affectors; 
     bool acceptsEffects = true;
     bool acceptsAffectors = true;
     public:
@@ -111,13 +111,13 @@ protected:
     void forget(Propagator* propagator) {effectors.erase(propagator); affectors.erase(propagator);}
     virtual void addRelatedPropagator(AbstractPropagator* abstract) override;
     virtual void forgetPropagator(AbstractPropagator* abstract) override;
-    //TODO SEE DEF FOR NOTE
-    // Defaults to effectors = affectors.
-    virtual void evaluateEffectingState(); //allow warn for multi low/high, technically not conflict but....
-    // Defaults to effectors = affectors.
-    // virtual void evaluateEffectors();
+    
+    
+    virtual void evaluateEffectingState(); 
+    
+    
 
-    //evaluates effecting state and ques effectors for evaluation.
+    
     void propagate(Propagator* excludedPropagator = nullptr);
 
     virtual Kinds getKind() const = 0;
@@ -143,7 +143,7 @@ struct Segment {
               end == other.end;
       }
 
-    // first = begin, second = end
+    
     std::pair<bool,bool> doesSegmentEndsSitAlongSegment(bool targetLineHorizontal, const Segment& segment) const;
     
 };
@@ -157,30 +157,30 @@ public:
     SegmentGraphicsObject* graphicsObject = nullptr;
     virtual size_t getUint32sToSave() const override;
     virtual void saveToAddress(uint32_t* data) const override;
-    //returns true if it needs to be destroyed
+    
     void mergeCollidingWires(std::unordered_set<Wire *>& deathRegistry, std::unordered_set<Propagator *>& excludeSet, std::unordered_set<Propagator *>* collidingSet = nullptr);
     std::pair<bool, std::unordered_set<Segment, SegmentHash>> trimCollidingAgainstWire(Wire* other);
     void reset();
 
     void setGraphicsObject(SegmentGraphicsObject* object)  {graphicsObject=object;}
 
-    // Removes the segment at `index`. Returns true if a segment was
-    // removed (false if index was out of range). Caller is
-    // responsible for unregistering the removed segment from the
-    // grid first (mirrors how the rest of this class leaves grid
-    // bookkeeping to the caller, e.g. mergeCollidingWires()).
+    
+    
+    
+    
+    
     bool removeSegmentAt(size_t index);
 
-    // Index of whichever segment sits closest to `point` (grid
-    // space), or -1 if this wire has no segments. Used to figure out
-    // which segment a user meant when deleting part of a
-    // multi-segment wire (segments are axis-aligned, so this is a
-    // simple clamped-point distance check).
+    
+    
+    
+    
+    
     int nearestSegmentIndex(const Position& point) const;
 
     std::vector<std::vector<Segment>> findConnectedSegmentGroups() const;
 
-    // does not sync effectors and affectors.
+    
     Wire(const Wire& wireToCopy);
     Wire() {}
 
@@ -237,7 +237,7 @@ public:
     const std::string& getAppearanceName() const { return appearanceName; }
     void setAppearanceName(const std::string& value) { appearanceName = value; }
 
-    // rotation, in degrees, always one of 0/90/180/270
+    
     int getRotation() const { return rotation; }
     void setRotation(int degrees) { rotation = ((degrees % 360) + 360) % 360; }
     
@@ -253,7 +253,7 @@ public:
     virtual void saveToAddress(uint32_t* data) const override;
     void poke(States newState);
     Pin(Component& _parent, States* _state = nullptr) : parent(_parent), state(_state) {}
-    // does not sync effectors and affectors.
+    
     Pin(const Pin& pinToCopy, Component& _parent);
 
     ~Pin();
@@ -266,8 +266,8 @@ private:
     int rotation = 0;
     Component& parent;
     PinGraphicsObject* graphicsObject = nullptr;
-    // state should be inherited by wire, begins nullptr assuming no connected wire, beware.
-    States* state = nullptr; //unused...
+    
+    States* state = nullptr; 
 };
 
 class Component : public AbstractPropagator
@@ -282,25 +282,25 @@ class Component : public AbstractPropagator
     };
 public:
 
-    // name
+    
     const std::string& getName() const { return name; }
     void setName(const std::string& value) { name = value; }
 
-    // appearanceName
+    
     const std::string& getAppearanceName() const { return appearanceName; }
     void setAppearanceName(const std::string& value) { appearanceName = value; }
 
-    // rotation, in degrees, always one of 0/90/180/270
+    
     int getRotation() const { return rotation; }
     void setRotation(int degrees) { rotation = ((degrees % 360) + 360) % 360; }
 
     Position getAbsolutePinPosition(const Pin& pin) const;
 
-    // filePath
+    
     const std::filesystem::path& getFilePath() const { return filePath; }
     void setFilePath(const std::filesystem::path& value) { filePath = value; }
 
-    // propagators
+    
     const std::vector<std::unique_ptr<AbstractPropagator>>& getPropagators() const {
         return propagators;
     }
@@ -345,7 +345,7 @@ public:
 
     void setAppearance(const ComponentAppearance& value);
 
-    // graphicsItem
+    
     ComponentGraphicsObject* getGraphicsObject() const { return graphicsObject; }
     void setGraphicsObject(ComponentGraphicsObject* value) { graphicsObject = value; }
 
@@ -440,4 +440,4 @@ public:
     void refreshInstanceGraphics();
 };
 
-#endif // COMPONENT_H
+#endif 

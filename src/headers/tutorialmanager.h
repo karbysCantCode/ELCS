@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QHash>
 #include <QString>
+#include <QTimer>
 
 #include <vector>
 
@@ -83,6 +84,26 @@ class TutorialToolbox;
     step's `bind` list; references without a leading "$" aren't
     currently resolved to anything (reserved for future literal
     matching, e.g. by name).
+
+    A step can also carry a "truthTable", shown as a floating panel
+    on the overlay for as long as that step is current. Each input
+    "ref" must resolve to a single bound pin (typically via an
+    earlier step's placePin/placeComponent `bind`); the panel
+    auto-generates one row per input combination (2^N) and highlights
+    -- live, polling the actual pin states -- whichever row matches
+    what's currently on the workspace. Outputs are optional and, for
+    whichever row is currently highlighted, show that pin's live
+    state in place of any static "expected" value:
+
+        "truthTable": {
+          "inputs": [ {"ref": "$in1", "label": "A"}, {"ref": "$in2", "label": "B"} ],
+          "outputs": [ {"ref": "$out", "label": "Y"} ],
+          "expected": [ ["0"], ["0"], ["0"], ["1"] ]
+        }
+
+    `expected`, if present, is one row per input combination (MSB =
+    first input), one column per output -- shown for every row that
+    isn't the currently-highlighted one, as a static reference.
 */
 class TutorialManager : public QObject
 {
@@ -106,9 +127,9 @@ public:
     int currentStep() const { return currentStepIndex; }
     QString title() const { return tutorialTitle; }
 
-    // Returns the propagator bound to "$name" (or an invalid value if
-    // there's no such binding yet), for host code that wants to poke
-    // at tutorial state directly rather than only through JSON.
+    
+    
+    
     TutorialValue variable(const QString& name) const;
 
 signals:
@@ -123,12 +144,12 @@ private slots:
     void onWirePlaced(Wire* wire);
     void onItemDeleted(AbstractPropagator* propagator);
 
-    // Wired to TutorialOverlay::dismissRequested() (the close/"X"
-    // button) -- this is what actually gives the user a way to
-    // dismiss the tutorial, whether it's mid-progress (treated as a
-    // cancel) or sitting on its last step (treated as completion,
-    // since a trailing conditionless "you're done!" step otherwise
-    // has no way to know it should go away).
+    
+    
+    
+    
+    
+    
     void onDismissRequested();
 
 private:
@@ -142,7 +163,14 @@ private:
 
     QHash<QString, TutorialValue> variables;
 
+    
+    
+    
+    
+    QTimer* labelPollTimer = nullptr;
+
     TutorialCondition parseCondition(const QJsonObject& obj) const;
+    TruthTableSpec parseTruthTable(const QJsonObject& obj) const;
     TutorialValue resolveReference(const QString& ref) const;
     std::vector<Propagator*> collectPropagators(const TutorialValue& value) const;
     bool arePropagatorsConnected(const TutorialValue& a, const TutorialValue& b) const;
@@ -153,16 +181,16 @@ private:
     void advanceStep();
     void presentCurrentStep();
 
-    // Shared cleanup for "the tutorial is over" (reached past the
-    // last step, or dismissed while sitting on it) -- separate from
-    // cancel() so the right signal (tutorialCompleted() vs
-    // tutorialCancelled()) fires either way.
+    
+    
+    
+    
     void finishTutorial();
 
-    // Pushes every currently-bound variable's on-screen position to
-    // the overlay as a name tag (see TutorialOverlay::setVariableLabels()),
-    // so e.g. "gateX"/"gateY" are actually visible next to the
-    // specific placed gates they refer to, not just usable in JSON.
+    
+    
+    
+    
     void updateVariableLabels();
 };
 

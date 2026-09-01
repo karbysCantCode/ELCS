@@ -22,7 +22,7 @@ public:
     static Position setAsScaledFromGrid(const QPointF& point, int offset = 5);
     Position getRotatedCopy(int degrees) const;
 
-    //bool doesPositionSitBetweenManhattenLines(bool targetLineHorizontal = false, const Position& positionA, const Position& positionB) const;
+    
 
     constexpr bool operator==(const Position& other) const {return other.x == x && other.y == y;}
     constexpr bool operator!=(const Position& other) const {return !(other.x == x && other.y == y);}
@@ -38,4 +38,4 @@ struct PositionHash
     }
 };
 
-#endif // POSITION_H
+#endif 

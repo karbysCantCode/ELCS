@@ -23,4 +23,4 @@ private:
     Ui::NotificationElement *ui;
 };
 
-#endif // NOTIFICATIONELEMENT_H
+#endif 

@@ -42,6 +42,13 @@ public:
     void onPropagatorSelected(AbstractPropagator* propagator);
     void onSelectionCleared();
 
+    bool isViewingInstance() const { return !viewStack.empty(); }
+    Component* currentViewContainer() const;
+    void enterComponentInstance(Component* instance);
+    void exitToViewDepth(size_t depth);
+    void exitOneViewLevel();
+    std::vector<std::string> breadcrumbPath() const;
+
 private:
   void removeExistingComponentFromWorkspace();
   void addCurrentComponentToWorkspace();
@@ -52,6 +59,8 @@ private:
   std::unordered_set<std::function<void()>*> newComponentCallbacks;
 
   PropertySection* simulatorPropertySection = nullptr;
+
+  std::vector<Component*> viewStack;
 };
 
 extern ProjectManager* globalProjectManager;

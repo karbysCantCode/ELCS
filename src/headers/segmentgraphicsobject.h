@@ -8,7 +8,7 @@
 #include <vector>
 #include "abstractgraphicsobject.h"
 
-// #include "component.h"
+
 
 struct Segment;
 
@@ -17,7 +17,7 @@ class Wire;
 class SegmentGraphicsObject : public AbstractGraphicsObject
 {
 public:
-    // enum { Type = UserType + 2 };
+    
     GraphicsObjectTypes graphicsObjectType() const override {return GraphicsObjectTypes::SEGMENT;}
     SegmentGraphicsObject(
         Wire& _wire,
@@ -29,6 +29,8 @@ public:
         setZValue(1);
         setAcceptedMouseButtons(Qt::NoButton);
     }
+
+    ~SegmentGraphicsObject() override;
 
     virtual void updateWorkspacePosition() override;
 
@@ -48,10 +50,10 @@ public:
 protected:
   void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
   void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
-  // int type() const override
-  // {
-  //   return SegmentGraphicsObject::Type;
-  // }
+  
+  
+  
+  
 private:
     Wire& wire;
     QColor color = Qt::black;

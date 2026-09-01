@@ -21,13 +21,13 @@ TutorialOverlay::TutorialOverlay(QWidget* parent)
         setGeometry(parent->rect());
     }
 
-    // A real child widget rather than something we hand-roll inside
-    // paintEvent()/mousePressEvent(): its own click handling is
-    // completely independent of this overlay's
-    // WA_TransparentForMouseEvents toggle, which is what lets it stay
-    // clickable even on an unrestricted (click-through-everywhere)
-    // step.
-    closeButton = new QPushButton(QString::fromUtf8("\xE2\x9C\x95"), this); // "✕"
+    
+    
+    
+    
+    
+    
+    closeButton = new QPushButton(QString::fromUtf8("\xE2\x9C\x95"), this); 
     closeButton->setFixedSize(24, 24);
     closeButton->setToolTip("Close tutorial");
     closeButton->setCursor(Qt::PointingHandCursor);
@@ -43,6 +43,8 @@ TutorialOverlay::TutorialOverlay(QWidget* parent)
     );
     connect(closeButton, &QPushButton::clicked, this, &TutorialOverlay::dismissRequested);
     closeButton->hide();
+
+    truthTableWidget = new TruthTableWidget(this);
 
     hide();
 }
@@ -60,10 +62,10 @@ bool TutorialOverlay::eventFilter(QObject* watched, QEvent* event)
         return QWidget::eventFilter(watched, event);
     }
 
-    // A highlighted widget itself moving/resizing -- e.g. a splitter
-    // redistributing space between the toolbox and the workspace
-    // without the overlay's own parent changing size at all -- needs
-    // to refresh the spotlight too.
+    
+    
+    
+    
     if (isMoveOrResize)
     {
         for (const QPointer<QWidget>& w : highlightedWidgets)
@@ -91,6 +93,8 @@ void TutorialOverlay::showEvent(QShowEvent* event)
 
 void TutorialOverlay::showInstruction(const QString& text)
 {
+    qDebug() << "[DEBUG] TutorialOverlay::showInstruction called, text=" << text;
+
     instructionText = text;
 
     if (parentWidget())
@@ -105,11 +109,24 @@ void TutorialOverlay::showInstruction(const QString& text)
 
 void TutorialOverlay::hideInstruction()
 {
+    qDebug() << "[DEBUG] TutorialOverlay::hideInstruction called";
+
     instructionText.clear();
+
+    
+    
+    
+    
+    
+    
+    restrictInput = false;
+    setAttribute(Qt::WA_TransparentForMouseEvents, true);
+
     clearHighlight();
     variableScenePoints.clear();
     labelView = nullptr;
     closeButton->hide();
+    hideTruthTable();
     hide();
 }
 
@@ -184,6 +201,25 @@ void TutorialOverlay::setRestrictInputToHighlight(bool restrict)
     refresh();
 }
 
+void TutorialOverlay::showTruthTable(
+    const QVector<TruthTableColumn>& inputs,
+    const QVector<TruthTableColumn>& outputs,
+    const QVector<QVector<QString>>& expectedOutputRows
+)
+{
+    truthTableWidget->setSpec(inputs, outputs, expectedOutputRows);
+    truthTableWidget->raise();
+
+    refresh();
+}
+
+void TutorialOverlay::hideTruthTable()
+{
+    truthTableWidget->clearSpec();
+
+    refresh();
+}
+
 QVector<QRect> TutorialOverlay::computeHighlightRects() const
 {
     QVector<QRect> rects;
@@ -241,8 +277,8 @@ QRect TutorialOverlay::labelTagRect(const QString& text, const QPoint& anchor) c
 
     QRect tagRect(0, 0, fm.horizontalAdvance(text) + paddingX * 2, fm.height() + paddingY * 2);
 
-    // Sits just above the anchor point, with room below it for the
-    // little pointer line drawn down to the actual anchor.
+    
+    
     tagRect.moveCenter(QPoint(anchor.x(), anchor.y() - tagRect.height() - 10));
 
     return tagRect;
@@ -261,8 +297,19 @@ void TutorialOverlay::repositionCloseButton()
     closeButton->move(bubble.right() - closeButton->width() - 10, bubble.top() + 10);
 }
 
+void TutorialOverlay::repositionTruthTable()
+{
+    if (!truthTableWidget->hasSpec())
+        return;
+
+    truthTableWidget->adjustSize();
+    truthTableWidget->move(width() - truthTableWidget->width() - 20, 20);
+}
+
 void TutorialOverlay::refresh()
 {
+    repositionTruthTable();
+
     const QVector<QRect> highlightRects = computeHighlightRects();
 
     if (highlightRects.isEmpty())
@@ -293,16 +340,26 @@ void TutorialOverlay::refresh()
         for (const auto& anchor : computeVariableLabelAnchors())
             region += labelTagRect(anchor.first, anchor.second);
 
+        if (truthTableWidget->hasSpec())
+            region += truthTableWidget->geometry();
+
         setMask(region);
     }
 
-    // Input blocking is a separate concern from the visual cutout
-    // above: this only controls whether the (still visible, still
-    // masked-in) dimmed area is click-through or not. The close
-    // button is a real child widget and ignores this entirely.
+    
+    
+    
+    
     setAttribute(Qt::WA_TransparentForMouseEvents, !restrictInput);
 
     repositionCloseButton();
+
+    qDebug() << "[DEBUG] TutorialOverlay::refresh isVisible=" << isVisible()
+             << " restrictInput=" << restrictInput
+             << " transparentForMouse=" << testAttribute(Qt::WA_TransparentForMouseEvents)
+             << " highlightRectCount=" << highlightRects.size()
+             << " geometry=" << geometry()
+             << " hasMask=" << !this->mask().isEmpty();
 
     update();
 }
@@ -315,9 +372,9 @@ void TutorialOverlay::resizeEvent(QResizeEvent* event)
 
 void TutorialOverlay::paintEvent(QPaintEvent*)
 {
-    // Recomputed right before painting too, not just on tracked
-    // move/resize events -- belt and suspenders for any geometry
-    // change our event filters didn't catch.
+    
+    
+    
     const QVector<QRect> highlightRects = computeHighlightRects();
 
     QPainter painter(this);
@@ -333,8 +390,8 @@ void TutorialOverlay::paintEvent(QPaintEvent*)
     for (const QRect& r : highlightRects)
         painter.drawRoundedRect(r.adjusted(-4, -4, 4, 4), 6, 6);
 
-    // Variable name tags, each with a short pointer line down to its
-    // actual anchor position.
+    
+    
     for (const auto& anchor : computeVariableLabelAnchors())
     {
         const QRect tagRect = labelTagRect(anchor.first, anchor.second);

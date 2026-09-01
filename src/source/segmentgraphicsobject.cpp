@@ -7,6 +7,12 @@
 #include <QGraphicsScene>
 
 
+SegmentGraphicsObject::~SegmentGraphicsObject()
+{
+    if (wire.graphicsObject == this)
+        wire.graphicsObject = nullptr;
+}
+
 QRectF SegmentGraphicsObject::boundingRect() const
 {
     QRectF rect;
@@ -48,9 +54,9 @@ void SegmentGraphicsObject::paint(
     if (wire.segments.empty())
         return;
 
-    // Wires are colored by their current propagation state (see
-    // stateColor() in component.h) rather than a fixed/random color,
-    // so the whole net visually reflects what it's carrying.
+    
+    
+    
     const QColor stateCol = stateColor(wire.getEffectingState());
 
     QPen pen(stateCol);
@@ -87,7 +93,7 @@ void SegmentGraphicsObject::paint(
     painter->setPen(QPen(Qt::blue, 1));
     painter->drawRect(boundingRect());
 
-    // optional selection outline
+    
     if (isSelected())
     {
         QPen selectionPen(QColor(0,120,255));
@@ -126,7 +132,7 @@ void SegmentGraphicsObject::setColor(const QColor& c)
 }
 
 void SegmentGraphicsObject::updateWorkspacePosition() {
-    // for (segment)
+    
 }
 
 

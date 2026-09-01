@@ -15,6 +15,7 @@
 
 class ComponentStyleGraphicsObject;
 class QToolButton;
+class HotkeyOverlay;
 
 
 class CircuitStyleWorkspace : public QGraphicsView
@@ -128,6 +129,8 @@ private:
     QToolButton* addLineButton = nullptr;
     QToolButton* addCurveButton = nullptr;
     QToolButton* addLabelButton = nullptr;
+
+    HotkeyOverlay* p_hotkeyOverlay = nullptr;
 
     InteractionState interactionState =
         InteractionState::NONE;

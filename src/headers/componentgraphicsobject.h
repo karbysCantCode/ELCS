@@ -7,18 +7,20 @@
 
 #include "component.h"
 #include "abstractgraphicsobject.h"
-// #include "componentappearance.h"
+
 
 class ComponentGraphicsObject : public AbstractGraphicsObject
 {
     Q_OBJECT
 
 public:
-    // enum { Type = UserType + 4 };
+    
     explicit ComponentGraphicsObject(
         Component& component,
         QGraphicsObject* parent = nullptr
     );
+
+    ~ComponentGraphicsObject() override;
 
     virtual void updateWorkspacePosition() override;
 
@@ -42,15 +44,15 @@ public:
     
 
 protected:
-    // void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
-    // void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
-    // void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
+    
+    
+    
 
-    //handled by circuitworkspace
-    // int type() const override
-    // {
-    //   return ComponentGraphicsObject::Type;
-    // }
+    
+    
+    
+    
+    
 
 private:
     const Component& component;

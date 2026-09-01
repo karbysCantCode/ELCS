@@ -47,4 +47,4 @@ public:
     ComponentHolder();
 };
 
-#endif // COMPONENTHOLDER_H
+#endif 

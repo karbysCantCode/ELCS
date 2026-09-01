@@ -13,9 +13,9 @@
 #include <QTimer>
 
 namespace {
-// ~60Hz. Cheap enough to just always run while something is
-// happening -- the scheduler's own tick rate is uncapped/full-speed,
-// this is purely a UI refresh cadence.
+
+
+
 constexpr int POLL_INTERVAL_MS = 16;
 }
 
@@ -94,8 +94,8 @@ SchedulerControlPanel::SchedulerControlPanel(QWidget* parent)
 
 void SchedulerControlPanel::onPlayPauseClicked()
 {
-    // Step/Sprint own the scheduler for their duration -- the button
-    // is disabled while that's true, but bail defensively anyway.
+    
+    
     qDebug("njkdsfjk"); 
     if (waitingOnFiniteRun)
         return;
@@ -104,10 +104,10 @@ void SchedulerControlPanel::onPlayPauseClicked()
     {
         globalScheduler->stopTicks();
         playMode = false;
-        // Leave pollTimer running: it'll notice isRunning() go false
-        // once the worker thread actually exits its loop and stop
-        // itself, doing one last repaint/status refresh at that
-        // point.
+        
+        
+        
+        
     }
     else
     {
@@ -156,9 +156,9 @@ void SchedulerControlPanel::pollScheduler()
 
     if (!globalScheduler->isRunning())
     {
-        // Either a Step/Sprint run finished on its own, or Pause was
-        // clicked and the worker thread has now actually exited its
-        // loop -- either way there's nothing left to poll for.
+        
+        
+        
         playMode = false;
         waitingOnFiniteRun = false;
 
@@ -171,10 +171,10 @@ void SchedulerControlPanel::pollScheduler()
 
 void SchedulerControlPanel::refreshControlsEnabled()
 {
-    // Step/Sprint/the spin box only make sense when nothing else is
-    // driving the scheduler; Play/Pause is disabled only mid Step/
-    // Sprint, since interrupting a full-speed Play run to pause it
-    // is exactly what the button is for.
+    
+    
+    
+    
     playPauseButton->setEnabled(!waitingOnFiniteRun);
     stepButton->setEnabled(!playMode && !waitingOnFiniteRun);
     sprintButton->setEnabled(!playMode && !waitingOnFiniteRun);

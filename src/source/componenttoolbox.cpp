@@ -1,6 +1,6 @@
 #include "componenttoolbox.h"
 
-// #include "ui_componentToolboxElement.h"
+
 #include "projectmanager.h"
 #include "circuitworkspace.h"
 
@@ -25,18 +25,18 @@ componentToolbox::componentToolbox(QWidget* parent)
 }
 
 
-// ToolboxElement::ToolboxElement(const Component& _component, QWidget* parent)
-//     : QWidget(parent),
-//     component(_component),
-//     ui(new Ui::componentToolboxElement)
-// {
-//     ui->setupUi(this);
-// }
 
-// ToolboxElement::~ToolboxElement()
-// {
-//     delete ui;
-// }
+
+
+
+
+
+
+
+
+
+
+
 
 ToolboxElement::ToolboxElement(
     SentinelComponent& component,

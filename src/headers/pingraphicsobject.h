@@ -22,11 +22,17 @@ class PinGraphicsObject : public AbstractGraphicsObject
 {
   Q_OBJECT
 public:
-  // enum { Type = UserType + 3 };
+  
   PinGraphicsObject(Pin& _pin, QGraphicsObject *parent = nullptr)
       : AbstractGraphicsObject(&_pin, parent), name(QString::fromStdString(_pin.getName())), pin(_pin)
   {
     setZValue(1);
+  }
+
+  ~PinGraphicsObject() override
+  {
+    if (pin.getGraphicsObject() == this)
+      pin.setGraphicsObject(nullptr);
   }
 
   virtual void updateWorkspacePosition() override;
@@ -37,17 +43,14 @@ public:
 
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) override;
 
-  // Ghosted while being placed (startPlacingPin()'s follow-the-cursor
-  // preview) -- reduced opacity so it reads as "not committed yet",
-  // same idiom as ComponentGraphicsObject's ghost mode.
   void setGhostMode(bool enabled);
   bool ghostMode() const;
 
 protected:
-  // int type() const override
-  // {
-  //     return PinGraphicsObject::Type;
-  // }
+  
+  
+  
+  
 private:
   QRectF labelRect() const;
 
@@ -63,4 +66,4 @@ private:
   bool ghost = false;
 };
 
-#endif // PINGRAPHICSITEM_H
+#endif 

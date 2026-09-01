@@ -52,15 +52,15 @@ void PinGraphicsObject::paint(
   painter->save();
   painter->rotate(pin.getRotation());
 
-  // dot 
+  
   painter->drawEllipse(QPointF(0,0), 4, 4); 
   
-  // line 
+  
   painter->drawLine( QPointF(4,0), QPointF(30,0) ); 
 
   painter->restore();
   
-  // text box 
+  
   QFont font("Arial", 12); 
   QFontMetrics fm(font); 
   QRectF textRect = labelRect();

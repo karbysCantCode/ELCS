@@ -24,7 +24,7 @@
 
 namespace
 {
-    constexpr uint32_t COMPONENT_APPEARANCE_SECTION_MAGIC = 0x41505052; // 'APPR'
+    constexpr uint32_t COMPONENT_APPEARANCE_SECTION_MAGIC = 0x41505052; 
 
     constexpr uint32_t MAX_SANE_COUNT = 1'000'000;
 
@@ -375,7 +375,7 @@ std::pair<bool,bool> Segment::doesSegmentEndsSitAlongSegment(
     return {beginHit, endHit};
 }
 
-//return true if its destruction is expected
+
 std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAgainstWire(Wire* other) {
   bool merges = false;
   std::vector<int> segmentsToRemove;
@@ -388,7 +388,7 @@ std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAga
       bool otherIsHorizontal = otherSegment.begin.y == otherSegment.end.y;
 
       if (thisIsHorizontal != otherIsHorizontal) {
-        //detect ends along line
+        
         const auto [beginCollide, endCollide] = segment.doesSegmentEndsSitAlongSegment(otherIsHorizontal, otherSegment);
 				const auto [otherBeginCollide, otherEndCollide] = otherSegment.doesSegmentEndsSitAlongSegment(thisIsHorizontal, segment);
 
@@ -400,7 +400,7 @@ std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAga
         } else {
           if (otherSegment.begin.x != segment.begin.x) continue;
         }
-        //check partial/full overlap
+        
 
         int otherMax = 0;
         int thisMax = 0;
@@ -440,7 +440,7 @@ std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAga
         bool thisMinInsideOther = thisMin >= otherMin;
 
         if (thisMin >= otherMin && thisMax <= otherMax) {
-          //full
+          
 
           merges = true;
           segmentsToRemove.push_back(i);
@@ -448,7 +448,7 @@ std::pair<bool, std::unordered_set<Segment, SegmentHash>> Wire::trimCollidingAga
 					globalProjectManager->gridManager.addToGrid(otherSegment, other);
           break;
         } else if (thisMin <= otherMax && thisMax >= otherMin) {
-          //partial
+          
           int newMin = std::min(thisMin, otherMin);
           int newMax = std::max(thisMax, otherMax);
           if (thisIsHorizontal)
@@ -556,13 +556,13 @@ int Wire::nearestSegmentIndex(const Position& point) const {
         int clampedY;
 
         if (segment.begin.y == segment.end.y) {
-            // horizontal segment
+            
             const int minX = std::min(segment.begin.x, segment.end.x);
             const int maxX = std::max(segment.begin.x, segment.end.x);
             clampedX = std::clamp(point.x, minX, maxX);
             clampedY = segment.begin.y;
         } else {
-            // vertical segment
+            
             const int minY = std::min(segment.begin.y, segment.end.y);
             const int maxY = std::max(segment.begin.y, segment.end.y);
             clampedX = segment.begin.x;
@@ -1189,7 +1189,7 @@ bool SentinelComponent::loadFromLegacyBinary(const std::filesystem::path& path) 
 
     const uint32_t totalPropagators = readU32();
     checkSaneCount(totalPropagators, "propagator count");
-    (void)totalPropagators; // layout placeholder, not otherwise used
+    (void)totalPropagators; 
 
     const uint32_t totalWires = readU32();
     const uint32_t totalPins = readU32();
